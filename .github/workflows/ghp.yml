@@ -1,0 +1,68 @@
+name: aigdocs
+
+on:
+  # Runs every time master branch is updated
+  push:
+    branches: ["main"]
+    # But only if docs-related files are touched
+    paths:
+      - .github/workflows/ghp.yml
+      - ./mkdocs.yml
+      - docs/**
+  # Runs every time a PR is open against master
+  pull_request:
+    branches: ["main"]
+    # But only if docs-related files are touched
+    paths:
+      - .github/workflows/ghp.yml
+      - ./mkdocs.yml
+      - docs/**
+  workflow_dispatch:
+
+concurrency:
+  # Prevent 2+ copies of this workflow from running concurrently
+  group: aigdocs-action
+
+jobs:
+  ghp:
+    if: ${{ github.repository == 'E3SM-Project/aigroup' }}
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          show-progress: false
+          fetch-depth: 0 # Needed, or else gh-pages won't be fetched, and push rejected
+          submodules: true
+      - name: Show action trigger
+        run: echo "= The job was automatically triggered by a ${{github.event_name}} event on repo ${{github.event.repository.name}}."
+      - name: Install Python deps
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          init-shell: bash
+          environment-name: docs
+          create-args: >-
+            python=3.13
+            mkdocs
+            mkdocs-material
+      # build every time (PR or push to master)
+      - name: Build
+        run: mkdocs build --strict --verbose
+      # Only deploy to the main github page when there is a push to master
+      - if: ${{ github.event_name == 'push' }}
+        name: GitHub Pages action
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          # Do not remove existing pr-preview pages
+          clean-exclude: pr-preview
+          folder: ./site/
+      # If it's a PR from within the same repo, deploy to a preview page
+      # For security reasons, PRs from forks cannot write into gh-pages for now
+      - if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+        name: Preview docs
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: ./site/
