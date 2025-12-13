@@ -1,0 +1,20 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Minimalist Earth with clean gradients -->
+  <defs>
+    <linearGradient id="earthGradient" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4db6ac"/>
+      <stop offset="100%" stop-color="#009688"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Central Planet -->
+  <circle cx="50" cy="50" r="28" fill="url(#earthGradient)"/>
+  
+  <!-- Orbiting AI Node 1 -->
+  <path d="M20,50 A30,12 0 1,1 80,50" fill="none" stroke="#7c4dff" stroke-width="6" stroke-linecap="round" stroke-opacity="0.8" transform="rotate(-30 50 50)"/>
+  <circle cx="80" cy="50" r="6" fill="#7c4dff" transform="rotate(-30 50 50)"/>
+  
+  <!-- Orbiting AI Node 2 (Opposite) -->
+  <path d="M80,50 A30,12 0 1,1 20,50" fill="none" stroke="#7c4dff" stroke-width="6" stroke-linecap="round" stroke-opacity="0.4" transform="rotate(30 50 50)"/>
+  
+</svg>

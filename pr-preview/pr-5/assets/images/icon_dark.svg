@@ -1,0 +1,20 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Minimalist Earth with clean gradients for dark mode -->
+  <defs>
+    <linearGradient id="earthGradientDark" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#80cbc4"/>
+      <stop offset="100%" stop-color="#26a69a"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Central Planet -->
+  <circle cx="50" cy="50" r="28" fill="url(#earthGradientDark)"/>
+  
+  <!-- Orbiting AI Node 1 -->
+  <path d="M20,50 A30,12 0 1,1 80,50" fill="none" stroke="#b388ff" stroke-width="6" stroke-linecap="round" stroke-opacity="0.9" transform="rotate(-30 50 50)"/>
+  <circle cx="80" cy="50" r="6" fill="#b388ff" transform="rotate(-30 50 50)"/>
+  
+  <!-- Orbiting AI Node 2 (Opposite) -->
+  <path d="M80,50 A30,12 0 1,1 20,50" fill="none" stroke="#b388ff" stroke-width="6" stroke-linecap="round" stroke-opacity="0.5" transform="rotate(30 50 50)"/>
+  
+</svg>
