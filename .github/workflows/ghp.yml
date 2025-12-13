@@ -48,6 +48,8 @@ jobs:
             python=3.13
             mkdocs
             mkdocs-material
+            cairosvg
+            pillow
       # build every time (PR or push to master)
       - name: Build
         run: mkdocs build --strict --verbose
