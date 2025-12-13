@@ -1,2 +1,5 @@
 # the site directory
 site
+
+# any cache
+.cache

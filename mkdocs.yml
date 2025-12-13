@@ -1,34 +1,123 @@
 site_name: E3SM AIG
+site_description: E3SM AI Group
+site_url: https://e3sm-project.github.io/aigroup
+repo_name: aigroup
+edit_uri: edit/main/docs
+
 theme:
   name: material
   features:
+    # Navigation
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
-    - toc.integrate
+    - navigation.expand
+    - navigation.indexes
+    - navigation.tracking
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.footer
+    - navigation.top
+    - toc.follow
+    # Search
     - search.suggest
     - search.highlight
+    - search.share
+    # Content
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - content.action.view
+    - content.tabs.link
+    - content.tooltips
+    # Header
+    - header.autohide
+    - announce.dismiss
   palette:
+    # Light Mode
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: teal
+      accent: purple
       toggle:
-        icon: material/brightness-7
+        icon: material/weather-sunny
         name: Switch to dark mode
+    # Dark Mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: teal
+      accent: lime
       toggle:
-        icon: material/brightness-4
+        icon: material/weather-night
         name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/images/icon_light.svg
+  logo: assets/images/icon_light.svg
+  icon:
+    repo: fontawesome/brands/github
+    annotation: material/arrow-right-circle
+
+plugins:
+  - social
+
+repo_url: https://github.com/E3SM-Project/aigroup
+repo_name: E3SM-Project/aigroup
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/E3SM-Project
+      name: E3SM Project on GitHub
+  generator: false
 
 markdown_extensions:
+  # Admonitions
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  # Code
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  # Formatting
+  - pymdownx.critic:
+      mode: accept
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  # Tabs & Tasks
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  # Emoji & Icons
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  # HTML & Attributes
+  - attr_list
+  - md_in_html
+  - def_list
+  # Tables & Footnotes
+  - tables
+  - footnotes
+  # Math
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
   - Home: index.md
