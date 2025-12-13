@@ -42,10 +42,15 @@
   transform: scale(1.08);
 }
 
-/* Dark mode logo adjustments */
-[data-md-color-scheme="slate"] .md-header__button.md-logo img,
-[data-md-color-scheme="slate"] .md-header__button.md-logo svg {
+/* Dark mode logo adjustments - swap to night version */
+[data-md-color-scheme="slate"] .md-header__button.md-logo img {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+  content: url("../images/icon_dark.svg");
+}
+
+/* Also swap logo in hero section for dark mode */
+[data-md-color-scheme="slate"] .hero-logo img {
+  content: url("../images/icon_dark.svg");
 }
 
 
@@ -75,8 +80,8 @@
 
 /* Hero Content */
 .hero-logo img {
-  width: 150px;
-  height: 150px;
+  width: 380px;
+  height: 380px;
   margin-bottom: 2rem;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 }

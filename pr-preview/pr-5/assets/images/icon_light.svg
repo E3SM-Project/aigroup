@@ -1,20 +1,48 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Minimalist Earth with clean gradients -->
+  <!-- Light Mode: Day version with sun, brighter warmer colors -->
   <defs>
-    <linearGradient id="earthGradient" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#4db6ac"/>
-      <stop offset="100%" stop-color="#009688"/>
-    </linearGradient>
+    <radialGradient id="oceanDay" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#0288d1"/>
+    </radialGradient>
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff59d"/>
+      <stop offset="60%" stop-color="#ffee58"/>
+      <stop offset="100%" stop-color="#ffc107"/>
+    </radialGradient>
   </defs>
   
-  <!-- Central Planet -->
-  <circle cx="50" cy="50" r="28" fill="url(#earthGradient)"/>
+  <!-- Sun with glow -->
+  <circle cx="82" cy="14" r="10" fill="url(#sunGlow)"/>
+  <circle cx="82" cy="14" r="14" fill="#fff59d" opacity="0.3"/>
   
-  <!-- Orbiting AI Node 1 -->
-  <path d="M20,50 A30,12 0 1,1 80,50" fill="none" stroke="#7c4dff" stroke-width="6" stroke-linecap="round" stroke-opacity="0.8" transform="rotate(-30 50 50)"/>
-  <circle cx="80" cy="50" r="6" fill="#7c4dff" transform="rotate(-30 50 50)"/>
+  <!-- Ocean base - brighter blue -->
+  <circle cx="50" cy="50" r="36" fill="url(#oceanDay)"/>
   
-  <!-- Orbiting AI Node 2 (Opposite) -->
-  <path d="M80,50 A30,12 0 1,1 20,50" fill="none" stroke="#7c4dff" stroke-width="6" stroke-linecap="round" stroke-opacity="0.4" transform="rotate(30 50 50)"/>
+  <!-- Continents - vibrant greens -->
+  <path d="M32,32 Q42,26 50,32 Q54,40 47,46 Q38,50 30,44 Q25,38 32,32" fill="#4caf50"/>
+  <path d="M55,50 Q66,45 72,55 Q74,68 62,70 Q50,70 52,60 Q53,52 55,50" fill="#66bb6a"/>
+  <ellipse cx="36" cy="64" rx="7" ry="5" fill="#81c784"/>
   
+  <!-- Bright fluffy clouds -->
+  <path d="M22,28 Q28,24 36,26 Q42,24 48,28 Q52,26 56,30" 
+        fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M58,52 Q66,48 74,52 Q80,50 84,54" 
+        fill="none" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M16,48 Q22,44 30,48" 
+        fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  
+  <!-- Neural network connecting Earth system components -->
+  <line x1="40" y1="55" x2="52" y2="60" stroke="#7c4dff" stroke-width="1.5" stroke-opacity="0.7"/>
+  <line x1="28" y1="50" x2="36" y2="64" stroke="#7c4dff" stroke-width="1.5" stroke-opacity="0.6"/>
+  <line x1="40" y1="38" x2="42" y2="28" stroke="#b388ff" stroke-width="1.5" stroke-opacity="0.7"/>
+  <line x1="62" y1="55" x2="70" y2="52" stroke="#b388ff" stroke-width="1.5" stroke-opacity="0.6"/>
+  <line x1="24" y1="38" x2="28" y2="28" stroke="#9575cd" stroke-width="1.5" stroke-opacity="0.6"/>
+  
+  <!-- Node points -->
+  <circle cx="40" cy="38" r="2.5" fill="#7c4dff" opacity="0.9"/>
+  <circle cx="52" cy="60" r="2.5" fill="#7c4dff" opacity="0.9"/>
+  <circle cx="36" cy="64" r="2" fill="#b388ff" opacity="0.8"/>
+  <circle cx="42" cy="28" r="2" fill="#b388ff" opacity="0.8"/>
+  <circle cx="70" cy="52" r="2" fill="#9575cd" opacity="0.8"/>
 </svg>
