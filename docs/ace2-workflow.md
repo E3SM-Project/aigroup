@@ -24,7 +24,7 @@ ACE is a machine learning model for climate emulation developed by AI2. This wor
 
 Start by cloning the ACE repository and checking out the main branch:
 
-```bash
+```shell
 git clone https://github.com/E3SM-Project/ace.git
 cd ace
 ```
@@ -33,18 +33,19 @@ cd ace
 
 Clone the ACE2-ERA5 dataset from Hugging Face:
 
-```bash
+```shell
 git clone https://huggingface.co/allenai/ACE2-ERA5
 ```
 
 !!! note "Dataset Size"
     The ACE2-ERA5 dataset is large. Ensure you have sufficient storage space before cloning.
+    Also, if you run into issues related to git lfs, you may need to install that.
 
 ### 3. Install uv Package Manager
 
 Install the `uv` package manager, which is used to manage Python dependencies:
 
-```bash
+```shell
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
@@ -54,7 +55,7 @@ After installation, you may need to restart your shell or source your profile to
 
 Set up the uv cache directory in an accessible location with sufficient storage:
 
-```bash
+```shell
 mkdir -p "$PSCRATCH/.cache/uv"
 export UV_CACHE_DIR="$PSCRATCH/.cache/uv"
 ```
@@ -66,7 +67,7 @@ export UV_CACHE_DIR="$PSCRATCH/.cache/uv"
 
 Pin the Python version to 3.11:
 
-```bash
+```shell
 uv python pin 3.11
 ```
 
@@ -76,7 +77,7 @@ uv python pin 3.11
 
 Request an interactive GPU node on your cluster:
 
-```bash
+```shell
 salloc --nodes 1 --qos interactive --time 04:00:00 --constraint gpu --account=e3sm_g
 ```
 
@@ -101,7 +102,7 @@ Create a training configuration file named `config-train.yaml` in the repository
 
 From the repository root, launch the training job using `torchrun`:
 
-```bash
+```shell
 uv run torchrun --nproc_per_node=4 -m fme.ace.train config-train.yaml
 ```
 
