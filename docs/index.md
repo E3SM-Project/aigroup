@@ -16,7 +16,6 @@ hide:
 
 <div class="hero-actions">
   <a href="#introduction" class="md-button md-button--primary md-button--pill">Get Started</a>
-  <a href="https://github.com/E3SM-Project/aigroup" class="md-button md-button--pill">GitHub</a>
 </div>
 
 </div>
