@@ -80,8 +80,8 @@
 
 /* Hero Content */
 .hero-logo img {
-  width: 380px;
-  height: 380px;
+  width: 480px;
+  height: 480px;
   margin-bottom: 2rem;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 }
@@ -116,13 +116,13 @@
 }
 
 .hero .md-button {
-  font-size: 1.1rem;
-  padding: 0.8rem 2rem;
+  font-size: 1.0rem;
+  padding: 0.6rem 1rem;
   transition: all 0.2s ease;
 }
 
 .md-button--pill {
-  border-radius: 50px !important;
+  border-radius: 45px !important;
 }
 
 .hero .md-button--primary {

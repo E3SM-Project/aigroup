@@ -1,48 +1,127 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Light Mode: Day version with sun, brighter warmer colors -->
+  <!-- AI + Earth Logo: Neural network (Left) merging into Earth (Right) to form a full circle -->
   <defs>
-    <radialGradient id="oceanDay" cx="30%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#4fc3f7"/>
-      <stop offset="100%" stop-color="#0288d1"/>
-    </radialGradient>
-    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#fff59d"/>
-      <stop offset="60%" stop-color="#ffee58"/>
-      <stop offset="100%" stop-color="#ffc107"/>
-    </radialGradient>
+    <linearGradient id="oceanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5bc0de"/>
+      <stop offset="50%" stop-color="#3498db"/>
+      <stop offset="100%" stop-color="#2980b9"/>
+    </linearGradient>
+    <linearGradient id="deepOcean" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3498db"/>
+      <stop offset="100%" stop-color="#1a5276"/>
+    </linearGradient>
+    <linearGradient id="neuralFade1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c4dff"/>
+      <stop offset="60%" stop-color="#3498db"/>
+      <stop offset="100%" stop-color="#3498db" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="neuralFade2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b388ff"/>
+      <stop offset="70%" stop-color="#5bc0de"/>
+      <stop offset="100%" stop-color="#5bc0de" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="networkBgGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f3e5f5"/> <!-- Very light purple -->
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Wavy clip for Earth (Right Side) -->
+    <!-- d: Wavy line from top to bottom, then arc around the RIGHT side back to top -->
+    <clipPath id="wavyEarth">
+      <path d="M46,10 Q52,18 48,28 Q54,38 50,50 Q54,62 48,72 Q52,82 46,90 A40,40 0 0,0 46,10"/>
+    </clipPath>
+
+    <!-- Wavy clip for Network (Left Side) - COMPLEMENTARY -->
+    <!-- d: Same wavy line from top to bottom, then arc around the LEFT side back to top -->
+    <clipPath id="wavyNetwork">
+      <path d="M46,10 Q52,18 48,28 Q54,38 50,50 Q54,62 48,72 Q52,82 46,90 A40,40 0 1,1 46,10"/>
+    </clipPath>
   </defs>
   
-  <!-- Sun with glow -->
-  <circle cx="82" cy="14" r="10" fill="url(#sunGlow)"/>
-  <circle cx="82" cy="14" r="14" fill="#fff59d" opacity="0.3"/>
+  <!-- Right Side: Earth -->
+  <!-- Using rects/circles clipped by wavyEarth to ensure it fills exactly the right shape -->
+  <g clip-path="url(#wavyEarth)">
+     <rect x="0" y="0" width="100" height="100" fill="url(#oceanGradient)"/>
+     <circle cx="55" cy="50" r="35" fill="url(#deepOcean)" opacity="0.5"/>
+  </g>
+
+  <!-- Left Side: Network -->
+  <!-- Background to make it a tangible "half" -->
+  <g clip-path="url(#wavyNetwork)">
+      <rect x="0" y="0" width="100" height="100" fill="url(#networkBgGradient)" opacity="0.3"/>
+  </g>
+
+  <!-- Neural network lines - kept on top but mostly within the left/center area -->
+  <path d="M12,22 Q22,28 35,32 Q45,36 52,40" stroke="url(#neuralFade1)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.85"/>
+  <path d="M8,38 Q20,42 32,44 Q44,47 54,50" stroke="url(#neuralFade1)" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
+  <path d="M10,55 Q18,52 28,50 Q40,48 52,50" stroke="url(#neuralFade1)" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.85"/>
+  <path d="M8,68 Q22,64 36,60 Q46,56 54,54" stroke="url(#neuralFade1)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.88"/>
+  <path d="M15,82 Q25,75 38,68 Q48,62 55,58" stroke="url(#neuralFade2)" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.8"/>
   
-  <!-- Ocean base - brighter blue -->
-  <circle cx="50" cy="50" r="36" fill="url(#oceanDay)"/>
+  <!-- Organic cross-connections -->
+  <line x1="18" y1="28" x2="14" y2="40" stroke="#7c4dff" stroke-width="1.5" stroke-linecap="round" opacity="0.75"/>
+  <line x1="14" y1="40" x2="16" y2="52" stroke="#7c4dff" stroke-width="1.4" stroke-linecap="round" opacity="0.8"/>
+  <line x1="16" y1="52" x2="12" y2="65" stroke="#7c4dff" stroke-width="1.5" stroke-linecap="round" opacity="0.75"/>
+  <line x1="12" y1="65" x2="20" y2="78" stroke="#7c4dff" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/>
   
-  <!-- Continents - vibrant greens -->
-  <path d="M32,32 Q42,26 50,32 Q54,40 47,46 Q38,50 30,44 Q25,38 32,32" fill="#4caf50"/>
-  <path d="M55,50 Q66,45 72,55 Q74,68 62,70 Q50,70 52,60 Q53,52 55,50" fill="#66bb6a"/>
-  <ellipse cx="36" cy="64" rx="7" ry="5" fill="#81c784"/>
+  <line x1="30" y1="34" x2="26" y2="46" stroke="#9575cd" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
+  <line x1="26" y1="46" x2="28" y2="58" stroke="#9575cd" stroke-width="1.3" stroke-linecap="round" opacity="0.75"/>
+  <line x1="28" y1="58" x2="32" y2="68" stroke="#9575cd" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
   
-  <!-- Bright fluffy clouds -->
-  <path d="M22,28 Q28,24 36,26 Q42,24 48,28 Q52,26 56,30" 
-        fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-  <path d="M58,52 Q66,48 74,52 Q80,50 84,54" 
-        fill="none" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
-  <path d="M16,48 Q22,44 30,48" 
-        fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <!-- Diagonal irregular connections -->
+  <line x1="18" y1="28" x2="30" y2="34" stroke="#b388ff" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
+  <line x1="14" y1="40" x2="26" y2="46" stroke="#b388ff" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
+  <line x1="16" y1="52" x2="28" y2="50" stroke="#b388ff" stroke-width="1.4" stroke-linecap="round" opacity="0.72"/>
+  <line x1="12" y1="65" x2="28" y2="58" stroke="#b388ff" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
+  <line x1="20" y1="78" x2="32" y2="68" stroke="#b388ff" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
   
-  <!-- Neural network connecting Earth system components -->
-  <line x1="40" y1="55" x2="52" y2="60" stroke="#7c4dff" stroke-width="1.5" stroke-opacity="0.7"/>
-  <line x1="28" y1="50" x2="36" y2="64" stroke="#7c4dff" stroke-width="1.5" stroke-opacity="0.6"/>
-  <line x1="40" y1="38" x2="42" y2="28" stroke="#b388ff" stroke-width="1.5" stroke-opacity="0.7"/>
-  <line x1="62" y1="55" x2="70" y2="52" stroke="#b388ff" stroke-width="1.5" stroke-opacity="0.6"/>
-  <line x1="24" y1="38" x2="28" y2="28" stroke="#9575cd" stroke-width="1.5" stroke-opacity="0.6"/>
+  <!-- Bridge connections to Earth boundary -->
+  <line x1="30" y1="34" x2="42" y2="38" stroke="url(#neuralFade2)" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="28" y1="50" x2="44" y2="50" stroke="url(#neuralFade2)" stroke-width="1.4" stroke-linecap="round" opacity="0.65"/>
+  <line x1="32" y1="68" x2="44" y2="62" stroke="url(#neuralFade2)" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
   
-  <!-- Node points -->
-  <circle cx="40" cy="38" r="2.5" fill="#7c4dff" opacity="0.9"/>
-  <circle cx="52" cy="60" r="2.5" fill="#7c4dff" opacity="0.9"/>
-  <circle cx="36" cy="64" r="2" fill="#b388ff" opacity="0.8"/>
-  <circle cx="42" cy="28" r="2" fill="#b388ff" opacity="0.8"/>
-  <circle cx="70" cy="52" r="2" fill="#9575cd" opacity="0.8"/>
+  <!-- Neural nodes -->
+  <circle cx="18" cy="28" r="3.5" fill="#7c4dff"/>
+  <circle cx="14" cy="40" r="3" fill="#7c4dff"/>
+  <circle cx="16" cy="52" r="4" fill="#7c4dff"/>
+  <circle cx="12" cy="65" r="3" fill="#7c4dff"/>
+  <circle cx="20" cy="78" r="3.5" fill="#7c4dff"/>
+  
+  <circle cx="30" cy="34" r="2.8" fill="#9575cd"/>
+  <circle cx="26" cy="46" r="2.5" fill="#9575cd"/>
+  <circle cx="28" cy="50" r="3" fill="#9575cd"/>
+  <circle cx="28" cy="58" r="2.5" fill="#9575cd"/>
+  <circle cx="32" cy="68" r="2.8" fill="#9575cd"/>
+  
+  <circle cx="42" cy="38" r="2" fill="#b388ff" opacity="0.55"/>
+  <circle cx="44" cy="50" r="2.5" fill="#b388ff" opacity="0.5"/>
+  <circle cx="44" cy="62" r="2" fill="#b388ff" opacity="0.55"/>
+  
+  <!-- Continents/Earth Details (Right Side) - Kept largely same but ensured to be clipped by Earth clip if needed (rect fill handles it) -->
+  <g clip-path="url(#wavyEarth)">
+    <ellipse cx="70" cy="30" rx="10" ry="5" fill="#27ae60"/>
+    <ellipse cx="78" cy="34" rx="6" ry="3.5" fill="#2ecc71"/>
+    <circle cx="62" cy="33" r="4" fill="#2ecc71"/>
+    
+    <ellipse cx="75" cy="50" rx="8" ry="10" fill="#27ae60"/>
+    <ellipse cx="68" cy="45" rx="5" ry="4" fill="#2ecc71"/>
+    
+    <ellipse cx="65" cy="68" rx="7" ry="4" fill="#27ae60"/>
+    <ellipse cx="72" cy="72" rx="5" ry="3" fill="#2ecc71"/>
+    
+    <circle cx="58" cy="55" r="3" fill="#2ecc71"/>
+    <circle cx="80" cy="62" r="3.5" fill="#27ae60"/>
+    
+    <!-- Clouds -->
+    <ellipse cx="65" cy="38" rx="7" ry="2" fill="white" opacity="0.85"/>
+    <ellipse cx="58" cy="38" rx="4" ry="1.5" fill="white" opacity="0.8"/>
+    
+    <ellipse cx="75" cy="55" rx="6" ry="1.8" fill="white" opacity="0.8"/>
+    <ellipse cx="68" cy="55" rx="3" ry="1.3" fill="white" opacity="0.75"/>
+    
+    <ellipse cx="62" cy="75" rx="5" ry="1.5" fill="white" opacity="0.75"/>
+  </g>
+  
+  <!-- Atmospheric glow on Earth edge -->
+  <path d="M46,10 Q52,18 48,28 Q54,38 50,50 Q54,62 48,72 Q52,82 46,90" fill="none" stroke="#87ceeb" stroke-width="1.5" opacity="0.3"/>
 </svg>

@@ -307,15 +307,6 @@ During training, monitor:
 - Ensure you're running from the repository root
 - Check that dependencies are properly installed by `uv`
 
-## Next Steps
-
-After successful training:
-
-- Evaluate model performance using validation scripts
-- Export trained models for inference
-- Visualize training metrics and results
-- Fine-tune hyperparameters based on initial results
-
 ## Additional Resources
 
 - [ACE Documentation](https://ai2-climate-emulator.readthedocs.io/)
