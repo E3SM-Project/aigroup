@@ -3,10 +3,15 @@
    =========================================== */
 
 :root {
-  --md-primary-fg-color: #009688;
-  --md-primary-fg-color--light: #4db6ac;
-  --md-primary-fg-color--dark: #00796b;
-  --md-accent-fg-color: #7c4dff;
+  /* E3SM Logo Colors - Ocean Blue & Earth Green */
+  --md-primary-fg-color: #1a5276;
+  --md-primary-fg-color--light: #2980b9;
+  --md-primary-fg-color--dark: #154360;
+  --md-accent-fg-color: #27ae60;
+  --e3sm-ocean-blue: #1a5276;
+  --e3sm-sky-blue: #2980b9;
+  --e3sm-earth-green: #27ae60;
+  --e3sm-forest-green: #1e8449;
 }
 
 /* Dark mode enhancements */
@@ -21,13 +26,13 @@
 
 .md-header,
 .md-tabs {
-  background: linear-gradient(135deg, rgba(0, 150, 136, 0.95), rgba(124, 77, 255, 0.85));
+  background: linear-gradient(135deg, rgba(26, 82, 118, 0.95), rgba(39, 174, 96, 0.85));
   backdrop-filter: blur(10px);
 }
 
 [data-md-color-scheme="slate"] .md-header,
 [data-md-color-scheme="slate"] .md-tabs {
-  background: linear-gradient(135deg, rgba(0, 121, 107, 0.95), rgba(124, 77, 255, 0.85));
+  background: linear-gradient(135deg, rgba(21, 67, 96, 0.95), rgba(30, 132, 73, 0.85));
 }
 
 /* Logo styling - clean with subtle effects */
@@ -45,12 +50,12 @@
 /* Dark mode logo adjustments - swap to night version */
 [data-md-color-scheme="slate"] .md-header__button.md-logo img {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
-  content: url("../images/icon_dark.svg");
+  content: url("../images/E3SM_Logo.png");
 }
 
 /* Also swap logo in hero section for dark mode */
 [data-md-color-scheme="slate"] .hero-logo img {
-  content: url("../images/icon_dark.svg");
+  content: url("../images/E3SM_Logo.png");
 }
 
 
@@ -81,7 +86,7 @@
 /* Hero Content */
 .hero-logo img {
   width: 480px;
-  height: 480px;
+  height: 257px;
   margin-bottom: 2rem;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 }
@@ -91,7 +96,7 @@
   font-weight: 800 !important;
   margin-bottom: 1rem !important;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #009688 0%, #7c4dff 100%);
+  background: linear-gradient(135deg, #1a5276 0%, #27ae60 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -134,14 +139,14 @@
 
 /* Primary Button "Get Started" */
 .hero .md-button--primary {
-  background: linear-gradient(135deg, #009688 0%, #4db6ac 100%);
+  background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
   border: none;
-  box-shadow: 0 4px 15px rgba(0, 150, 136, 0.3);
+  box-shadow: 0 4px 15px rgba(26, 82, 118, 0.3);
 }
 
 .hero .md-button--primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 150, 136, 0.45);
+  box-shadow: 0 8px 25px rgba(26, 82, 118, 0.45);
 }
 
 /* Active State for Tactile Feel */
@@ -164,7 +169,7 @@
 
 /* Dark mode adjustments */
 [data-md-color-scheme="slate"] .hero h1 {
-  background: linear-gradient(135deg, #4db6ac 0%, #b388ff 100%);
+  background: linear-gradient(135deg, #2980b9 0%, #58d68d 100%);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -243,14 +248,14 @@
    =========================================== */
 
 .community-section {
-  background: linear-gradient(135deg, rgba(0, 150, 136, 0.1), rgba(124, 77, 255, 0.1));
+  background: linear-gradient(135deg, rgba(26, 82, 118, 0.1), rgba(39, 174, 96, 0.1));
   border-radius: 12px;
   padding: 2rem;
   text-align: center;
 }
 
 [data-md-color-scheme="slate"] .community-section {
-  background: linear-gradient(135deg, rgba(0, 150, 136, 0.2), rgba(124, 77, 255, 0.2));
+  background: linear-gradient(135deg, rgba(26, 82, 118, 0.2), rgba(39, 174, 96, 0.2));
 }
 
 /* ===========================================

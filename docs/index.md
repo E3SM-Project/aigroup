@@ -9,10 +9,10 @@ hide:
 <div class="hero" markdown>
 
 <div class="hero-logo">
-  <img src="assets/images/icon_light.svg" alt="E3SM AIG Logo" draggable="false">
+  <img src="assets/images/E3SM_Logo.png" alt="E3SM Logo" draggable="false">
 </div>
 
-# E3SM AI Group
+# AI Group
 
 <div class="hero-actions">
   <a href="#introduction" class="md-button md-button--primary md-button--pill">Get Started</a>
@@ -22,7 +22,7 @@ hide:
 
 ## Introduction
 
-This space serves as a collective working space for E3SM AIG.
+This space serves as a collective working space for E3SM AI Group.
 We share docs, scripts, examples, and prototypes for E3SM AI efforts.
 
 !!! tip "Did you know?"
