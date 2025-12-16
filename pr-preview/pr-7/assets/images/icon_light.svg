@@ -1,7 +1,7 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- AI + Earth Logo (Light Mode): Circle split vertically - Neural network (Left) | Earth (Right) -->
+  <!-- AI + Earth Logo (Light Mode): Refined node distribution, subtle connections -->
   <defs>
-    <!-- Ocean gradients for vibrant light mode -->
+    <!-- Ocean gradients -->
     <linearGradient id="oceanLight" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#4fc3f7"/>
       <stop offset="50%" stop-color="#29b6f6"/>
@@ -12,147 +12,214 @@
       <stop offset="100%" stop-color="#01579b"/>
     </linearGradient>
     
-    <!-- Neural node gradients for light mode -->
-    <radialGradient id="nodeGlowLight" cx="50%" cy="50%" r="50%">
+    <!-- Neural-to-Ocean fade -->
+    <linearGradient id="neuralToOceanL" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7e57c2"/>
+      <stop offset="40%" stop-color="#9575cd"/>
+      <stop offset="70%" stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#29b6f6"/>
+    </linearGradient>
+    
+    <!-- Node gradients -->
+    <radialGradient id="nodeGlowL1" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#9575cd"/>
       <stop offset="70%" stop-color="#7e57c2"/>
       <stop offset="100%" stop-color="#673ab7"/>
     </radialGradient>
-    <radialGradient id="nodeGlowAccentLight" cx="50%" cy="50%" r="50%">
+    <radialGradient id="nodeGlowL2" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#b39ddb"/>
       <stop offset="70%" stop-color="#9575cd"/>
       <stop offset="100%" stop-color="#7e57c2"/>
     </radialGradient>
+    <radialGradient id="nodeGlowFadeL" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#81d4fa"/>
+      <stop offset="50%" stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#29b6f6"/>
+    </radialGradient>
     
-    <!-- Connection gradient for fade effect -->
-    <linearGradient id="connectionFadeLight" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#7e57c2"/>
-      <stop offset="60%" stop-color="#29b6f6"/>
-      <stop offset="100%" stop-color="#29b6f6" stop-opacity="0"/>
+    <!-- Subtle arc gradients -->
+    <linearGradient id="arcOuterL" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7e57c2" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#9575cd" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="arcMiddleL" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9575cd" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#7e57c2" stop-opacity="0.45"/>
+    </linearGradient>
+    <linearGradient id="arcInnerL" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7e57c2" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#4fc3f7" stop-opacity="0.45"/>
+    </linearGradient>
+    <linearGradient id="arcDeepL" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9575cd" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#81d4fa" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#29b6f6" stop-opacity="0.15"/>
     </linearGradient>
     
-    <!-- Clip paths for perfect circle split -->
-    <clipPath id="earthClipLight">
-      <path d="M50,10 A40,40 0 0,1 50,90 A40,40 0 0,1 50,10" />
-    </clipPath>
-    <clipPath id="networkClipLight">
-      <path d="M50,10 A40,40 0 0,0 50,90 A40,40 0 0,0 50,10" />
-    </clipPath>
-    <clipPath id="fullCircleLight">
+    <!-- Clip paths -->
+    <clipPath id="fullCircleL">
       <circle cx="50" cy="50" r="40"/>
     </clipPath>
+    <clipPath id="networkClipL">
+      <path d="M50,10 A40,40 0 0,0 50,90 A40,40 0 0,0 50,10" />
+    </clipPath>
     
-    <!-- Subtle shadow for depth -->
-    <filter id="shadowLight" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#673ab7" flood-opacity="0.3"/>
+    <!-- Shadow filters -->
+    <filter id="shadowL" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0.8" stdDeviation="0.8" flood-color="#673ab7" flood-opacity="0.2"/>
+    </filter>
+    <filter id="softShadowL" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="0.4" stdDeviation="0.4" flood-color="#673ab7" flood-opacity="0.15"/>
     </filter>
   </defs>
   
-  <!-- Background circle outline (subtle) -->
-  <circle cx="50" cy="50" r="40" fill="none" stroke="#e0e0e0" stroke-width="0.5" opacity="0.5"/>
+  <!-- Background -->
+  <circle cx="50" cy="50" r="40" fill="none" stroke="#e0e0e0" stroke-width="0.3" opacity="0.35"/>
   
-  <!-- RIGHT SIDE: Earth -->
-  <g clip-path="url(#earthClipLight)">
-    <!-- Ocean base -->
-    <rect x="50" y="10" width="50" height="80" fill="url(#oceanLight)"/>
-    <circle cx="70" cy="50" r="35" fill="url(#deepOceanLight)" opacity="0.35"/>
+  <!-- EARTH -->
+  <g clip-path="url(#fullCircleL)">
+    <rect x="40" y="10" width="60" height="80" fill="url(#oceanLight)"/>
+    <circle cx="65" cy="50" r="35" fill="url(#deepOceanLight)" opacity="0.35"/>
     
-    <!-- Continents - friendly rounded shapes -->
-    <!-- North landmass -->
-    <ellipse cx="68" cy="28" rx="11" ry="6" fill="#43a047"/>
-    <ellipse cx="77" cy="32" rx="7" ry="4" fill="#66bb6a"/>
-    <circle cx="60" cy="30" r="4.5" fill="#66bb6a"/>
+    <!-- Continents -->
+    <ellipse cx="68" cy="26" rx="12" ry="6" fill="#43a047"/>
+    <ellipse cx="78" cy="30" rx="7" ry="4" fill="#66bb6a"/>
+    <circle cx="58" cy="28" r="5" fill="#66bb6a"/>
     
-    <!-- Central landmass -->
-    <ellipse cx="73" cy="50" rx="9" ry="12" fill="#43a047"/>
-    <ellipse cx="65" cy="45" rx="6" ry="5" fill="#66bb6a"/>
-    <circle cx="82" cy="48" r="4" fill="#4caf50"/>
+    <ellipse cx="74" cy="50" rx="10" ry="13" fill="#43a047"/>
+    <ellipse cx="64" cy="44" rx="6" ry="5" fill="#66bb6a"/>
+    <circle cx="84" cy="48" r="4" fill="#4caf50"/>
     
-    <!-- South landmass -->
-    <ellipse cx="66" cy="70" rx="8" ry="5" fill="#43a047"/>
-    <ellipse cx="74" cy="74" rx="6" ry="4" fill="#66bb6a"/>
-    <circle cx="58" cy="72" r="3.5" fill="#4caf50"/>
+    <ellipse cx="66" cy="72" rx="9" ry="5" fill="#43a047"/>
+    <ellipse cx="76" cy="76" rx="6" ry="4" fill="#66bb6a"/>
+    <circle cx="56" cy="74" r="4" fill="#4caf50"/>
     
-    <!-- Fluffy clouds - bright white -->
-    <g opacity="0.95">
-      <!-- Top cloud cluster -->
-      <ellipse cx="64" cy="36" rx="8" ry="2.5" fill="white"/>
-      <ellipse cx="56" cy="36" rx="5" ry="2" fill="white"/>
-      <ellipse cx="72" cy="37" rx="4" ry="1.8" fill="white"/>
+    <!-- Weather -->
+    <g opacity="0.9">
+      <ellipse cx="70" cy="22" rx="8" ry="1.5" fill="#f5f5f5" opacity="0.5"/>
+      <ellipse cx="80" cy="24" rx="5" ry="1" fill="white" opacity="0.4"/>
       
-      <!-- Middle cloud cluster -->
-      <ellipse cx="76" cy="54" rx="7" ry="2.2" fill="white"/>
-      <ellipse cx="68" cy="55" rx="4" ry="1.8" fill="white"/>
+      <ellipse cx="66" cy="35" rx="9" ry="2.8" fill="white"/>
+      <ellipse cx="56" cy="34" rx="5" ry="2" fill="white"/>
+      <ellipse cx="74" cy="36" rx="4" ry="1.8" fill="white"/>
       
-      <!-- Bottom cloud -->
-      <ellipse cx="62" cy="78" rx="6" ry="2" fill="white"/>
-      <ellipse cx="70" cy="79" rx="4" ry="1.5" fill="white"/>
+      <ellipse cx="78" cy="54" rx="7" ry="2.2" fill="white"/>
+      <ellipse cx="70" cy="56" rx="4" ry="1.8" fill="white"/>
+      <ellipse cx="84" cy="52" rx="3.5" ry="1.4" fill="white"/>
+      
+      <path d="M76,52 Q79,54 77,57 Q75,59 72,58" stroke="#e0e0e0" stroke-width="0.6" fill="none" opacity="0.45"/>
+      
+      <ellipse cx="60" cy="80" rx="6" ry="1.8" fill="white"/>
+      <ellipse cx="68" cy="81" rx="4" ry="1.5" fill="white"/>
+      
+      <g opacity="0.2" stroke="#0277bd" stroke-width="0.3">
+        <line x1="68" y1="38" x2="67" y2="41"/>
+        <line x1="72" y1="39" x2="71" y2="42"/>
+        <line x1="79" y1="57" x2="78" y2="60"/>
+      </g>
+      
+      <ellipse cx="65" cy="88" rx="20" ry="3" fill="#81d4fa" opacity="0.12"/>
     </g>
   </g>
   
-  <!-- LEFT SIDE: Neural Network -->
-  <g clip-path="url(#networkClipLight)">
-    <!-- Subtle background -->
-    <rect x="0" y="10" width="50" height="80" fill="#f3e5f5" opacity="0.3"/>
+  <!-- Network background -->
+  <g clip-path="url(#networkClipL)">
+    <rect x="10" y="10" width="40" height="80" fill="#f3e5f5" opacity="0.12"/>
   </g>
   
-  <!-- Neural Network Connections (flowing curves) -->
-  <g filter="url(#shadowLight)">
-    <!-- Main flowing paths from left to center -->
-    <path d="M15,25 Q28,30 40,38 Q48,44 50,50" stroke="url(#connectionFadeLight)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.75"/>
-    <path d="M12,40 Q25,42 38,46 Q46,49 50,50" stroke="url(#connectionFadeLight)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.8"/>
-    <path d="M10,50 Q22,50 35,50 Q45,50 50,50" stroke="url(#connectionFadeLight)" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
-    <path d="M12,60 Q25,58 38,54 Q46,51 50,50" stroke="url(#connectionFadeLight)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.8"/>
-    <path d="M15,75 Q28,70 40,62 Q48,56 50,50" stroke="url(#connectionFadeLight)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.75"/>
+  <!-- CONCENTRIC ARCS (more subtle) -->
+  
+  <g clip-path="url(#fullCircleL)" filter="url(#softShadowL)">
+    <path d="M15,50 A35,35 0 0,1 36,18" stroke="url(#arcOuterL)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
+    <path d="M15,50 A35,35 0 0,0 36,82" stroke="url(#arcOuterL)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
   </g>
   
-  <!-- Vertical connections -->
-  <line x1="18" y1="28" x2="16" y2="42" stroke="#7e57c2" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
-  <line x1="16" y1="42" x2="14" y2="50" stroke="#7e57c2" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/>
-  <line x1="14" y1="50" x2="16" y2="58" stroke="#7e57c2" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/>
-  <line x1="16" y1="58" x2="18" y2="72" stroke="#7e57c2" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
+  <g clip-path="url(#fullCircleL)" filter="url(#softShadowL)">
+    <path d="M25,50 A25,25 0 0,1 44,28" stroke="url(#arcMiddleL)" stroke-width="1" stroke-linecap="round" fill="none"/>
+    <path d="M25,50 A25,25 0 0,0 44,72" stroke="url(#arcMiddleL)" stroke-width="1" stroke-linecap="round" fill="none"/>
+  </g>
   
-  <line x1="32" y1="35" x2="30" y2="45" stroke="#9575cd" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/>
-  <line x1="30" y1="45" x2="30" y2="55" stroke="#9575cd" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
-  <line x1="30" y1="55" x2="32" y2="65" stroke="#9575cd" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/>
+  <g clip-path="url(#fullCircleL)" filter="url(#softShadowL)">
+    <path d="M35,50 A15,15 0 0,1 50,35" stroke="url(#arcInnerL)" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+    <path d="M35,50 A15,15 0 0,0 50,65" stroke="url(#arcInnerL)" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+  </g>
   
-  <!-- Cross connections -->
-  <line x1="18" y1="28" x2="32" y2="35" stroke="#b39ddb" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
-  <line x1="16" y1="42" x2="30" y2="45" stroke="#b39ddb" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/>
-  <line x1="14" y1="50" x2="30" y2="50" stroke="#b39ddb" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>
-  <line x1="16" y1="58" x2="30" y2="55" stroke="#b39ddb" stroke-width="1.1" stroke-linecap="round" opacity="0.6"/>
-  <line x1="18" y1="72" x2="32" y2="65" stroke="#b39ddb" stroke-width="1" stroke-linecap="round" opacity="0.55"/>
+  <g clip-path="url(#fullCircleL)" filter="url(#softShadowL)">
+    <path d="M42,50 A10,10 0 0,1 52,40" stroke="url(#arcDeepL)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    <path d="M42,50 A10,10 0 0,0 52,60" stroke="url(#arcDeepL)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+  </g>
   
-  <!-- Bridge to center -->
-  <line x1="32" y1="35" x2="44" y2="42" stroke="#9575cd" stroke-width="0.9" stroke-linecap="round" opacity="0.45"/>
-  <line x1="30" y1="50" x2="44" y2="50" stroke="#9575cd" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
-  <line x1="32" y1="65" x2="44" y2="58" stroke="#9575cd" stroke-width="0.9" stroke-linecap="round" opacity="0.45"/>
+  <g clip-path="url(#fullCircleL)" filter="url(#softShadowL)">
+    <path d="M48,50 A6,6 0 0,1 54,44" stroke="#4fc3f7" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.25"/>
+    <path d="M48,50 A6,6 0 0,0 54,56" stroke="#4fc3f7" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.25"/>
+  </g>
   
-  <!-- Neural Nodes with depth -->
-  <g filter="url(#shadowLight)">
-    <!-- Left column (primary nodes) - deep purple -->
-    <circle cx="18" cy="28" r="4" fill="url(#nodeGlowLight)"/>
-    <circle cx="16" cy="42" r="3.5" fill="url(#nodeGlowLight)"/>
-    <circle cx="14" cy="50" r="4.5" fill="url(#nodeGlowLight)"/>
-    <circle cx="16" cy="58" r="3.5" fill="url(#nodeGlowLight)"/>
-    <circle cx="18" cy="72" r="4" fill="url(#nodeGlowLight)"/>
+  <!-- RADIAL CONNECTIONS (more subtle) -->
+  <g clip-path="url(#fullCircleL)" opacity="0.3">
+    <line x1="20" y1="26" x2="32" y2="32" stroke="#9575cd" stroke-width="0.6" stroke-linecap="round"/>
+    <line x1="32" y1="32" x2="44" y2="38" stroke="url(#neuralToOceanL)" stroke-width="0.7" stroke-linecap="round"/>
+    <line x1="44" y1="38" x2="54" y2="44" stroke="#4fc3f7" stroke-width="0.6" stroke-linecap="round"/>
     
-    <!-- Middle column (secondary nodes) -->
-    <circle cx="32" cy="35" r="3" fill="url(#nodeGlowAccentLight)"/>
-    <circle cx="30" cy="45" r="2.5" fill="url(#nodeGlowAccentLight)"/>
-    <circle cx="30" cy="50" r="3" fill="url(#nodeGlowAccentLight)"/>
-    <circle cx="30" cy="55" r="2.5" fill="url(#nodeGlowAccentLight)"/>
-    <circle cx="32" cy="65" r="3" fill="url(#nodeGlowAccentLight)"/>
+    <line x1="16" y1="40" x2="28" y2="42" stroke="#b39ddb" stroke-width="0.5" stroke-linecap="round"/>
+    <line x1="28" y1="42" x2="40" y2="45" stroke="#9575cd" stroke-width="0.6" stroke-linecap="round"/>
+    <line x1="40" y1="45" x2="52" y2="47" stroke="url(#neuralToOceanL)" stroke-width="0.7" stroke-linecap="round"/>
     
-    <!-- Bridge nodes (fading) -->
-    <circle cx="44" cy="42" r="2" fill="#9575cd" opacity="0.55"/>
-    <circle cx="44" cy="50" r="2.5" fill="#9575cd" opacity="0.5"/>
-    <circle cx="44" cy="58" r="2" fill="#9575cd" opacity="0.55"/>
+    <line x1="15" y1="50" x2="28" y2="50" stroke="#b39ddb" stroke-width="0.6" stroke-linecap="round"/>
+    <line x1="28" y1="50" x2="40" y2="50" stroke="#9575cd" stroke-width="0.8" stroke-linecap="round"/>
+    <line x1="40" y1="50" x2="52" y2="50" stroke="url(#neuralToOceanL)" stroke-width="0.9" stroke-linecap="round"/>
+    
+    <line x1="16" y1="60" x2="28" y2="58" stroke="#b39ddb" stroke-width="0.5" stroke-linecap="round"/>
+    <line x1="28" y1="58" x2="40" y2="55" stroke="#9575cd" stroke-width="0.6" stroke-linecap="round"/>
+    <line x1="40" y1="55" x2="52" y2="53" stroke="url(#neuralToOceanL)" stroke-width="0.7" stroke-linecap="round"/>
+    
+    <line x1="20" y1="74" x2="32" y2="68" stroke="#9575cd" stroke-width="0.6" stroke-linecap="round"/>
+    <line x1="32" y1="68" x2="44" y2="62" stroke="url(#neuralToOceanL)" stroke-width="0.7" stroke-linecap="round"/>
+    <line x1="44" y1="62" x2="54" y2="56" stroke="#4fc3f7" stroke-width="0.6" stroke-linecap="round"/>
   </g>
   
-  <!-- Central divider line (vertical, clean) -->
-  <line x1="50" y1="10" x2="50" y2="90" stroke="#81d4fa" stroke-width="1" opacity="0.35"/>
+  <!-- NODES - Better distributed -->
   
-  <!-- Outer circle accent -->
-  <circle cx="50" cy="50" r="40" fill="none" stroke="#29b6f6" stroke-width="0.8" opacity="0.2"/>
+  <!-- Ring 1: outer -->
+  <g filter="url(#softShadowL)">
+    <circle cx="20" cy="26" r="2" fill="url(#nodeGlowL2)" opacity="0.45"/>
+    <circle cx="15" cy="50" r="2.2" fill="url(#nodeGlowL2)" opacity="0.5"/>
+    <circle cx="20" cy="74" r="2" fill="url(#nodeGlowL2)" opacity="0.45"/>
+  </g>
+  
+  <!-- Ring 2: mid-outer -->
+  <g filter="url(#softShadowL)">
+    <circle cx="32" cy="28" r="2" fill="url(#nodeGlowL2)" opacity="0.52"/>
+    <circle cx="26" cy="40" r="1.8" fill="url(#nodeGlowL2)" opacity="0.5"/>
+    <circle cx="25" cy="50" r="2.2" fill="url(#nodeGlowL2)" opacity="0.57"/>
+    <circle cx="26" cy="60" r="1.8" fill="url(#nodeGlowL2)" opacity="0.5"/>
+    <circle cx="32" cy="72" r="2" fill="url(#nodeGlowL2)" opacity="0.52"/>
+  </g>
+  
+  <!-- Ring 3: inner -->
+  <g filter="url(#shadowL)">
+    <circle cx="44" cy="34" r="2.2" fill="url(#nodeGlowL1)" opacity="0.62"/>
+    <circle cx="38" cy="44" r="2" fill="url(#nodeGlowL1)" opacity="0.6"/>
+    <circle cx="35" cy="50" r="2.5" fill="url(#nodeGlowL1)" opacity="0.67"/>
+    <circle cx="38" cy="56" r="2" fill="url(#nodeGlowL1)" opacity="0.6"/>
+    <circle cx="44" cy="66" r="2.2" fill="url(#nodeGlowL1)" opacity="0.62"/>
+  </g>
+  
+  <!-- Ring 4: at boundary -->
+  <g filter="url(#shadowL)">
+    <circle cx="50" cy="38" r="1.8" fill="#7e57c2" opacity="0.55"/>
+    <circle cx="48" cy="45" r="1.6" fill="#9575cd" opacity="0.52"/>
+    <circle cx="46" cy="50" r="2.2" fill="#7e57c2" opacity="0.65"/>
+    <circle cx="48" cy="55" r="1.6" fill="#9575cd" opacity="0.52"/>
+    <circle cx="50" cy="62" r="1.8" fill="#7e57c2" opacity="0.55"/>
+  </g>
+  
+  <!-- Ring 5: Inside Earth -->
+  <g filter="url(#softShadowL)">
+    <circle cx="54" cy="44" r="1.4" fill="url(#nodeGlowFadeL)" opacity="0.32"/>
+    <circle cx="52" cy="50" r="1.6" fill="url(#nodeGlowFadeL)" opacity="0.35"/>
+    <circle cx="54" cy="56" r="1.4" fill="url(#nodeGlowFadeL)" opacity="0.32"/>
+  </g>
+  
+  <!-- Outer accent -->
+  <circle cx="50" cy="50" r="40" fill="none" stroke="#29b6f6" stroke-width="0.5" opacity="0.12"/>
 </svg>
