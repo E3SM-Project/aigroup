@@ -80,8 +80,8 @@
 
 /* Hero Content */
 .hero-logo img {
-  width: 380px;
-  height: 380px;
+  width: 480px;
+  height: 480px;
   margin-bottom: 2rem;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 }
@@ -113,18 +113,26 @@
   gap: 1rem;
   justify-content: center;
   margin-bottom: 2rem;
+  width: 100%;
+  /* Ensure container invites full width on mobile */
 }
 
+/* Base button improvements */
 .hero .md-button {
-  font-size: 1.1rem;
-  padding: 0.8rem 2rem;
-  transition: all 0.2s ease;
+  font-size: 1.05rem;
+  padding: 0.75rem 1.75rem;
+  /* Larger touch target */
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* Smoother interaction */
+  letter-spacing: 0.02em;
 }
 
 .md-button--pill {
-  border-radius: 50px !important;
+  border-radius: 99px !important;
 }
 
+/* Primary Button "Get Started" */
 .hero .md-button--primary {
   background: linear-gradient(135deg, #009688 0%, #4db6ac 100%);
   border: none;
@@ -132,8 +140,15 @@
 }
 
 .hero .md-button--primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 150, 136, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 150, 136, 0.45);
+}
+
+/* Active State for Tactile Feel */
+.hero .md-button:active {
+  transform: scale(0.96) translateY(0);
+  /* Press effect */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .hero .md-button:not(.md-button--primary) {
@@ -177,7 +192,7 @@
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 12px;
   padding: 1.5rem;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -210,7 +225,7 @@
   border-radius: 12px;
   padding: 1.5rem;
   border-left: 4px solid var(--md-primary-fg-color);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .focus-card:hover {
@@ -271,7 +286,7 @@
 
 .md-typeset .md-button {
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .md-typeset .md-button:hover {
@@ -315,18 +330,38 @@
 
 @media (max-width: 768px) {
   .hero {
-    padding: 2rem 1rem;
+    padding: 3rem 1.5rem;
+    /* More breathing room */
     margin: -0.5rem -0.25rem 1rem -0.25rem;
   }
 
   .hero h1 {
-    font-size: 2rem !important;
+    font-size: 2.5rem !important;
+    /* Slightly larger on mobile */
   }
 
   .hero p {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
+  /* Full-width responsive buttons */
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 320px;
+    /* Sensible max width for buttons */
+    margin: 0 auto 2rem auto;
+  }
+
+  .hero .md-button {
+    width: 100%;
+    display: block;
+    text-align: center;
+    padding: 0.9rem 1.5rem;
+    /* Taller touch target */
+  }
+
+  /* Grid adjustments */
   .grid.cards,
   .grid:not(.cards) {
     grid-template-columns: 1fr;
