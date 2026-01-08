@@ -30,4 +30,4 @@ We share docs, scripts, examples, and prototypes for E3SM AI efforts.
 
 ## Getting Started
 
-To access our workflows and examples, click on the **Workflows** tab at the top of the page
+To access our quick guides ane examples, click on the **Quick Guides** tab at the top of the page.

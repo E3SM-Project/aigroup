@@ -125,3 +125,5 @@ nav:
   - Workflows:
       - ACE2-ERA5 Training: ace2-workflow.md
       - SCREAM v1 Example: screamv1-example.md
+      - ACE2-EAMv3 Inference: ace2-inference.md
+
