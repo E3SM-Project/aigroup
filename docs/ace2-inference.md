@@ -191,5 +191,10 @@ implied_tendency_of_total_energy_ace2_path_due_to_advection
 net_energy_flux_toa_into_atmosphere
 ```
 
-!!! todo "Annotate Results Details"
-    Provide more details about the output files, including variable definitions and units.
+## Remaining tasks
+
+- [ ] Prepare forcing data for longer time period (e.g., 10 years)
+- [ ] Explain the variables and files produces 
+    * [ ] a restart.nc file is recorded. How do we perform a restart run?
+    * [ ] more information about the variables and levels
+- [ ] Explore performance space, and producing larger ensembles
