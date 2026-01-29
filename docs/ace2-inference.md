@@ -2,9 +2,10 @@
 
 This guide walks you through running inference using the pre-trained [ACE2-EAMv3](https://huggingface.co/allenai/ACE2-EAMv3) model.
 
-## Prerequisites
+## Prerequisites for this guide
 
-- [uv](https://github.com/astral-sh/uv) installed
+- [uv](https://github.com/astral-sh/uv) installed to set up the environment, including Py
+Torch. See our [Python Environment Setup](python-envs.md) for more details.
 - Access to the internet to clone repositories
 
 ## Steps
