@@ -6,33 +6,35 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Energy Exascale Earth System Modeling AI Group">
+        <meta name="description" content="E3SM AI Group">
       
       
       
-        <link rel="canonical" href="https://e3sm-project.github.io/aigroup/">
+        <link rel="canonical" href="https://e3sm-project.github.io/aigroup/python-envs/">
       
       
+        <link rel="prev" href="..">
       
-        <link rel="next" href="python-envs/">
+      
+        <link rel="next" href="../ace2-workflow/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/E3SM_Logo.png">
+      <link rel="icon" href="../assets/images/E3SM_Logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
-        <title>E3SM AI Group - AI Group</title>
+        <title>Python Environment Setup - AI Group</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,9 +53,9 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/extra.css">
+      <link rel="stylesheet" href="../assets/stylesheets/extra.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -61,17 +63,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="AI Group" />
-<meta property="og:description" content="Energy Exascale Earth System Modeling AI Group" />
-<meta property="og:image" content="https://e3sm-project.github.io/aigroup/assets/images/social/index.png" />
+<meta property="og:title" content="Python Environment Setup - AI Group" />
+<meta property="og:description" content="E3SM AI Group" />
+<meta property="og:image" content="https://e3sm-project.github.io/aigroup/assets/images/social/python-envs.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://e3sm-project.github.io/aigroup/" />
+<meta property="og:url" content="https://e3sm-project.github.io/aigroup/python-envs/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="AI Group" />
-<meta property="twitter:description" content="Energy Exascale Earth System Modeling AI Group" />
-<meta property="twitter:image" content="https://e3sm-project.github.io/aigroup/assets/images/social/index.png" />
+<meta property="twitter:title" content="Python Environment Setup - AI Group" />
+<meta property="twitter:description" content="E3SM AI Group" />
+<meta property="twitter:image" content="https://e3sm-project.github.io/aigroup/assets/images/social/python-envs.png" />
 </head>
   
   
@@ -91,7 +93,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ai-group" class="md-skip">
+        <a href="#python-environment-setup" class="md-skip">
           Skip to content
         </a>
       
@@ -107,9 +109,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="AI Group" class="md-header__button md-logo" aria-label="AI Group" data-md-component="logo">
+    <a href=".." title="AI Group" class="md-header__button md-logo" aria-label="AI Group" data-md-component="logo">
       
-  <img src="assets/images/E3SM_Logo.png" alt="logo">
+  <img src="../assets/images/E3SM_Logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -126,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              E3SM AI Group
+              Python Environment Setup
             
           </span>
         </div>
@@ -189,11 +191,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -210,11 +210,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="python-envs/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -245,9 +247,7 @@
           
             
               
-                
-              
-              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -258,9 +258,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="AI Group" class="md-nav__button md-logo" aria-label="AI Group" data-md-component="logo">
+    <a href=".." title="AI Group" class="md-nav__button md-logo" aria-label="AI Group" data-md-component="logo">
       
-  <img src="assets/images/E3SM_Logo.png" alt="logo">
+  <img src="../assets/images/E3SM_Logo.png" alt="logo">
 
     </a>
     AI Group
@@ -284,6 +284,100 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Quick Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
     
   
   
@@ -303,7 +397,7 @@
   <span class="md-ellipsis">
     
   
-    Home
+    Python Environment Setup
   
 
     
@@ -314,14 +408,14 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="." class="md-nav__link md-nav__link--active">
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    Home
+    Python Environment Setup
   
 
     
@@ -347,33 +441,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
+  <a href="#recommended-option-uv" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Introduction
+        Recommended option: uv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recommended option: uv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-uv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install uv
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#clone-ace-and-install-env-manually" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Getting Started
+        Clone ACE and install env manually
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Getting Started">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#quick-guides" class="md-nav__link">
+  <a href="#clone-ace-and-run-automatically" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick Guides
+        Clone ACE and run automatically
       
     </span>
   </a>
@@ -385,6 +490,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#last-words" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Last words:
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -392,97 +508,6 @@
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Quick Guides
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Quick Guides
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="python-envs/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Python Environment Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
               
             
               
@@ -492,7 +517,7 @@
   
   
     <li class="md-nav__item">
-      <a href="ace2-workflow/" class="md-nav__link">
+      <a href="../ace2-workflow/" class="md-nav__link">
         
   
   
@@ -520,7 +545,7 @@
   
   
     <li class="md-nav__item">
-      <a href="screamv1-example/" class="md-nav__link">
+      <a href="../screamv1-example/" class="md-nav__link">
         
   
   
@@ -548,7 +573,7 @@
   
   
     <li class="md-nav__item">
-      <a href="ace2-inference/" class="md-nav__link">
+      <a href="../ace2-inference/" class="md-nav__link">
         
   
   
@@ -584,9 +609,7 @@
             
             
               
-                
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -605,33 +628,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
+  <a href="#recommended-option-uv" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Introduction
+        Recommended option: uv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recommended option: uv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-uv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install uv
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#clone-ace-and-install-env-manually" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Getting Started
+        Clone ACE and install env manually
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Getting Started">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#quick-guides" class="md-nav__link">
+  <a href="#clone-ace-and-run-automatically" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick Guides
+        Clone ACE and run automatically
       
     </span>
   </a>
@@ -640,6 +674,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#last-words" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Last words:
+      
+    </span>
+  </a>
   
 </li>
       
@@ -657,12 +702,10 @@
               <article class="md-content__inner md-typeset">
                 
                   
-  
-
 
 
   
-    <a href="https://github.com/E3SM-Project/aigroup/edit/main/docs/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/E3SM-Project/aigroup/edit/main/docs/python-envs.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -671,45 +714,68 @@
     
       
     
-    <a href="https://github.com/E3SM-Project/aigroup/raw/main/docs/index.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/E3SM-Project/aigroup/raw/main/docs/python-envs.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-<div class="hero">
-<div class="hero-logo">
-  <img src="assets/images/E3SM_Logo.png" alt="E3SM Logo" draggable="false">
-</div>
-<h1 id="ai-group">AI Group</h1>
-<div class="hero-actions">
-  <a href="#introduction" class="md-button md-button--primary md-button--pill">Get Started</a>
-</div>
-</div>
-<h2 id="introduction">Introduction</h2>
-<p>This space serves as a collective working space for E3SM AI Group.
-We share docs, scripts, examples, and prototypes for E3SM AI efforts.</p>
-<div class="admonition tip">
-<p class="admonition-title">Did you know?</p>
-<p>We also share our meeting notes internally on Confluence!</p>
-</div>
-<h2 id="getting-started">Getting Started</h2>
-<h3 id="quick-guides">Quick Guides</h3>
+<h1 id="python-environment-setup">Python Environment Setup</h1>
+<p>Quick guide for setting up Python environments to run AI group workflows.
+There are several options for setting up Python environments, including</p>
 <ul>
-<li>
-<p><strong><a href="python-envs/">Python Environment Setup</a></strong> - Quick guide for setting up Python environments to run ACE training and inference.</p>
-</li>
-<li>
-<p><strong><a href="ace2-workflow/">ACE2-ERA5 Training Workflow</a></strong> - Complete guide for training the ACE (AI2 Climate Emulator) model using the ACE2-ERA5 dataset on GPU compute nodes.</p>
-</li>
-<li>
-<p><strong><a href="screamv1-example/">SCREAM v1 Data Generation Example</a></strong> - An example to generate SCREAM v1 data on the fly to train ACE2, without the need for post-processing or outputing expensive 3D variables.</p>
-</li>
-<li>
-<p><strong><a href="ace2-inference/">ACE2-EAMv3 Inference Example</a></strong> - An example to run inference using the pre-trained ACE2-EAMv3 model.</p>
-</li>
+<li><a href="https://docs.astral.sh/uv/">uv</a></li>
+<li><a href="https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html">micromamba</a> (and other conda variants)</li>
+<li><a href="https://pip.pypa.io/en/stable/">pip</a></li>
 </ul>
+<p>In this guide, we will only highlight uv,
+but users can achieve the same results with other tools.</p>
+<div class="admonition warning">
+<p class="admonition-title">only a quick start</p>
+<p>This is simply a starting guide, and isn't meant to be exhaustive or performant.</p>
+</div>
+<hr />
+<h2 id="recommended-option-uv">Recommended option: uv</h2>
+<p>The <a href="https://docs.astral.sh/uv/">uv</a> tool is a fast, modern Python package manager. It's significantly faster than pip and handles virtual environments elegantly.</p>
+<h3 id="install-uv">Install uv</h3>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp"># </span>macOS/Linux
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">curl -LsSf https://astral.sh/uv/install.sh | sh</span>
+</span></code></pre></div>
+<h3 id="clone-ace-and-install-env-manually">Clone ACE and install env manually</h3>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp"># </span>Clone<span class="w"> </span>ACE
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">git clone https://github.com/E3SM-Project/ace.git</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">cd ace</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="gp"># </span>Create<span class="w"> </span>venv<span class="w"> </span>with<span class="w"> </span>specific<span class="w"> </span>Python<span class="w"> </span>version
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">uv venv --python 3.11</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="gp"># </span>Activate
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">source .venv/bin/activate</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="gp"># </span>Install<span class="w"> </span>dependencies<span class="w"> </span>from<span class="w"> </span>requirements.txt
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="go">uv pip install -r requirements.txt</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="gp"># </span>Install<span class="w"> </span>ACE<span class="w"> </span><span class="k">in</span><span class="w"> </span>editable<span class="w"> </span>mode
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="go">uv pip install -e .</span>
+</span></code></pre></div>
+<h3 id="clone-ace-and-run-automatically">Clone ACE and run automatically</h3>
+<p>Instead of manual installation, you can clone ACE and then let uv handle the rest:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp"># </span>Clone<span class="w"> </span>ACE
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">git clone https://github.com/E3SM-Project/ace.git</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">cd ace</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="go">uv run python -m fme.ace.inference scratch/config-inference.yaml</span>
+</span></code></pre></div>
+<p>The last command starting with <code>uv run</code> (<a href="https://docs.astral.sh/uv/reference/cli/#uv-run">documentation</a>) ensures that the specified environment in the ACE repo is set and the trailing instruction (<code>python -m fme.ace.inference scratch/config-inference.yaml</code>) happens inside of it. This environment is still saved in <code>.venv</code> in the root of the repo.</p>
+<div class="admonition tip">
+<p class="admonition-title">uv cache</p>
+<p>Sometimes, you will need to the enviornment variable <code>UV_CACHE_DIR</code>, e.g., on NERSC, <code>export UV_CACHE_DIR="$PSCRATCH/.cache/uv"</code></p>
+</div>
+<h2 id="last-words">Last words:</h2>
+<p>In general, there's no one-size-fits-all solution for setting up Python environments.
+It really depends on your specific needs and preferences.
+Because Python is ubiquitous, the user must decide which tool to use for their specific needs, and learn to use it effectively for their needs.</p>
 
 
 
@@ -717,13 +783,8 @@ We share docs, scripts, examples, and prototypes for E3SM AI efforts.</p>
 
 
 
-  
-  
 
 
-
-
-  
 
 
 
@@ -749,19 +810,33 @@ We share docs, scripts, examples, and prototypes for E3SM AI efforts.</p>
   
     
       
-        
-      
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Home
+              </div>
+            </div>
+          </a>
         
         
           
-          <a href="python-envs/" class="md-footer__link md-footer__link--next" aria-label="Next: Python Environment Setup">
+          <a href="../ace2-workflow/" class="md-footer__link md-footer__link--next" aria-label="Next: ACE2-ERA5 Training">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Python Environment Setup
+                ACE2-ERA5 Training
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -808,10 +883,10 @@ We share docs, scripts, examples, and prototypes for E3SM AI efforts.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.tracking", "navigation.instant", "navigation.instant.progress", "navigation.footer", "navigation.top", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.code.select", "content.action.edit", "content.action.view", "content.tabs.link", "content.tooltips", "header.autohide", "announce.dismiss"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.tracking", "navigation.instant", "navigation.instant.progress", "navigation.footer", "navigation.top", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.code.select", "content.action.edit", "content.action.view", "content.tabs.link", "content.tooltips", "header.autohide", "announce.dismiss"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
