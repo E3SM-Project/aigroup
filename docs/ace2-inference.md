@@ -39,38 +39,54 @@ cd ace
 
 Create a configuration file named `config-inference.yaml` with the following content. Make sure to update the paths to match your environment.
 
-```yaml
-experiment_dir: /pscratch/sd/m/mahf708/ACE2-EAMv3/test1
-n_forward_steps: 1000
-forward_steps_in_memory: 100
-checkpoint_path:  /pscratch/sd/m/mahf708/ACE2-EAMv3/ace2_EAMv3_ckpt.tar
-initial_condition:
+``` { .yaml .annotate }
+experiment_dir: /pscratch/sd/m/mahf708/ACE2-EAMv3/test1 # (1)!
+n_forward_steps: 1458 # (2)!
+forward_steps_in_memory: 80 # (3)!
+checkpoint_path: /pscratch/sd/m/mahf708/ACE2-EAMv3/ace2_EAMv3_ckpt.tar # (4)!
+initial_condition: # (5)!
   path: /pscratch/sd/m/mahf708/ACE2-EAMv3/initial_conditions/1971010100.nc
   start_indices:
     n_initial_conditions: 2
     first: 0
     interval: 1
-forcing_loader:
+forcing_loader: # (6)!
   dataset:
     data_path: /pscratch/sd/m/mahf708/ACE2-EAMv3/forcing_data/
   num_data_workers: 2
-logging:
+logging: # (7)!
   log_to_screen: true
   log_to_wandb: false
   log_to_file: true
-
-data_writer:
+data_writer: # (8)!
   save_prediction_files: true
 ```
 
-!!! todo "Annotate Config Details"
-    Add descriptions for each configuration parameter, explaining what they control and recommended values.
+1. **Output directory** — All inference outputs (predictions, diagnostics, logs) are saved here. Create this directory before running.
+2. **Number of forward steps** — Total timesteps to run. Each step is 6 hours, so 1458 steps ≈ 365 days. Note that there is a condition internal to ACE necessitating that this number is two steps short of the side of the full data set (in this example, a year; see forcing_loader)
+3. **Steps in memory** — Batch size for GPU memory. Lower this if you run into OOM errors. 80 is a good default.
+4. **Model checkpoint** — Path to the pretrained ACE2-EAMv3 weights (`.tar` file from Hugging Face).
+5. **Initial conditions** — Starting atmospheric state. `n_initial_conditions` runs multiple ensemble members; `first` and `interval` control which samples to use from the IC file.
+6. **Forcing data** — External forcing (SST, solar, GHGs, etc.). The loader reads Zarr/NetCDF files from this path. `num_data_workers` controls parallel I/O.
+7. **Logging options** — `log_to_screen` prints progress; `log_to_wandb` sends metrics to Weights & Biases (requires login); `log_to_file` saves to `inference_out.log`.
+8. **Output writer** — Set `save_prediction_files: true` to write NetCDF outputs. Set to `false` for validation-only runs.
+
 
 Run the inference using the following command:
 
 ```console
 uv run python -m fme.ace.inference config-inference.yaml
 ```
+
+!!! tip "compute node"
+    The above command takes about 10 minutes on a single compute node on pm-gpu (4xA100).
+    The command to get a compute pm-gpu compute node is: 
+    ```console
+    salloc --nodes 1 --qos interactive --time 04:00:00 --constraint gpu --account=e3sm_g
+    ```
+
+!!! tip "uv cache"
+    Sometimes, you will need to the enviornment variable `UV_CACHE_DIR`, e.g., on NERSC, `export UV_CACHE_DIR="$PSCRATCH/.cache/uv"`
 
 ### 4. Results
 
@@ -94,14 +110,19 @@ time_mean_diagnostics.nc
 where the autoregressive_predictions.nc file has the following header:
 
 ```console
-> ncdump -h /pscratch/sd/m/mahf708/ACE2-EAMv3/test1/autoregressive_predictions.nc 
+ncdump -h /pscratch/sd/m/mahf708/ACE2-EAMv3/test1/autoregressive_predictions.nc
 netcdf autoregressive_predictions {
 dimensions:
-        time = UNLIMITED ; // (1000 currently)
+        time = UNLIMITED ; // (1458 currently)
         sample = 2 ;
         lat = 180 ;
         lon = 360 ;
 variables:
+        int64 time(time) ;
+                time:units = "microseconds" ;
+        int64 init_time(sample) ;
+                init_time:units = "microseconds since 1970-01-01 00:00:00" ;
+                init_time:calendar = "noleap" ;
         ...
 ```
 

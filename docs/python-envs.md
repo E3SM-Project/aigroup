@@ -65,7 +65,7 @@ The last command starting with `uv run` ([documentation](https://docs.astral.sh/
     Sometimes, you will need to the enviornment variable `UV_CACHE_DIR`, e.g., on NERSC, `export UV_CACHE_DIR="$PSCRATCH/.cache/uv"`
 
 
-## Last words:
+## Last words
 
 In general, there's no one-size-fits-all solution for setting up Python environments.
 It really depends on your specific needs and preferences.
