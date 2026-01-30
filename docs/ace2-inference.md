@@ -63,14 +63,21 @@ data_writer: # (8)!
 ```
 
 1. **Output directory** — All inference outputs (predictions, diagnostics, logs) are saved here. Create this directory before running.
-2. **Number of forward steps** — Total timesteps to run. Each step is 6 hours, so 1458 steps ≈ 365 days. Note that there is a condition internal to ACE necessitating that this number is two steps short of the side of the full data set (in this example, a year; see forcing_loader)
+2. **Number of forward steps** — Total timesteps to run. Each step is 6 hours, so 1458 steps ≈ 365 days. See note below on limitation.
 3. **Steps in memory** — Batch size for GPU memory. Lower this if you run into OOM errors. 80 is a good default.
 4. **Model checkpoint** — Path to the pretrained ACE2-EAMv3 weights (`.tar` file from Hugging Face).
 5. **Initial conditions** — Starting atmospheric state. `n_initial_conditions` runs multiple ensemble members; `first` and `interval` control which samples to use from the IC file.
 6. **Forcing data** — External forcing (SST, solar, GHGs, etc.). The loader reads Zarr/NetCDF files from this path. `num_data_workers` controls parallel I/O.
 7. **Logging options** — `log_to_screen` prints progress; `log_to_wandb` sends metrics to Weights & Biases (requires login); `log_to_file` saves to `inference_out.log`.
-8. **Output writer** — Set `save_prediction_files: true` to write NetCDF outputs. Set to `false` for validation-only runs.
+8. **Output writer** — Set `save_prediction_files: true` to write NetCDF outputs. Set to `false` for validation-only runs. Additionally, one could `names: [T_4, T_5]` to request only `T_4` and `T_5` in the output.
 
+!!! tip "maximum steps"
+    Note that this is limited by the temporal length of the forcing data
+    (in the example above, a year; see forcing_data) and the specifics of the initial conditions
+    (in the example above, 2 seperated by a single time step starting from 0).
+    That's why we have an offset of 2 steps from a full year in the prediction.
+    If we have one initial conditions, then the number of forward steps would be 1459.
+    The general formula is: `max steps allowed = length of data - (first + interval * (n_initial_conditions-1))`
 
 Run the inference using the following command:
 
@@ -194,7 +201,7 @@ net_energy_flux_toa_into_atmosphere
 ## Remaining tasks
 
 - [ ] Prepare forcing data for longer time period (e.g., 10 years)
-- [ ] Explain the variables and files produces 
-    * [ ] a restart.nc file is recorded. How do we perform a restart run?
-    * [ ] more information about the variables and levels
+- [ ] Explain the variables and files produces
+  - [ ] a restart.nc file is recorded. How do we perform a restart run?
+  - [ ] more information about the variables and levels
 - [ ] Explore performance space, and producing larger ensembles
