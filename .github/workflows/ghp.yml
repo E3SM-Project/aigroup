@@ -7,7 +7,7 @@ on:
     # But only if docs-related files are touched
     paths:
       - .github/workflows/ghp.yml
-      - ./mkdocs.yml
+      - mkdocs.yml
       - docs/**
   # Runs every time a PR is open against master
   pull_request:
@@ -15,7 +15,7 @@ on:
     # But only if docs-related files are touched
     paths:
       - .github/workflows/ghp.yml
-      - ./mkdocs.yml
+      - mkdocs.yml
       - docs/**
   workflow_dispatch:
 
