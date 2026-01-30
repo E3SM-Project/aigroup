@@ -71,6 +71,17 @@ Pin the Python version to 3.11:
 uv python pin 3.11
 ```
 
+### 6. Pin Setuptools Version
+
+To avoid deprecation warnings related to `pkg_resources`, pin setuptools to a version below 81:
+
+```console
+uv add --dev 'setuptools<81'
+```
+
+!!! warning "pkg_resources Deprecation"
+    The ACE codebase and some of its dependencies use `pkg_resources`, which is deprecated in setuptools 81+. Setuptools plans to remove `pkg_resources` as early as November 30, 2025. Until the dependencies are updated to use `importlib.resources` or `importlib.metadata`, you must pin setuptools to version <81 to avoid warnings and future breakage.
+
 ## Running Training
 
 ### 1. Request a GPU Compute Node
@@ -289,6 +300,19 @@ During training, monitor:
 ## Troubleshooting
 
 ### Common Issues
+
+**pkg_resources Deprecation Warnings**
+
+If you see warnings like:
+```
+UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+```
+
+This occurs when setuptools version 81 or higher is installed. The ACE codebase and its dependencies still use `pkg_resources`, which is deprecated. To resolve this:
+
+- Pin setuptools to version <81: `uv add --dev 'setuptools<81'`
+- Alternatively, suppress the warnings (not recommended) until dependencies are updated
+- Note: pkg_resources is scheduled for removal in setuptools, potentially as early as November 30, 2025
 
 **Out of Memory Errors**
 
