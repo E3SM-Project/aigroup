@@ -52,14 +52,16 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
-  favicon: assets/images/E3SM_Logo.png
+  favicon: assets/images/E3SM_Icon_270.png
   logo: assets/images/E3SM_Logo.png
   icon:
     repo: fontawesome/brands/github
 
 plugins:
   - search
-  - social
+  - social:
+      cards_layout_options:
+        logo: docs/assets/images/E3SM_Icon_270.png
 
 repo_url: https://github.com/E3SM-Project/aigroup
 repo_name: E3SM-Project/aigroup
