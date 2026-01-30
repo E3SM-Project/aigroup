@@ -50,7 +50,7 @@
 /* Dark mode logo adjustments - swap to night version */
 [data-md-color-scheme="slate"] .md-header__button.md-logo img {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
-  content: url("../images/E3SM_Icon_512.png");
+  content: url("../images/E3SM_Logo.png");
 }
 
 /* Also swap logo in hero section for dark mode */
