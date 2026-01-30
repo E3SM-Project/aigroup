@@ -30,8 +30,8 @@ We share docs, scripts, examples, and prototypes for E3SM AI efforts.
 
 ## Getting Started
 
-### Workflows
+To access our workflows and examples, click on the **Workflows** tab at the top of the page. There you will find:
 
-- **[ACE2-ERA5 Training Workflow](ace2-workflow.md)** - Complete guide for training the ACE (AI2 Climate Emulator) model using the ACE2-ERA5 dataset on GPU compute nodes.
+- **ACE2-ERA5 Training Workflow** - Complete guide for training the ACE (AI2 Climate Emulator) model using the ACE2-ERA5 dataset on GPU compute nodes.
 
-- **[SCREAM v1 Data Generation Example](screamv1-example.md)** - An example to generate SCREAM v1 data on the fly to train ACE2, without the need for post-processing or outputing expensive 3D variables.
+- **SCREAM v1 Data Generation Example** - An example to generate SCREAM v1 data on the fly to train ACE2, without the need for post-processing or outputing expensive 3D variables.
