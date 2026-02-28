@@ -1,0 +1,20 @@
+experiment_dir: /pscratch/sd/o/olawale/E3SM_ace/inference/v3.LR.historical_0101_bonus.ace.19510101
+n_forward_steps: 30 
+forward_steps_in_memory: 4 
+checkpoint_path: /pscratch/sd/o/olawale/E3SM_ace/ACE2-EAMv3/ace2_EAMv3_ckpt.tar 
+initial_condition: 
+  path:  /pscratch/sd/o/olawale/E3SM_data/data_processing/output/e3sm_processed_monthly_new/ic_data/1950-01.ic.nc
+  start_indices:
+    times:
+      - "1950-01-01T00:00:00"   # Start time 1
+forcing_loader: 
+  dataset:
+    data_path: /pscratch/sd/o/olawale/E3SM_data/data_processing/output/e3sm_processed_monthly_new/forcing_data/
+  num_data_workers: 2
+logging: 
+  log_to_screen: true
+  log_to_wandb: false
+  log_to_file: true
+data_writer: 
+  save_prediction_files: true
+

@@ -1,0 +1,40 @@
+# Output directory where all experiment results, logs, and predictions will be saved
+experiment_dir: /pscratch/sd/o/olawale/E3SM_ace/inference/amip.train_data.ace.19800101
+
+n_forward_steps: 14650  # Total timesteps to run (14650 × 6hrs = ~10 years)
+forward_steps_in_memory: 80  # Timesteps kept in memory before writing to disk (80 = 20 days)
+
+# Path to the trained model weights - the pre-trained ACE neural network checkpoint
+checkpoint_path: /pscratch/sd/o/olawale/E3SM_ace/ACE2-EAMv3/ace2_EAMv3_ckpt.tar
+
+initial_condition:
+  path:  /global/cfs/cdirs/e3sm/emulate/ace/e3smv3-amip/e3sm-v3-amip-180x360-gaussian/traindata/1980010100.nc  # Initial state file
+  start_indices:  # Configure which initial conditions to use
+    # Option 1: Use specific timestamps (currently active)
+    times:
+      - "1980-01-01T00:00:00"  # Starting timestamp - add more for multiple start times
+      # - "1980-01-01T06:00:00"  # Uncomment to add more start times
+      
+    # Option 2: Use regular intervals (alternative to times, uncomment to use)
+    # n_initial_conditions: 2  # Number of initial conditions
+    # first: 0                 # Index of first IC
+    # interval: 3              # Interval between ICs (every 3rd timestep)
+    
+    # Option 3: Explicit indices (alternative, uncomment to use)
+    # list: [0, 5, 10]  # Explicit list of integer indices
+
+forcing_loader:
+  dataset:
+    data_path: /global/cfs/cdirs/e3sm/emulate/ace/e3smv3-amip/e3sm-v3-amip-180x360-gaussian/traindata/  # Forcing data (SST, sea ice, solar, etc.)
+  num_data_workers: 2  # Background processes for async data loading (speeds up I/O)
+
+logging:
+  log_to_screen: true   # Print progress to terminal
+  log_to_wandb: false   # Weights & Biases logging (track metrics to wandb.ai)
+  log_to_file: true     # Save logs to text file in experiment_dir
+  # project: "ace-eamv3"           # W&B project name (if log_to_wandb: true)
+  # entity: "your_wandb_entity"    # W&B entity/team name (if log_to_wandb: true)
+
+data_writer:
+  save_prediction_files: true  # Write model predictions to NetCDF files
+  # save_monthly_files: false      # Save monthly averaged outputs

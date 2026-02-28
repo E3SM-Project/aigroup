@@ -1,0 +1,72 @@
+# E3SM data processing configuration
+
+data_paths:
+  # Use {year} in the pattern - the script will glob all files for the year
+  # and group them by the actual month in their time coordinate
+  h1_pattern: "/pscratch/sd/o/olawale/E3SM_data/data_processing/regridded_data/v3.LR.historical_0101_bonus.eam.h1.{year}-*-*.nc"
+  h2_pattern: "/pscratch/sd/o/olawale/E3SM_data/data_processing/regridded_data/v3.LR.historical_0101_bonus.eam.h2.{year}-*-*.nc"
+  h0_pattern: "/pscratch/sd/o/olawale/E3SM_data/data_processing/regridded_data/v3.LR.historical_0101_bonus.eam.h0.{year}-*.nc"
+
+output_directory: "output/e3sm_processed_monthly_new"
+
+# Year and month range to process
+start_year: 1960
+end_year: 1969
+start_month: 1  # January
+end_month: 12   # December
+
+# Variables to extract from h1 and h2 files (optional - uses defaults if not specified)
+# Uncomment and modify this section to customize which variables are extracted
+# If not specified, the script uses DEFAULT_E3SM_VARIABLES defined in the code
+# e3sm_variables:
+#   - PS
+#   - TS
+#   - T
+#   - U
+#   - V
+#   - Q
+#   - OMEGA
+#   - CLDLIQ
+#   - CLDICE
+#   - RAINQM
+#   - TMQ
+#   - TGCLDLWP
+#   - TGCLDIWP
+#   - OCNFRAC
+#   - LANDFRAC
+#   - ICEFRAC
+#   - QREFHT
+#   - TREFHT
+#   - U10
+#   - PRECT
+#   - LHFLX
+#   - SHFLX
+#   - FLNS
+#   - FLDS
+#   - FSNS
+#   - FSDS
+#   - FSNTOA
+#   - SOLIN
+#   - FLUT
+#   - PRECSC
+#   - PRECSL
+#   - QFLX
+#   - hyai
+#   - hybi
+
+vertical_coarsening:
+  indices:
+    - [0, 25]
+    - [25, 38]
+    - [38, 46]
+    - [46, 52]
+    - [52, 56]
+    - [56, 61]
+    - [61, 69]
+    - [69, 80]
+  variables:
+    - T
+    - U
+    - V
+    - specific_total_water
+  validate: true
