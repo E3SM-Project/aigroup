@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source load_env.sh
+source env_mach_specific.sh
 
 clean_flag=false
 
