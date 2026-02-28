@@ -44,6 +44,7 @@ program main
 
   real(sp), target :: net_inputs(1, n_input_channels, n_lat, n_lon)
   real(sp), target :: net_outputs(1, n_output_channels, n_lat, n_lon)
+  real(sp), target :: net_inputs_nn(1, n_input_channels, n_lat, n_lon)
 
   integer :: i
 
@@ -58,13 +59,14 @@ program main
   call init_normalizer(denormalizer, denorm_file, n_output_channels)
 
   do i = 1, 6
-    call normalizer%normalize(net_inputs)
+    net_inputs_nn = net_inputs
+    call normalizer%normalize(net_inputs_nn)
 
-    if (.not. is_contiguous(net_inputs))  error stop "net_inputs not contiguous"
+    if (.not. is_contiguous(net_inputs_nn))  error stop "net_inputs not contiguous"
     if (.not. is_contiguous(net_outputs)) error stop "net_outputs not contiguous"
 
     ! Create a tensor based off an array
-    call torch_tensor_from_array(input_tensor(1), net_inputs, device_type=torch_kCPU)
+    call torch_tensor_from_array(input_tensor(1), net_inputs_nn, device_type=torch_kCPU)
     call torch_tensor_from_array(output_tensor(1), net_outputs, device_type=torch_kCPU)
 
     if (i .eq. 1) then
@@ -80,10 +82,8 @@ program main
     call torch_model_forward(ace_model, input_tensor, output_tensor)
 
      if (i .eq. 1) then
-        ! call output_tensor(1)%zero()
-        ! print *, "After output_tensor%zero(), net_outputs(1,1,1,1)=", net_outputs(1, 1, 1, 1)
+        print *, "net_inputs(1,1,1,1)= ", net_inputs(1, 1, 1, 1)
         print *, "net_outputs(1,1,1,1)=", net_outputs(1, 1, 1, 1)
-        call output_tensor(1)%print()
      endif
 
     call torch_delete(input_tensor)
