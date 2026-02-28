@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(
    face
-   LANGUAGES Fortran)
+   LANGUAGES Fortran CXX
+)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 

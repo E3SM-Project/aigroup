@@ -1,4 +1,4 @@
-set(FACE_SRC main.f90 initial_conditions.f90 config.f90)
+set(FACE_SRC main.f90 io.f90 norm.f90)
 
 include_directories(${netcdf_f_incdir})
 
