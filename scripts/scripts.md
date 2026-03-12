@@ -20,7 +20,7 @@ Submits a parallel SLURM job to regrid E3SM h0/h1/h2 NetCDF files using `ncremap
 - Writes outputs to destination directory
 - Verifies input/output file counts match
 
-### How to Run
+### How to Run on Perlmutter
 
 ```bash
 sbatch remapping_parallel_EAM.sh

@@ -34,9 +34,11 @@ DEFAULT_E3SM_VARIABLES = [
 
 @dataclasses.dataclass
 class DataPaths:
-    """Paths to input data files with glob patterns."""
+    """Paths to input data files with glob patterns.
 
-    h1_pattern: str
+    Note: h1_pattern is now optional because all data may be in h0 files.
+    """
+    h1_pattern: Optional[str] = None
     h2_pattern: Optional[str] = None
     h0_pattern: Optional[str] = None
 
@@ -110,24 +112,25 @@ def group_files_by_month(
 ) -> Dict[int, List[str]]:
     """
     Group files by months they contain data for.
-    
+
     Since files span month boundaries (mid-month to mid-next-month),
     each file will be associated with 2 months.
-    
+
     Args:
         file_pattern: Glob pattern with {year} placeholder
         year: Year to process
         file_type: Description for logging
         static_fields_only: If True, just find any file from the year (for h0 static fields)
-    
+
     Returns:
         Dictionary mapping month number (1-12) to list of file paths
     """
     import cftime
     import pandas as pd
-    
+    import re
+
     year_str = str(year)
-    
+
     # Get files for this year and potentially previous/next year
     # (files may span year boundaries)
     patterns_to_search = [
@@ -135,22 +138,22 @@ def group_files_by_month(
         file_pattern.replace("{year}", year_str),
         file_pattern.replace("{year}", str(year + 1)),
     ]
-    
+
     all_files = []
     for pattern in patterns_to_search:
         pattern_expanded = pattern.replace("{month}", "*")
         files = glob.glob(pattern_expanded)
         all_files.extend(files)
-    
+
     all_files = sorted(set(all_files))  # Remove duplicates and sort
-    
+
     if not all_files:
         raise FileNotFoundError(
             f"No {file_type} files found for year {year}"
         )
-    
+
     logging.info(f"Found {len(all_files)} total {file_type} file(s) around year {year}")
-    
+
     # For static fields (h0), just assign the first file to all months
     if static_fields_only:
         logging.info(f"Using simple mode for {file_type} (static fields only)")
@@ -158,18 +161,18 @@ def group_files_by_month(
         year_files = [f for f in all_files if f"/{year}-" in f or f".{year}-" in f]
         if not year_files:
             year_files = all_files[:1]  # Fallback to first file
-        
+
         # Assign the same file(s) to all months
         month_to_files = {month: year_files[:1] for month in range(1, 13)}
-        
+
         filename = os.path.basename(year_files[0])
         logging.info(f"  Using file for all months: {filename}\n")
-        
+
         return month_to_files
-    
-    # Group files by month based on their actual time coordinates
+
+    # First: Group files by month based on their actual time coordinates
     month_to_files = defaultdict(list)
-    
+
     for filepath in all_files:
         try:
             # Open file and read time coordinate
@@ -177,11 +180,11 @@ def group_files_by_month(
                 if 'time' not in ds.coords:
                     logging.warning(f"No time coordinate in {filepath}, skipping")
                     continue
-                
+
                 # Get all year-months present in this file
                 times = ds.time.values
                 year_months_in_file = set()
-                
+
                 # Convert each time value to year-month tuple
                 for time_val in times:
                     # Handle both cftime and numpy datetime64
@@ -194,18 +197,31 @@ def group_files_by_month(
                         ts = pd.Timestamp(time_val)
                         file_year = ts.year
                         file_month = ts.month
-                    
+
                     year_months_in_file.add((file_year, file_month))
-                
+
                 # Add this file to all months it contains FOR THE TARGET YEAR
                 for file_year, month in year_months_in_file:
                     if file_year == year:
                         month_to_files[month].append(filepath)
-                    
+
         except Exception as e:
             logging.warning(f"Error reading {filepath}: {e}, skipping")
             continue
-    
+
+    # If file_type is h0: prefer filename matches for each month when available.
+    if file_type.lower() == "h0":
+        # regex to find "YYYY-MM" in basename
+        for month in range(1, 13):
+            pattern = re.compile(rf"{re.escape(year_str)}-{month:02d}")
+            matched = [f for f in all_files if pattern.search(os.path.basename(f))]
+            if matched:
+                # Prefer filename matches: replace whatever time-based mapping had
+                month_to_files[month] = sorted(set(matched))
+                logging.info(
+                    f"h0 filename preference: assigned {len(matched)} file(s) to {year}-{month:02d}"
+                )
+
     # Log the grouping results with file details
     logging.info(f"\n{file_type.upper()} Files grouped by month for year {year}:")
     for month in sorted(month_to_files.keys()):
@@ -214,9 +230,8 @@ def group_files_by_month(
             # Extract just the filename for cleaner logging
             filename = os.path.basename(filepath)
             logging.info(f"    - {filename}")
-    
-    return dict(month_to_files)
-    
+
+    return dict(month_to_files)   
 
 def open_files_for_month(
     file_list: List[str],
@@ -264,77 +279,20 @@ def open_files_for_month(
     
     # Filter to the specific year-month
     time_slice = f"{year}-{month:02d}"
-    ds_month = ds.sel(time=time_slice)
-    
-    if len(ds_month.time) == 0:
-        raise ValueError(
-            f"No data found for {year}-{month:02d} after filtering. "
-            f"Files: {file_list}"
-        )
-    
-#    logging.info(
-#        f"Filtered {file_type} dataset to {year}-{month:02d}: "
-#        f"{len(ds_month.time)} timesteps, dims={ds_month.dims}"
-#    )
-    
-    return ds_month
-    
-def open_files_for_month(
-    file_list: List[str],
-    year: int,
-    month: int,
-    file_type: str = "unknown",
-) -> xr.Dataset:
-    """
-    Open files and filter to specific year-month.
-    
-    Args:
-        file_list: List of file paths to open
-        year: Year to filter
-        month: Month to filter (1-12)
-        file_type: Description for logging
-    
-    Returns:
-        xarray Dataset filtered to the specified year-month
-    """
-    logging.info(
-        f"Opening {len(file_list)} {file_type} file(s) for {year}-{month:02d}"
-    )
-    
-    if not file_list:
-        raise ValueError(f"No files provided for {year}-{month:02d}")
-    
-    # Open all files - let xarray auto-detect how to combine
-    if len(file_list) == 1:
-        # Single file - just open it
-        ds = xr.open_dataset(file_list[0])
-    else:
-        # Multiple files - combine by coordinates
-        ds = xr.open_mfdataset(
-            file_list, 
-            combine='by_coords',
-            data_vars='minimal',
-            coords='minimal',
-            compat='override',
-        )
-    
-    # Filter to the specific year-month
-    time_slice = f"{year}-{month:02d}"
-    ds_month = ds.sel(time=time_slice)
-    
-    if len(ds_month.time) == 0:
-        raise ValueError(
-            f"No data found for {year}-{month:02d} after filtering. "
-            f"Files: {file_list}"
-        )
-    
- #   logging.info(
- #       f"Filtered {file_type} dataset to {year}-{month:02d}: "
- #       f"{len(ds_month.time)} timesteps, dims={ds_month.dims}"
-#    )
-    
-    return ds_month
 
+    if file_type!= 'h0':
+        ds_month = ds.sel(time=time_slice)
+    else:
+        ds_month = ds
+    
+    if len(ds_month.time) == 0:
+        raise ValueError(
+            f"No data found for {year}-{month:02d} after filtering. "
+            f"Files: {file_list}"
+        )
+    
+    return ds_month
+    
 
 def select_variables(
     ds: xr.Dataset,
@@ -752,12 +710,16 @@ def process_e3sm_month(
     config: ProcessingConfig,
     year: int,
     month: int,
-    h1_files_by_month: Dict[int, List[str]],
+    h1_files_by_month: Optional[Dict[int, List[str]]] = None,
     h2_files_by_month: Optional[Dict[int, List[str]]] = None,
     h0_files_by_month: Optional[Dict[int, List[str]]] = None,
 ) -> Tuple[xr.Dataset, xr.Dataset, xr.Dataset]:
     """
     Process E3SM data for a single month.
+
+    Behavior change: h1 and h2 inputs are optional. If no h1/h2 files are
+    available for the month, the function will attempt to use h0 files as the
+    primary source (all data now in h0).
 
     Returns:
         Tuple of (full_dataset, forcing_dataset, initial_condition_dataset)
@@ -772,42 +734,61 @@ def process_e3sm_month(
     e3sm_variables = config.get_e3sm_variables()
     logging.info(f"Using {len(e3sm_variables)} E3SM variables")
 
-    # Check if files exist for this month
-    if month not in h1_files_by_month:
-        raise ValueError(f"No h1 files found for month {month}")
+    # Prepare input dataset (prefer h1/h2 if present; otherwise use h0)
+    ds_primary = None
 
-    # Open h1 files for this month
-    ds_h1 = open_files_for_month(
-        h1_files_by_month[month],
-        year,
-        month,
-        file_type="h1",
-    )
+    # Try h1/h2 first if files are provided and present for this month
+    h1_available = h1_files_by_month and (month in h1_files_by_month) and h1_files_by_month.get(month)
+    if h1_available:
+        ds_h1 = open_files_for_month(
+            h1_files_by_month[month],
+            year,
+            month,
+            file_type="h1",
+        )
+        logging.info("Selecting variables from h1 dataset...")
+        ds_h1_selected = select_variables(ds_h1, e3sm_variables, "h1")
+        ds_primary = ds_h1_selected
 
-    # Select only E3SM variables from h1
-    logging.info("Selecting variables from h1 dataset...")
-    ds_h1_selected = select_variables(ds_h1, e3sm_variables, "h1")
-
-    # Open h2 files if configured and available for this month
-    ds_h2_selected = None
-    if h2_files_by_month and month in h2_files_by_month:
+    # If h2 present, open and merge (only if h1 present or h2 has data)
+    if h2_files_by_month and (month in h2_files_by_month) and h2_files_by_month.get(month):
         ds_h2 = open_files_for_month(
             h2_files_by_month[month],
             year,
             month,
             file_type="h2",
         )
-        
-        # Select only E3SM variables from h2
         logging.info("Selecting variables from h2 dataset...")
         ds_h2_selected = select_variables(ds_h2, e3sm_variables, "h2")
+        if ds_primary is not None and len(ds_h2_selected.data_vars) > 0:
+            logging.info("Merging h1 and h2 datasets...")
+            ds_primary = ds_primary.merge(ds_h2_selected)
+        elif ds_primary is None:
+            ds_primary = ds_h2_selected
 
-    # Merge h1 and h2
-    if ds_h2_selected is not None and len(ds_h2_selected.data_vars) > 0:
-        logging.info("Merging h1 and h2 datasets...")
-        ds_p = ds_h1_selected.merge(ds_h2_selected)
-    else:
-        ds_p = ds_h1_selected
+    # If no h1/h2 primary dataset, try h0 (all data now in h0)
+    if ds_primary is None:
+        if not h0_files_by_month or month not in h0_files_by_month or not h0_files_by_month.get(month):
+            raise ValueError(
+                f"No input files found for {year}-{month:02d}: "
+                f"no h1/h2 and no h0 files available for this month"
+            )
+        ds_h0 = open_files_for_month(
+            h0_files_by_month[month],
+            year,
+            month,
+            file_type="h0",
+        )
+        logging.info("Selecting variables from h0 dataset (primary)...")
+        ds_primary = select_variables(ds_h0, e3sm_variables, "h0")
+        # If PHIS or other static-like fields are present in h0, they are
+        # already in ds_primary; no separate h0 extraction is needed.
+        try:
+            ds_h0.close()
+        except Exception:
+            pass
+
+    ds_p = ds_primary
 
     logging.info(f"Merged dataset shape: {ds_p.dims}")
 
@@ -815,20 +796,22 @@ def process_e3sm_month(
     logging.info("Loading dataset into memory...")
     ds_p = ds_p.load()
 
-    # Open h0 files if configured and extract PHIS
-    if h0_files_by_month and month in h0_files_by_month:
-        ds_h0 = open_files_for_month(
-            h0_files_by_month[month],
-            year,
-            month,
-            file_type="h0",
-        )
-        
-        if "PHIS" in ds_h0.data_vars:
-            logging.info("Adding PHIS from h0 dataset...")
-            ds_p["PHIS"] = ds_h0.isel(time=0).PHIS.load()
-        
-        ds_h0.close()
+    # If an h0 file exists and contains PHIS and h1/h2 didn't supply it,
+    # try to add PHIS from h0 (preserve original behavior)
+    if (('PHIS' not in ds_p.data_vars) and h0_files_by_month and (month in h0_files_by_month) and h0_files_by_month.get(month)):
+        try:
+            ds_h0 = open_files_for_month(
+                h0_files_by_month[month],
+                year,
+                month,
+                file_type="h0",
+            )
+            if "PHIS" in ds_h0.data_vars:
+                logging.info("Adding PHIS from h0 dataset...")
+                ds_p["PHIS"] = ds_h0.isel(time=0).PHIS.load()
+            ds_h0.close()
+        except Exception as e:
+            logging.warning(f"Could not extract PHIS from h0 for {year}-{month:02d}: {e}")
 
     # Compute derived variables
     logging.info("Computing pressure thickness...")
@@ -879,10 +862,6 @@ def process_e3sm_month(
     logging.info("Converting all variables to float32...")
     ds_p = convert_to_float32(ds_p)
     
-    #logging.info(f"Final dataset dtypes:\n{ds_p.dtypes}")
-
-    #logging.info(f"Final dataset shape: {ds_p.dims}")
-
     # Create forcing and initial condition datasets
     forcing_ds = create_forcing_dataset(ds_p)
     ic_ds = create_initial_condition_dataset(ds_p)
@@ -971,13 +950,19 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
             
             # Group files by month for this year
             # (this will also search prev/next year for files that span boundaries)
-            h1_files_by_month = group_files_by_month(
-                proc_config.data_paths.h1_pattern,
-                year,
-                file_type="h1",
-            )
-            
-            h2_files_by_month = None
+            h1_files_by_month = {}
+            if proc_config.data_paths.h1_pattern:
+                try:
+                    h1_files_by_month = group_files_by_month(
+                        proc_config.data_paths.h1_pattern,
+                        year,
+                        file_type="h1",
+                    )
+                except FileNotFoundError as e:
+                    logging.warning(f"No h1 files found for year {year}: {e}")
+                    h1_files_by_month = {}
+
+            h2_files_by_month = {}
             if proc_config.data_paths.h2_pattern:
                 try:
                     h2_files_by_month = group_files_by_month(
@@ -987,8 +972,9 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
                     )
                 except FileNotFoundError as e:
                     logging.warning(f"No h2 files found for year {year}: {e}")
-            
-            h0_files_by_month = None
+                    h2_files_by_month = {}
+
+            h0_files_by_month = {}
             if proc_config.data_paths.h0_pattern:
                 try:
                     h0_files_by_month = group_files_by_month(
@@ -998,6 +984,7 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
                     )
                 except FileNotFoundError as e:
                     logging.warning(f"No h0 files found for year {year}: {e}")
+                    h0_files_by_month = {}
             
             # Determine month range for this year
             if year == proc_config.start_year:
