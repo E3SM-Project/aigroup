@@ -16,7 +16,8 @@ export OMP_PROC_BIND=spread
 export OMP_PLACES=cores
 
 source /global/common/software/e3sm/anaconda_envs/load_latest_e3sm_unified_pm-cpu.sh
-
+echo "ncks path: $(which ncks)"
+echo "ncremap path: $(which ncremap)"
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
@@ -26,15 +27,20 @@ log_msg() {
 }
 
 # ------------------ Configuration ------------------
-START_YEAR=${START_YEAR:-1960}
-END_YEAR=${END_YEAR:-1969}
-CHUNK_SIZE=${CHUNK_SIZE:-2}  # Process 2 years at a time
+START_YEAR=${START_YEAR:-2012}
+END_YEAR=${END_YEAR:-2015}
+CHUNK_SIZE=${CHUNK_SIZE:-10}  # Process 2 years at a time
 
 # ------------------ Paths ------------------
 SRC_PATH="/pscratch/sd/o/olawale/E3SM_data/v3.LR.historical_0101_bonus.eam.h1_h2/archive/atm/hist"
-DES_PATH="/pscratch/sd/o/olawale/E3SM_data/data_processing/regridded_data"
-MAP="/global/cfs/cdirs/e3sm/mahf708/misc/map_ne30pg2_to_gaussian_180x360_latlon.nc"
-file_types=("h0" "h1" "h2")
+SRC_PATH="/global/cfs/cdirs/e3smdata/simulations/v3.LR.amip_0101_aigoutput/run"
+
+
+DES_PATH="/pscratch/sd/o/olawale/E3SM_data/data_processing/amip_regridded/amip_101"
+
+#MAP="/global/cfs/cdirs/e3sm/mahf708/misc/map_ne30pg2_to_gaussian_180x360_latlon.nc"
+MAP="/pscratch/sd/r/rebassoo/ForNaser/map_ne30pg2_to_gaussian_180by360.nc"
+file_types=("h0")
 
 # ------------------ Validation ------------------
 [[ -d "$SRC_PATH" ]] || { log_msg "❌ Source path not found: $SRC_PATH"; exit 1; }
@@ -98,6 +104,7 @@ for ((start=START_YEAR; start<=END_YEAR; start+=CHUNK_SIZE)); do
     for file_type in "${file_types[@]}"; do
         for y in "${YEARS[@]}"; do
             count=$(ls "${DES_PATH}"/*eam*${file_type}.*${y}*.nc 2>/dev/null | wc -l)
+            log_msg " Count for $y is $count"
             (( regridded_count += count ))
         done
     done

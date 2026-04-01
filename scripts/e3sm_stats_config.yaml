@@ -1,0 +1,11 @@
+input_type: zarr
+runs: 
+    amip101_1951_1955: ""
+data_output_directory: /pscratch/sd/o/olawale/E3SM_data/data_processing/output/amip/amip_101
+stats:
+  output_directory: /pscratch/sd/o/olawale/E3SM_data/data_processing/output/amip/amip_101/e3sm-amip101-stats
+  data_type: E3SMV2
+  start_date: "1951-01-01"
+  end_date: "1955-12-31"
+
+

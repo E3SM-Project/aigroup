@@ -10,12 +10,14 @@ import os
 import sys
 from typing import List, Optional, Sequence, Tuple, Dict
 
+
 import click
 import dacite
 import numpy as np
 import xarray as xr
 import yaml
 from collections import defaultdict
+from xtorch_harmonics import roundtrip_filter
 
 # Constants
 LATENT_HEAT_OF_VAPORIZATION = 2.501e6  # J/kg
@@ -24,7 +26,7 @@ REFERENCE_PRESSURE = 1e5  # Pa
 
 # Default variables to extract after merging (can be overridden in config)
 DEFAULT_E3SM_VARIABLES = [
-    'PS', 'TS', 'T', 'U', 'V', 'Q', 'OMEGA', 'CLDLIQ', 'CLDICE',
+    'PS', 'TS', 'T', 'U', 'V', 'Q', 'CLDLIQ', 'CLDICE',
     'RAINQM', 'TMQ', 'TGCLDLWP', 'TGCLDIWP', 'OCNFRAC', 'LANDFRAC',
     'ICEFRAC', 'QREFHT', 'TREFHT', 'U10', 'PRECT', 'LHFLX', 'SHFLX',
     'FLNS', 'FLDS', 'FSNS', 'FSDS', 'FSNTOA', 'SOLIN', 'FLUT',
@@ -61,6 +63,7 @@ class VerticalCoarseningConfig:
 
 
 @dataclasses.dataclass
+
 class ProcessingConfig:
     """Main processing configuration."""
 
@@ -72,6 +75,8 @@ class ProcessingConfig:
     start_month: int = 1
     end_month: int = 12
     e3sm_variables: Optional[List[str]] = None
+    roundtrip_fraction_kept: Optional[float] = None
+    roundtrip_variables: Optional[List[str]] = None
 
     @classmethod
     def from_file(cls, path: str) -> "ProcessingConfig":
@@ -93,6 +98,10 @@ class ProcessingConfig:
                 validate=vc_data.get("validate", True),
             )
 
+        # Optional roundtrip filter config
+        data.setdefault("roundtrip_fraction_kept", None)
+        data.setdefault("roundtrip_variables", None)
+
         return dacite.from_dict(
             data_class=cls,
             data=data,
@@ -112,25 +121,24 @@ def group_files_by_month(
 ) -> Dict[int, List[str]]:
     """
     Group files by months they contain data for.
-
+    
     Since files span month boundaries (mid-month to mid-next-month),
     each file will be associated with 2 months.
-
+    
     Args:
         file_pattern: Glob pattern with {year} placeholder
         year: Year to process
         file_type: Description for logging
         static_fields_only: If True, just find any file from the year (for h0 static fields)
-
+    
     Returns:
         Dictionary mapping month number (1-12) to list of file paths
     """
     import cftime
     import pandas as pd
-    import re
-
+    
     year_str = str(year)
-
+    
     # Get files for this year and potentially previous/next year
     # (files may span year boundaries)
     patterns_to_search = [
@@ -138,22 +146,22 @@ def group_files_by_month(
         file_pattern.replace("{year}", year_str),
         file_pattern.replace("{year}", str(year + 1)),
     ]
-
+    
     all_files = []
     for pattern in patterns_to_search:
         pattern_expanded = pattern.replace("{month}", "*")
         files = glob.glob(pattern_expanded)
         all_files.extend(files)
-
+    
     all_files = sorted(set(all_files))  # Remove duplicates and sort
-
+    
     if not all_files:
         raise FileNotFoundError(
             f"No {file_type} files found for year {year}"
         )
-
+    
     logging.info(f"Found {len(all_files)} total {file_type} file(s) around year {year}")
-
+    
     # For static fields (h0), just assign the first file to all months
     if static_fields_only:
         logging.info(f"Using simple mode for {file_type} (static fields only)")
@@ -161,18 +169,18 @@ def group_files_by_month(
         year_files = [f for f in all_files if f"/{year}-" in f or f".{year}-" in f]
         if not year_files:
             year_files = all_files[:1]  # Fallback to first file
-
+        
         # Assign the same file(s) to all months
         month_to_files = {month: year_files[:1] for month in range(1, 13)}
-
+        
         filename = os.path.basename(year_files[0])
         logging.info(f"  Using file for all months: {filename}\n")
-
+        
         return month_to_files
-
-    # First: Group files by month based on their actual time coordinates
+    
+    # Group files by month based on their actual time coordinates
     month_to_files = defaultdict(list)
-
+    
     for filepath in all_files:
         try:
             # Open file and read time coordinate
@@ -180,11 +188,11 @@ def group_files_by_month(
                 if 'time' not in ds.coords:
                     logging.warning(f"No time coordinate in {filepath}, skipping")
                     continue
-
+                
                 # Get all year-months present in this file
                 times = ds.time.values
                 year_months_in_file = set()
-
+                
                 # Convert each time value to year-month tuple
                 for time_val in times:
                     # Handle both cftime and numpy datetime64
@@ -197,31 +205,18 @@ def group_files_by_month(
                         ts = pd.Timestamp(time_val)
                         file_year = ts.year
                         file_month = ts.month
-
+                    
                     year_months_in_file.add((file_year, file_month))
-
+                
                 # Add this file to all months it contains FOR THE TARGET YEAR
                 for file_year, month in year_months_in_file:
                     if file_year == year:
                         month_to_files[month].append(filepath)
-
+                    
         except Exception as e:
             logging.warning(f"Error reading {filepath}: {e}, skipping")
             continue
-
-    # If file_type is h0: prefer filename matches for each month when available.
-    if file_type.lower() == "h0":
-        # regex to find "YYYY-MM" in basename
-        for month in range(1, 13):
-            pattern = re.compile(rf"{re.escape(year_str)}-{month:02d}")
-            matched = [f for f in all_files if pattern.search(os.path.basename(f))]
-            if matched:
-                # Prefer filename matches: replace whatever time-based mapping had
-                month_to_files[month] = sorted(set(matched))
-                logging.info(
-                    f"h0 filename preference: assigned {len(matched)} file(s) to {year}-{month:02d}"
-                )
-
+    
     # Log the grouping results with file details
     logging.info(f"\n{file_type.upper()} Files grouped by month for year {year}:")
     for month in sorted(month_to_files.keys()):
@@ -230,8 +225,9 @@ def group_files_by_month(
             # Extract just the filename for cleaner logging
             filename = os.path.basename(filepath)
             logging.info(f"    - {filename}")
-
-    return dict(month_to_files)   
+    
+    return dict(month_to_files)
+    
 
 def open_files_for_month(
     file_list: List[str],
@@ -279,11 +275,7 @@ def open_files_for_month(
     
     # Filter to the specific year-month
     time_slice = f"{year}-{month:02d}"
-
-    if file_type!= 'h0':
-        ds_month = ds.sel(time=time_slice)
-    else:
-        ds_month = ds
+    ds_month = ds.sel(time=time_slice)
     
     if len(ds_month.time) == 0:
         raise ValueError(
@@ -654,14 +646,13 @@ def create_forcing_dataset(
 
     return forcing_ds
 
-
-def create_initial_condition_dataset(
+def create_traindata_dataset(
     ds: xr.Dataset,
 ) -> xr.Dataset:
-    """Create initial condition dataset with required variables."""
-    logging.info("Creating initial condition dataset...")
+    """Create traindata dataset with required variables."""
+    logging.info("Creating traindata dataset...")
 
-    base_ic_vars = [
+    base_traindata_vars = [
         'FLDS', 'FLUT', 'FSDS', 'ICEFRAC', 'LANDFRAC', 'LHFLX',
         'OCNFRAC', 'PHIS', 'PS', 'SHFLX', 'SOLIN', 'TS',
         'surface_precipitation_rate', 'surface_upward_longwave_flux',
@@ -670,22 +661,22 @@ def create_initial_condition_dataset(
         'top_of_atmos_upward_shortwave_flux', 'total_water_path'
     ]
 
-    ic_vars = [v for v in base_ic_vars if v in ds.data_vars]
+    traindata_vars = [v for v in base_traindata_vars if v in ds.data_vars]
 
     for base_var in ['T', 'U', 'V', 'specific_total_water']:
         coarse_vars = get_coarse_variable_names(ds, base_var)
-        ic_vars.extend(coarse_vars)
+        traindata_vars.extend(coarse_vars)
 
     ak_vars, bk_vars = get_ak_bk_variable_names(ds)
-    ic_vars.extend(ak_vars)
-    ic_vars.extend(bk_vars)
+    traindata_vars.extend(ak_vars)
+    traindata_vars.extend(bk_vars)
 
-    ic_ds = ds[ic_vars]
+    traindata_ds = ds[traindata_vars]
 
-    logging.info(f"Initial condition dataset created with "
-                 f"{len(ic_ds.data_vars)} variables")
+    logging.info(f"Traindata dataset created with "
+                 f"{len(traindata_ds.data_vars)} variables")
 
-    return ic_ds
+    return traindata_ds
 
 def convert_to_float32(ds: xr.Dataset) -> xr.Dataset:
     """Convert all variables and coordinates to float32."""
@@ -722,7 +713,7 @@ def process_e3sm_month(
     primary source (all data now in h0).
 
     Returns:
-        Tuple of (full_dataset, forcing_dataset, initial_condition_dataset)
+        Tuple of (full_dataset, forcing_dataset, train_dataset)
     """
     month_str = f"{month:02d}"
     
@@ -813,6 +804,7 @@ def process_e3sm_month(
         except Exception as e:
             logging.warning(f"Could not extract PHIS from h0 for {year}-{month:02d}: {e}")
 
+
     # Compute derived variables
     logging.info("Computing pressure thickness...")
     ds_p = compute_pressure_thickness_mid(ds_p)
@@ -834,6 +826,31 @@ def process_e3sm_month(
     )
     ds_p = compute_twp_tendency(ds_p)
     ds_p = compute_twp_advective_tendency(ds_p)
+
+    # --- ROUNDTRIP FILTER ---
+    if config.roundtrip_fraction_kept is not None:
+        logging.info(f"Applying roundtrip filter (fraction_kept={config.roundtrip_fraction_kept})")
+        try:
+            if config.roundtrip_variables is None:
+                ds_p = roundtrip_filter(
+                    ds_p,
+                    lat_dim="lat",
+                    lon_dim="lon",
+                    fraction_modes_kept=config.roundtrip_fraction_kept,
+                )
+            else:
+                logging.info(f"Applying roundtrip filter to variables: {config.roundtrip_variables}")
+                ds_filtered = ds_p[config.roundtrip_variables]
+                ds_unfiltered = ds_p.drop_vars(config.roundtrip_variables)
+                ds_filtered = roundtrip_filter(
+                    ds_filtered,
+                    lat_dim="lat",
+                    lon_dim="lon",
+                    fraction_modes_kept=config.roundtrip_fraction_kept,
+                )
+                ds_p = xr.merge([ds_filtered, ds_unfiltered])
+        except Exception as e:
+            logging.warning(f"Roundtrip filter failed: {e}")
 
     # Vertical coarsening
     logging.info("Performing vertical coarsening...")
@@ -861,10 +878,10 @@ def process_e3sm_month(
     # Convert ALL variables to float32 before output
     logging.info("Converting all variables to float32...")
     ds_p = convert_to_float32(ds_p)
-    
-    # Create forcing and initial condition datasets
+
+    # Create forcing and train datasets
     forcing_ds = create_forcing_dataset(ds_p)
-    ic_ds = create_initial_condition_dataset(ds_p)
+    ic_ds = create_traindata_dataset(ds_p)
 
     return ds_p, forcing_ds, ic_ds
 
@@ -932,14 +949,22 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
         if not (1 <= proc_config.end_month <= 12):
             raise ValueError(f"end_month must be between 1 and 12, got {proc_config.end_month}")
 
-        # Create output directory
+
+        # Create output directory and subfolders for forcingdata and traindata
         os.makedirs(proc_config.output_directory, exist_ok=True)
+        forcingdata_dir = os.path.join(proc_config.output_directory, "forcingdata")
+        traindata_dir = os.path.join(proc_config.output_directory, "traindata")
+        os.makedirs(forcingdata_dir, exist_ok=True)
+        os.makedirs(traindata_dir, exist_ok=True)
 
         logging.info(f"\n{'='*60}")
         logging.info(f"Starting E3SM data processing")
         logging.info(f"Years: {proc_config.start_year} to {proc_config.end_year}")
         logging.info(f"Months: {proc_config.start_month} to {proc_config.end_month}")
         logging.info(f"Output directory: {proc_config.output_directory}")
+        logging.info(f"Traindata directory: {traindata_dir}")
+        logging.info(f"Forcing data directory: {forcingdata_dir}")
+
         logging.info(f"{'='*60}\n")
 
         # Process each year
@@ -1001,7 +1026,7 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
             for month in range(month_start, month_end + 1):
                 try:
                     # Process dataset for this month
-                    ds_full, ds_forcing, ds_ic = process_e3sm_month(
+                    ds_full, ds_forcing, ds_train_ic = process_e3sm_month(
                         proc_config,
                         year,
                         month,
@@ -1012,39 +1037,36 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
 
                     # Define output paths
                     month_str = f"{month:02d}"
+
                     full_output_path = os.path.join(
                         proc_config.output_directory,
                         f"{year}-{month_str}.nc",
                     )
                     forcing_output_path = os.path.join(
-                        proc_config.output_directory,
+                        forcingdata_dir,
                         f"{year}-{month_str}.forcing.nc",
                     )
-                    ic_output_path = os.path.join(
-                        proc_config.output_directory,
-                        f"{year}-{month_str}.ic.nc",
+                    train_output_path = os.path.join(
+                        traindata_dir,
+                        f"{year}-{month_str}.nc",
                     )
 
                     # Save outputs
-                    logging.info(f"Saving full dataset to {full_output_path}")
-                    ds_full.to_netcdf(full_output_path)
-
-                    logging.info(f"Saving forcing dataset to {forcing_output_path}")
+                    logging.info(f"Saving forcing dataset (needed for inference) to {forcing_output_path}")
                     ds_forcing.to_netcdf(forcing_output_path)
 
-                    logging.info(f"Saving initial condition dataset to {ic_output_path}")
-                    ds_ic.to_netcdf(ic_output_path)
+                    logging.info(f"Saving training dataset to {train_output_path}")
+                    ds_train_ic.to_netcdf(train_output_path)
 
                     logging.info(f"\n✓ Year-Month {year}-{month_str} completed successfully!")
-                    logging.info(f"  Full: {full_output_path}")
                     logging.info(f"  Forcing: {forcing_output_path}")
-                    logging.info(f"  Initial Condition: {ic_output_path}\n")
+                    logging.info(f"  Training dataset: {train_output_path}\n")
 
                     # Clean up to free memory
                     ds_full.close()
                     ds_forcing.close()
-                    ds_ic.close()
-                    del ds_full, ds_forcing, ds_ic
+                    ds_train_ic.close()
+                    del ds_full, ds_forcing, ds_train_ic
 
                 except Exception as e:
                     logging.error(f"Error processing {year}-{month:02d}: {e}", exc_info=True)
