@@ -38,7 +38,7 @@ This SLURM batch script uses `ncremap` to regrid E3SM output files to a regular 
 
 This script merges, computes derived variables, coarsens vertical levels, and outputs monthly AI-ready NetCDFs for forcing and training.
 
-  `config_process_e3sm_data_ai_month_3.yaml`  
+  `config_process_e3sm_data_ai_month.yaml`  
   - Set `data_paths` to point to your regridded files
   - Set `output_directory` for processed files
   - Adjust year/month range and variables as needed
