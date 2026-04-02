@@ -3,3 +3,4 @@ site
 
 # any cache
 .cache
+.ipynb*
