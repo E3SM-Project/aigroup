@@ -162,6 +162,9 @@ def open_files_for_month(
     year: int,
     month: int,
     file_type: str = "unknown",
+    prev_file_list: Optional[List[str]] = None,
+    prev_year: Optional[int] = None,
+    prev_month: Optional[int] = None,
 ) -> xr.Dataset:
     logging.info(
         f"\nOpening {len(file_list)} {file_type} file(s) for {year}-{month:02d}:"
@@ -175,7 +178,7 @@ def open_files_for_month(
         ds = xr.open_dataset(file_list[0])
     else:
         ds = xr.open_mfdataset(
-            file_list, 
+            file_list,
             combine='by_coords',
             data_vars='minimal',
             coords='minimal',
@@ -188,6 +191,35 @@ def open_files_for_month(
             f"No data found for {year}-{month:02d} after filtering. "
             f"Files: {file_list}"
         )
+
+    if prev_file_list and prev_year is not None and prev_month is not None:
+        try:
+            if len(prev_file_list) == 1:
+                ds_prev = xr.open_dataset(prev_file_list[0])
+            else:
+                ds_prev = xr.open_mfdataset(
+                    prev_file_list,
+                    combine='by_coords',
+                    data_vars='minimal',
+                    coords='minimal',
+                    compat='override',
+                )
+            ds_prev_month = ds_prev.sel(time=f"{prev_year}-{prev_month:02d}")
+            if len(ds_prev_month.time) > 0:
+                ds_prev_last = ds_prev_month.isel(time=[-1])
+                # Log the exact timestep being prepended for traceability
+                prepended_time = ds_prev_last.time.values[0]
+                logging.info(
+                    f"  Prepended last timestep {prepended_time} "
+                    f"to this month {year}-{month:02d}"
+                )
+                ds_month = xr.concat([ds_prev_last, ds_month], dim="time")
+        except Exception as e:
+            logging.warning(
+                f"Could not prepend previous month "
+                f"{prev_year}-{prev_month:02d}: {e}"
+            )
+
     return ds_month
 
 
@@ -537,6 +569,9 @@ def process_e3sm_month(
     h1_files_by_month: Optional[Dict[int, List[str]]] = None,
     h2_files_by_month: Optional[Dict[int, List[str]]] = None,
     h0_files_by_month: Optional[Dict[int, List[str]]] = None,
+    prev_h1_files_by_month: Optional[Dict[int, List[str]]] = None,
+    prev_h2_files_by_month: Optional[Dict[int, List[str]]] = None,
+    prev_h0_files_by_month: Optional[Dict[int, List[str]]] = None,
 ) -> Tuple[xr.Dataset, xr.Dataset, xr.Dataset]:
     month_str = f"{month:02d}"
     logging.info(f"\n{'='*60}")
@@ -545,6 +580,15 @@ def process_e3sm_month(
 
     e3sm_variables = config.get_e3sm_variables()
     logging.info(f"Using {len(e3sm_variables)} E3SM variables")
+
+    _prev_year = year - 1 if month == 1 else year
+    _prev_month = 12 if month == 1 else month - 1
+    # For January, use the previous year's file dicts so that December of the
+    # prior year can be found; for all other months, the current year's dicts
+    # already contain the previous month.
+    _prev_h1 = (prev_h1_files_by_month or {}) if month == 1 else (h1_files_by_month or {})
+    _prev_h2 = (prev_h2_files_by_month or {}) if month == 1 else (h2_files_by_month or {})
+    _prev_h0 = (prev_h0_files_by_month or {}) if month == 1 else (h0_files_by_month or {})
 
     ds_primary = None
 
@@ -555,6 +599,9 @@ def process_e3sm_month(
             year,
             month,
             file_type="h1",
+            prev_file_list=_prev_h1.get(_prev_month),
+            prev_year=_prev_year,
+            prev_month=_prev_month,
         )
         logging.info("Selecting variables from h1 dataset...")
         ds_h1_selected = select_variables(ds_h1, e3sm_variables, "h1")
@@ -566,6 +613,9 @@ def process_e3sm_month(
             year,
             month,
             file_type="h2",
+            prev_file_list=_prev_h2.get(_prev_month),
+            prev_year=_prev_year,
+            prev_month=_prev_month,
         )
         logging.info("Selecting variables from h2 dataset...")
         ds_h2_selected = select_variables(ds_h2, e3sm_variables, "h2")
@@ -586,6 +636,9 @@ def process_e3sm_month(
             year,
             month,
             file_type="h0",
+            prev_file_list=_prev_h0.get(_prev_month),
+            prev_year=_prev_year,
+            prev_month=_prev_month,
         )
         logging.info("Selecting variables from h0 dataset (primary)...")
         ds_primary = select_variables(ds_h0, e3sm_variables, "h0")
@@ -674,6 +727,9 @@ def process_e3sm_month(
     logging.info("Converting all variables to float32...")
     ds_p = convert_to_float32(ds_p)
 
+    logging.info(f"Selecting final month {year}-{month:02d} (stripping prepended timestep if any)...")
+    ds_p = ds_p.sel(time=f"{year}-{month:02d}")
+
     forcing_ds = create_forcing_dataset(ds_p)
     ic_ds = create_traindata_dataset(ds_p)
 
@@ -687,7 +743,10 @@ def process_and_write_month(
     h2_files_by_month: Optional[Dict[int, List[str]]],
     h0_files_by_month: Optional[Dict[int, List[str]]],
     forcingdata_dir: str,
-    traindata_dir: str
+    traindata_dir: str,
+    prev_h1_files_by_month: Optional[Dict[int, List[str]]] = None,
+    prev_h2_files_by_month: Optional[Dict[int, List[str]]] = None,
+    prev_h0_files_by_month: Optional[Dict[int, List[str]]] = None,
 ):
     try:
         ds_full, ds_forcing, ds_train_ic = process_e3sm_month(
@@ -697,6 +756,9 @@ def process_and_write_month(
             h1_files_by_month,
             h2_files_by_month,
             h0_files_by_month,
+            prev_h1_files_by_month,
+            prev_h2_files_by_month,
+            prev_h0_files_by_month,
         )
         month_str = f"{month:02d}"
         forcing_output_path = os.path.join(
@@ -799,7 +861,9 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
         logging.info(f"{'='*60}\n")
 
         files_by_year = {}
-        for year in range(proc_config.start_year, proc_config.end_year + 1):
+        # Start from start_year - 1 so January of start_year can find
+        # December of the prior year for boundary tendency computation.
+        for year in range(proc_config.start_year - 1, proc_config.end_year + 1):
             h1_files_by_month = {}
             if proc_config.data_paths.h1_pattern:
                 try:
@@ -838,6 +902,8 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
         jobs = []
         for year in range(proc_config.start_year, proc_config.end_year + 1):
             h1_files_by_month, h2_files_by_month, h0_files_by_month = files_by_year[year]
+            # Get previous year's file dicts for January boundary timestep
+            prev_year_files = files_by_year.get(year - 1, ({}, {}, {}))
             if year == proc_config.start_year:
                 month_start = proc_config.start_month
             else:
@@ -847,10 +913,18 @@ def main(config: str, start_year: int, end_year: int, start_month: int, end_mont
             else:
                 month_end = 12
             for month in range(month_start, month_end + 1):
+                # Pass previous year December files only for January jobs
+                if month == 1:
+                    prev_h1 = prev_year_files[0]
+                    prev_h2 = prev_year_files[1]
+                    prev_h0 = prev_year_files[2]
+                else:
+                    prev_h1, prev_h2, prev_h0 = None, None, None
                 jobs.append((
                     proc_config, year, month,
                     h1_files_by_month, h2_files_by_month, h0_files_by_month,
-                    forcingdata_dir, traindata_dir
+                    forcingdata_dir, traindata_dir,
+                    prev_h1, prev_h2, prev_h0,
                 ))
 
         logging.info(f"Submitting {len(jobs)} month-jobs to {workers} worker(s)...")

@@ -3,4 +3,4 @@ site
 
 # any cache
 .cache
-.ipynb*
+./scripts/.ipynb*
