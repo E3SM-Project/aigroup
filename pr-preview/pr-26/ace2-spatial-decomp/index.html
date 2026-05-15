@@ -669,50 +669,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#training-parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Training Parameters
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#monitoring-training" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Monitoring Training
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Troubleshooting
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#additional-resources" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Additional Resources
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -958,50 +914,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#training-parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Training Parameters
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#monitoring-training" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Monitoring Training
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Troubleshooting
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#additional-resources" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Additional Resources
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1285,47 +1197,6 @@
 <p class="admonition-title">Going back to plain data-parallel</p>
 <p>To run the same job as pure data parallelism (no spatial split), simply unset (or set to <code>torch</code>) <code>FME_DISTRIBUTED_BACKEND</code> and drop <code>FME_DISTRIBUTED_H</code>/<code>FME_DISTRIBUTED_W</code>. Everything else, including the <code>srun torchrun ...</code> launcher, stays the same.</p>
 </div>
-<h2 id="training-parameters">Training Parameters</h2>
-<p>Same as the <a href="../ace2-workflow/#training-parameters">vanilla guide</a>, with the additions:</p>
-<ul>
-<li><code>--nnodes="$SLURM_JOB_NUM_NODES"</code>: number of nodes in the allocation</li>
-<li><code>--rdzv_backend=c10d</code> / <code>--rdzv_endpoint=...</code>: multi-node rendezvous on the head node</li>
-<li><code>FME_DISTRIBUTED_BACKEND=model</code>, <code>FME_DISTRIBUTED_H</code>, <code>FME_DISTRIBUTED_W</code>: enable and shape the spatial decomposition</li>
-</ul>
-<h2 id="monitoring-training">Monitoring Training</h2>
-<p>Same as the vanilla workflow:</p>
-<ul>
-<li>GPU utilization: <code>nvidia-smi</code> (run on each node as needed)</li>
-<li>Training logs: under the <code>experiment_dir</code> set in your config</li>
-<li>Checkpoints: written periodically based on your configuration</li>
-</ul>
-<h2 id="troubleshooting">Troubleshooting</h2>
-<p>In addition to the <a href="../ace2-workflow/#common-issues">common issues from the vanilla guide</a>, spatial-decomposition runs have a few extra pitfalls:</p>
-<p><strong><code>KeyError: 'FME_DISTRIBUTED_H'</code> (or <code>_W</code>)</strong></p>
-<p>You set <code>FME_DISTRIBUTED_BACKEND=model</code> but did not export both <code>FME_DISTRIBUTED_H</code> and <code>FME_DISTRIBUTED_W</code>. Set them and re-launch.</p>
-<p><strong><code>Unknown FME_DISTRIBUTED_BACKEND value</code></strong></p>
-<p>Only <code>torch</code>, <code>model</code>, and <code>none</code> are accepted. Check for typos.</p>
-<p><strong>Hang at startup or rendezvous timeout</strong></p>
-<ul>
-<li>Confirm <code>HEAD_NODE</code> resolves to a hostname inside the allocation (<code>scontrol show hostnames "$SLURM_JOB_NODELIST"</code> should list it).</li>
-<li>Make sure the rendezvous port (<code>29500</code> in the example) is not in use; pick another if needed.</li>
-<li>Verify <code>--nnodes</code> matches <code>$SLURM_JOB_NUM_NODES</code> and that <code>srun</code> is fanning out to every node.</li>
-</ul>
-<p><strong>Batch-size / divisibility error</strong></p>
-<p>If FME complains about an indivisible batch, recompute <code>DATA_DIM = NPROCS / (H * W)</code> and make sure <code>train_loader.batch_size % DATA_DIM == 0</code>.</p>
-<p><strong>Out-of-memory errors with spatial decomposition</strong></p>
-<ul>
-<li>Increase <code>H</code> and/or <code>W</code> to give each rank a smaller spatial tile (remember to also re-check the sizing constraints).</li>
-<li>Reduce model size (<code>embed_dim</code>, <code>num_layers</code>).</li>
-<li>Reduce <code>batch_size</code>.</li>
-</ul>
-<h2 id="additional-resources">Additional Resources</h2>
-<ul>
-<li><a href="../ace2-workflow/">Vanilla ACE2-ERA5 Training Workflow</a></li>
-<li><a href="https://ai2-climate-emulator.readthedocs.io/">ACE Documentation</a></li>
-<li><a href="https://github.com/astral-sh/uv">uv Documentation</a></li>
-<li><a href="https://pytorch.org/docs/stable/distributed.html">PyTorch Distributed Training</a></li>
-</ul>
 
 
 
