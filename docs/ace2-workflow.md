@@ -105,7 +105,6 @@ Create a training configuration file named `config-train.yaml` in the repository
     save_checkpoint: true
     validate_using_ema: true
     max_epochs: 80
-    n_forward_steps: 1
     inference:
       n_forward_steps: 300  # ~75 days (adjust based on your needs)
       forward_steps_in_memory: 1
@@ -143,9 +142,11 @@ Create a training configuration file named `config-train.yaml` in the repository
       lr: 0.0001
       optimizer_type: AdamW
       # can also set kwargs: fused: true for performance if using GPU
-    stepper:
+    stepper_training:
       loss:
         type: MSE
+      n_forward_steps: 1
+    stepper:
       step:
         type: single_module
         config:
