@@ -376,10 +376,8 @@ def compute_twp_tendency(
     output_name: str = "tendency_of_total_water_path",
 ) -> xr.Dataset:
     twp = ds[total_water_path_name]
-    dt = ds[time_dim].diff(time_dim)
-    tendency = twp.diff(time_dim) / dt.astype(
-        "timedelta64[s]"
-    ).astype(float)
+    dt = ds[time_dim].diff(time_dim)/ np.timedelta64(1, "s") 
+    tendency = twp.diff(time_dim) / dt
     tendency = tendency.fillna(tendency.isel({time_dim: 0}))
     tendency.attrs["units"] = "kg/m2/s"
     tendency.attrs["long_name"] = "Tendency of total water path"

@@ -7,11 +7,11 @@ data_paths:
   h2_pattern: "/pscratch/sd/o/olawale/E3SM_data/data_processing/amip_regridded/amip_101/v3.LR.amip_0101_aigoutput.eam.h2.{year}-*-*.nc"
   h0_pattern: "/pscratch/sd/o/olawale/E3SM_data/data_processing/amip_regridded/amip_101/v3.LR.amip_0101_aigoutput.eam.h0.{year}-*-*.nc"
 
-output_directory: "output/amip/amip_101"
+output_directory: "/pscratch/sd/o/olawale/E3SM_data/data_processing/output/amip/amip_101_3"
 
 # Year and month range to process
-start_year: 1953
-end_year: 1955
+start_year: 2001
+end_year: 2015
 start_month: 1  # January
 end_month: 12   # December
 
@@ -72,8 +72,11 @@ vertical_coarsening:
   validate: true
 
 # Optional: Enable roundtrip filter (uncomment to use)
-# roundtrip_fraction_kept: 0.95  # Fraction of spherical harmonics to keep (0-1)
-# roundtrip_variables:           # List of variables to apply roundtrip filter to (optional)
-#   - T
-#   - U
-#   - V
+roundtrip_fraction_kept: 1  # Fraction of spherical harmonics to keep (0-1)
+roundtrip_variables:           # List of variables to apply roundtrip filter to (optional)
+   - T
+   - U
+   - V
+   - Q
+   - TS
+   - PS
