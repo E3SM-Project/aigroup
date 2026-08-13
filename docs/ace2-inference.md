@@ -2,6 +2,10 @@
 
 This guide walks you through running inference using the pre-trained [ACE2-EAMv3](https://huggingface.co/allenai/ACE2-EAMv3) model.
 
+!!! tip "coupled model"
+    ACE2-EAMv3 is atmosphere-only and runs with prescribed SSTs. For the fully coupled
+    atmosphere–ocean emulator, see [SamudrACE-E3SMv3 Coupled Inference](samudrace-inference.md).
+
 ## Prerequisites for this guide
 
 - [uv](https://github.com/astral-sh/uv) installed to set up the environment, including Py
