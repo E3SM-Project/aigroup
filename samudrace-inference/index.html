@@ -751,6 +751,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#land-masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Land masking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#running-on-more-than-one-gpu" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -958,6 +969,17 @@
     <span class="md-ellipsis">
       
         Stochasticity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#land-masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Land masking
       
     </span>
   </a>
@@ -1293,43 +1315,103 @@ left as a task below.</p>
 <thead>
 <tr>
 <th>Run</th>
+<th>Output</th>
 <th>Wall time</th>
 <th>GPU memory</th>
+<th>Output size</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>12 coupled steps (60 days), 1 IC, <code>coupled_steps_in_memory: 4</code></td>
-<td>1 min 42 s (66 s of it inference)</td>
+<td>per-step + monthly</td>
+<td>1 min 42 s (66 s inference)</td>
 <td>9 GB</td>
+<td>4.2 GB</td>
 </tr>
 <tr>
-<td>72 coupled steps (360 days), 3 ICs, <code>coupled_steps_in_memory: 8</code></td>
-<td>RUN2_WALL</td>
-<td>35 GB</td>
+<td>72 coupled steps (360 days), 3 ICs, <code>coupled_steps_in_memory: 4</code></td>
+<td>monthly only</td>
+<td>10 min 25 s (584 s inference, 7.4 atmosphere steps/s)</td>
+<td>24 GB</td>
+<td>1.5 GB</td>
 </tr>
 </tbody>
 </table>
-<p>Memory scales with <code>coupled_steps_in_memory</code> × number of ensemble members, so if you increase the
-number of initial conditions, decrease the steps held in memory.</p>
+<p>Extrapolating the second row, the published 40-year, 3-member configuration is roughly 6–7 hours on
+a single A100 — longer than the 4-hour cap on the <code>interactive</code> QOS, so submit it as a batch job.</p>
+<div class="admonition warning">
+<p class="admonition-title">memory</p>
+<p>Memory scales with <code>coupled_steps_in_memory</code> × number of ensemble members. The 360-day run
+above first crashed with <code>torch.OutOfMemoryError</code> at <code>coupled_steps_in_memory: 8</code> with 3 ICs
+(38.7 GB of the 39.5 GB card in use); halving it to 4 brought the run down to 24 GB. If you
+increase the number of initial conditions, decrease the steps held in memory to match.</p>
+</div>
 <h2 id="notes">Notes</h2>
 <h3 id="stochasticity">Stochasticity</h3>
 <p>The atmosphere component is a noise-conditioned SFNO: it injects random noise at every step, so two
-runs of the same configuration produce different trajectories. This is intentional — it is what
-makes the model an <em>ensemble</em> emulator rather than a deterministic one. Beyond the three shipped
-initial conditions, you can also generate several members from the same IC with <code>n_ensemble_per_ic</code>
-in the config.</p>
+runs of the same configuration produce different trajectories. There is no seed setting exposed in
+the inference config, so <strong>runs are not reproducible bit-for-bit</strong>. Running the same 20-day config
+twice gave:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>after the first step</th>
+<th>over the full 20 days</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>max abs. difference in <code>TS</code> (6-hourly)</td>
+<td>10.6 K</td>
+<td>49.2 K</td>
+</tr>
+<tr>
+<td>max abs. difference in <code>sst</code> (5-daily)</td>
+<td>1.0 K</td>
+<td>2.4 K</td>
+</tr>
+</tbody>
+</table>
+<p>This is intentional — it is what makes the model an <em>ensemble</em> emulator rather than a deterministic
+one. The ocean is deterministic in itself, but inherits the spread through the atmosphere fluxes it
+is forced with. Beyond the three shipped initial conditions, you can generate several members from
+the same IC with <code>n_ensemble_per_ic</code> in the config.</p>
+<p>If you need to compare two configurations, compare ensemble statistics rather than individual
+trajectories.</p>
+<h3 id="land-masking">Land masking</h3>
+<p>Ocean variables are <code>NaN</code> over land (about 31% of the grid for <code>sst</code>), so use <code>np.nanmean</code> and
+friends, or the <code>mask_*</code> fields in the ocean forcing file, when computing statistics.</p>
 <h3 id="running-on-more-than-one-gpu">Running on more than one GPU</h3>
-<p>Inference splits ensemble members across ranks, so multi-GPU only helps when you are running
-several initial conditions, and the number of members must be divisible by the number of ranks:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">uv run torchrun --nproc_per_node=3 -m fme.coupled.inference config-inference.yaml</span>
+<p>A single process uses one GPU regardless of how many are on the node, and <strong><code>torchrun</code> does not
+currently work for coupled inference</strong>. The forcing loader shards ensemble members across ranks
+(<code>i_member % world_size != rank</code>), but the initial condition is not sharded, so the two disagree:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">&gt; uv run torchrun --nproc_per_node=3 -m fme.coupled.inference config-inference.yaml</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">...</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">ValueError: Data for variable ocean_sea_ice_fraction has shape torch.Size([3, 21, 180, 360]),</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">expected shape (n_samples, n_times) for time but got shape (1, 21).</span>
 </span></code></pre></div>
-<p>A single process uses one GPU regardless of how many are on the node.</p>
+<p>Until that is fixed, use the whole node by running <strong>one process per initial condition</strong>, each
+pinned to its own GPU with a separate <code>experiment_dir</code> and a different <code>start_indices.first</code>:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">for i in 0 1 2; do</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">  CUDA_VISIBLE_DEVICES=$i uv run python -m fme.coupled.inference config-ic$i.yaml &amp;</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="go">done</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="go">wait</span>
+</span></code></pre></div>
+<p>Each config sets <code>start_indices: {first: $i, n_initial_conditions: 1}</code>, which selects IC <code>$i</code>
+(verified: the three runs came back with <code>init_time</code> 0425, 0426 and 0427). Because the model is
+stochastic, this gives the same kind of ensemble as a single multi-member run, and it keeps
+per-process memory at the single-member level.</p>
+<p>It is also faster: three concurrent processes each sustained 3.27 atmosphere steps/s, against 7.39
+steps/s aggregate (2.46 per member) for the same three members inside one process — about 1.3× more
+throughput, with each process holding only a single member's worth of state.</p>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Reproduce the full 40-year piControl run from the published configuration</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Document the restart workflow using <code>restart.nc</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Compare emulated variability against the E3SMv3 piControl reference simulation</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Report the <code>torchrun</code> initial-condition sharding bug upstream (or fix it in our fork)</li>
 </ul>
 
 
