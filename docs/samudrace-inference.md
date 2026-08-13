@@ -261,37 +261,82 @@ left as a task below.
 
 Measured on one A100 (40 GB) on `pm-gpu`, with the clean `main` checkout described above:
 
-| Run | Wall time | GPU memory |
-|---|---|---|
-| 12 coupled steps (60 days), 1 IC, `coupled_steps_in_memory: 4` | 1 min 42 s (66 s of it inference) | 9 GB |
-| 72 coupled steps (360 days), 3 ICs, `coupled_steps_in_memory: 8` | RUN2_WALL | 35 GB |
+| Run | Output | Wall time | GPU memory | Output size |
+|---|---|---|---|---|
+| 12 coupled steps (60 days), 1 IC, `coupled_steps_in_memory: 4` | per-step + monthly | 1 min 42 s (66 s inference) | 9 GB | 4.2 GB |
+| 72 coupled steps (360 days), 3 ICs, `coupled_steps_in_memory: 4` | monthly only | 10 min 25 s (584 s inference, 7.4 atmosphere steps/s) | 24 GB | 1.5 GB |
 
-Memory scales with `coupled_steps_in_memory` × number of ensemble members, so if you increase the
-number of initial conditions, decrease the steps held in memory.
+Extrapolating the second row, the published 40-year, 3-member configuration is roughly 6–7 hours on
+a single A100 — longer than the 4-hour cap on the `interactive` QOS, so submit it as a batch job.
+
+!!! warning "memory"
+    Memory scales with `coupled_steps_in_memory` × number of ensemble members. The 360-day run
+    above first crashed with `torch.OutOfMemoryError` at `coupled_steps_in_memory: 8` with 3 ICs
+    (38.7 GB of the 39.5 GB card in use); halving it to 4 brought the run down to 24 GB. If you
+    increase the number of initial conditions, decrease the steps held in memory to match.
 
 ## Notes
 
 ### Stochasticity
 
 The atmosphere component is a noise-conditioned SFNO: it injects random noise at every step, so two
-runs of the same configuration produce different trajectories. This is intentional — it is what
-makes the model an *ensemble* emulator rather than a deterministic one. Beyond the three shipped
-initial conditions, you can also generate several members from the same IC with `n_ensemble_per_ic`
-in the config.
+runs of the same configuration produce different trajectories. There is no seed setting exposed in
+the inference config, so **runs are not reproducible bit-for-bit**. Running the same 20-day config
+twice gave:
+
+| | after the first step | over the full 20 days |
+|---|---|---|
+| max abs. difference in `TS` (6-hourly) | 10.6 K | 49.2 K |
+| max abs. difference in `sst` (5-daily) | 1.0 K | 2.4 K |
+
+This is intentional — it is what makes the model an *ensemble* emulator rather than a deterministic
+one. The ocean is deterministic in itself, but inherits the spread through the atmosphere fluxes it
+is forced with. Beyond the three shipped initial conditions, you can generate several members from
+the same IC with `n_ensemble_per_ic` in the config.
+
+If you need to compare two configurations, compare ensemble statistics rather than individual
+trajectories.
+
+### Land masking
+
+Ocean variables are `NaN` over land (about 31% of the grid for `sst`), so use `np.nanmean` and
+friends, or the `mask_*` fields in the ocean forcing file, when computing statistics.
 
 ### Running on more than one GPU
 
-Inference splits ensemble members across ranks, so multi-GPU only helps when you are running
-several initial conditions, and the number of members must be divisible by the number of ranks:
+A single process uses one GPU regardless of how many are on the node, and **`torchrun` does not
+currently work for coupled inference**. The forcing loader shards ensemble members across ranks
+(`i_member % world_size != rank`), but the initial condition is not sharded, so the two disagree:
 
 ```console
-uv run torchrun --nproc_per_node=3 -m fme.coupled.inference config-inference.yaml
+> uv run torchrun --nproc_per_node=3 -m fme.coupled.inference config-inference.yaml
+...
+ValueError: Data for variable ocean_sea_ice_fraction has shape torch.Size([3, 21, 180, 360]),
+expected shape (n_samples, n_times) for time but got shape (1, 21).
 ```
 
-A single process uses one GPU regardless of how many are on the node.
+Until that is fixed, use the whole node by running **one process per initial condition**, each
+pinned to its own GPU with a separate `experiment_dir` and a different `start_indices.first`:
+
+```console
+for i in 0 1 2; do
+  CUDA_VISIBLE_DEVICES=$i uv run python -m fme.coupled.inference config-ic$i.yaml &
+done
+wait
+```
+
+Each config sets `start_indices: {first: $i, n_initial_conditions: 1}`, which selects IC `$i`
+(verified: the three runs came back with `init_time` 0425, 0426 and 0427). Because the model is
+stochastic, this gives the same kind of ensemble as a single multi-member run, and it keeps
+per-process memory at the single-member level.
+
+It is also faster: three concurrent processes each sustained 3.27 atmosphere steps/s, against 7.39
+steps/s aggregate (2.46 per member) for the same three members inside one process — about 1.3× more
+throughput, with each process holding only a single member's worth of state.
 
 ## Remaining tasks
 
 - [ ] Reproduce the full 40-year piControl run from the published configuration
 - [ ] Document the restart workflow using `restart.nc`
 - [ ] Compare emulated variability against the E3SMv3 piControl reference simulation
+- [ ] Report the `torchrun` initial-condition sharding bug upstream (or fix it in our fork)
