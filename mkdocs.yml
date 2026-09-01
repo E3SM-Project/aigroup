@@ -57,6 +57,10 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+# AGENTS.md files are contracts for contributors, not published pages.
+exclude_docs: |
+  AGENTS.md
+
 plugins:
   - search
   - social:
@@ -132,4 +136,6 @@ nav:
       - ACE2-EAMv3 Inference: ace2-inference.md
       - SamudrACE-E3SMv3 Coupled Inference: samudrace-inference.md
       - E3SM branch runs: e3sm-branch-runs.md
+  - Package:
+      - Overview: package/index.md
 
