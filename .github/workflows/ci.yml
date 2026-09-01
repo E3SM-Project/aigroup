@@ -36,17 +36,24 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+      # uv provides the interpreter, so the matrix version is the one actually
+      # tested. Installing into a venv also avoids the runner's /usr, which is
+      # externally managed and refuses --system.
       - name: Install
-        run: uv pip install --system -e '.[dev]'
+        run: |
+          uv venv --python ${{ matrix.python-version }}
+          uv pip install -e '.[dev]'
+      - name: Show interpreter
+        run: .venv/bin/python -VV
       - name: Lint
-        run: ruff check
+        run: .venv/bin/ruff check
       - name: Test
-        run: pytest
+        run: .venv/bin/pytest
       # The base tier must stay installable with no scientific stack at all.
       # If this step starts needing numpy, the core/adapter boundary has leaked.
       - name: Assert the base install is light
         run: |
-          python - <<'PY'
+          .venv/bin/python - <<'PY'
           import sys
           for heavy in ("numpy", "xarray", "netCDF4", "torch", "matplotlib", "pandas"):
               assert heavy not in sys.modules, f"{heavy} imported at rest"
