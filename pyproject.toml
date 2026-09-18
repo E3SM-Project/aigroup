@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xaig"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Light, framework-agnostic tooling for E3SM AI campaigns: tracking, diagnostics, toys"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,26 +12,33 @@ license = { text = "BSD-3-Clause" }
 authors = [{ name = "E3SM AI Group" }]
 keywords = ["e3sm", "emulator", "climate", "machine-learning"]
 
-# Base tier stays deliberately tiny: see src/xaig/core/AGENTS.md
+# Base tier stays deliberately tiny: see src/xaig/AGENTS.md
 dependencies = ["pyyaml>=6.0", "click>=8.1"]
 
+# One extra per subpackage that needs more than the base tier, named after it, so
+# "to use xaig.daig, install xaig[daig]" is the whole rule. Adapter extras arrive
+# with their adapters.
 [project.optional-dependencies]
-fme = ["numpy>=1.24", "xarray>=2023.1", "netCDF4>=1.6"]
+daig = ["numpy>=1.24"]
 viz = ["matplotlib>=3.7"]
-toys = ["torch>=2.0"]
+taig = ["torch>=2.0"]
 dev = ["pytest>=7.4", "ruff>=0.5"]
 
 [project.scripts]
 xaig = "xaig._cli:main"
 
-# Adapters are discovered through this group, so a future system ships as a
-# separate distribution without editing xaig at all.
+# The only way an adapter is found, shipped or third-party alike: a future system
+# ships as a separate distribution without editing xaig at all. After adding an
+# entry here, reinstall (`uv pip install -e .`) so the metadata is refreshed.
 [project.entry-points."xaig.adapters"]
 table = "xaig.adapters.table:TableDiscoverer"
 
 [project.urls]
 Homepage = "https://e3sm-project.github.io/aigroup"
 Source = "https://github.com/E3SM-Project/aigroup"
+
+[tool.hatch.version]
+path = "src/xaig/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xaig"]
@@ -41,7 +48,11 @@ line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+# TID252 bans relative imports: the architecture tests read absolute ones.
+select = ["E", "F", "I", "UP", "B", "SIM", "TID252"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

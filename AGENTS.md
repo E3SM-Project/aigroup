@@ -11,7 +11,8 @@ Two peers live here. Neither exists to serve the other.
   commit subjects.
 - `mkdocs build --strict` must pass. New pages must be added to `nav` in `mkdocs.yml`
   by hand.
-- `ruff check` and `pytest` must pass. Both run in `.github/workflows/ci.yml`.
+- `ruff check` and `pytest` must pass. Both run in `.github/workflows/ci.yml`, on a base
+  install (PyYAML + Click only) and on a full one; numpy-backed tests skip on the former.
 - `uv` is the tool of record. ACE itself pins Python 3.11.
 - Ship in ~1000-line increments. Each increment leaves the repo working and useful.
 
@@ -19,9 +20,9 @@ Two peers live here. Neither exists to serve the other.
 
 | Path | AGENTS.md covers |
 |---|---|
-| `src/xaig/` | package architecture, the core/adapter boundary, dependency tiers |
+| `src/xaig/` | package architecture, who may import whom, how to extend it |
 | `src/xaig/core/` | the purity contract |
-| `src/xaig/adapters/` | writing a new adapter |
+| `src/xaig/adapters/` | the factory contract; writing a new adapter |
 | `src/xaig/{caig,daig,taig}/` | each subpackage's scope and non-goals |
 | `tests/` | fixture rules |
 | `docs/` | prose and nav conventions |

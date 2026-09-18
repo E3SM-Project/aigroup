@@ -1,39 +1,57 @@
 # adapters — the disposable half
 
 Every assumption about a specific framework, scheduler, file layout or log format lives
-here. This code is expected to be thrown away when the group changes systems; core is not.
+here. This code is expected to be thrown away when the group changes systems; what uses
+it is not.
 
-## Writing a new adapter
+## The factory contract
 
-Implement one or more of the protocols in `core/protocols.py`:
+```python
+factory(source, **options) -> adapter
+```
 
-| Protocol | Method | Returns |
+- **`source`** is whatever the adapter reads — a path, a directory, a URL. It is passed
+  positionally, so **the first positional parameter is the source**, whatever it is
+  called. An adapter that reads nothing declares its options keyword-only.
+- **`options`** are keyword arguments: a spec's `discovery` block, or `**kwargs` from the
+  API. An option the factory does not declare is an error listing the ones it does.
+- **context** is offered by the caller, not the user — `caig` offers `spec`. It reaches
+  only a factory that declares a parameter of that name.
+
+The adapter returned is **one object implementing one or more protocols**. Callers ask
+with `isinstance`, so a framework's discovery, status and metrics travel under one name:
+
+| Protocol | Method | Consumer |
 |---|---|---|
-| `Discoverer` | `discover()` | iterator of `Run` |
-| `StatusProbe` | `probe(run)` | `RunStatus` |
-| `MetricSource` | `metrics(run, names=None)` | `dict[str, MetricSeries]` |
-| `ArtifactStore` | `artifacts(run)` | `dict[str, str]` of handles |
+| `core.Discoverer` | `discover()` → iterator of `Run` | `caig` |
+| `core.StatusProbe` | `probe(run)` → `RunStatus` | `caig` |
+| `core.MetricSource` | `metrics(run, names=None)` → `dict[str, MetricSeries]` | `caig` |
+| `core.ArtifactStore` | `artifacts(run)` → `dict[str, str]` of handles | — |
 
-Then register it in `pyproject.toml`:
+## Registering
+
+Entry points are the only mechanism, for the adapters shipped here and for one living in
+a completely separate distribution alike:
 
 ```toml
 [project.entry-points."xaig.adapters"]
-myframework = "mypkg.adapter:MyDiscoverer"
+myframework = "mypkg.adapter:MyAdapter"
 ```
 
-A separate distribution can do this too — that is the point. An adapter never needs to
-live in this repo.
+Then **reinstall** (`uv pip install -e .`): entry points are read from installed
+metadata, and a stale install is the usual reason a new adapter "is not found". xaig's
+own names win a clash, so a plugin can add adapters but never silently replace one.
 
 ## Rules
 
-- Heavy dependencies go behind an extra and are imported inside the adapter, never at
-  package import time.
+- An adapter may import `xaig.core` and the domain contract it implements. Nothing
+  imports an adapter; it is reached through the registry.
+- Heavy dependencies go behind an extra and are imported by the adapter, which loads
+  lazily — never at `import xaig` time.
 - Tolerate partial data. A run being written right now has truncated logs and missing
   epochs; that is a normal reading, not an error. Missing means `None`, not an exception.
-- Return `RunStatus.UNKNOWN` rather than guess. Probes are tried in order and the first
-  confident answer wins.
-- Adapter constructors may take any arguments; `caig.api` passes only what a signature
-  accepts, so the spec's `discovery` block never becomes a lowest-common-denominator.
+- What you tolerate, record: attach an `Issue` to the run instead of swallowing it.
+- Return `RunStatus.UNKNOWN` rather than guess.
 
 ## Present adapters
 

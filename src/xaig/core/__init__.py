@@ -1,35 +1,48 @@
-"""Durable core: data model, protocols, specs, adapter registry.
+"""Durable core: the run-shaped data model, shared protocols, adapter registry.
 
-Depends on the standard library and PyYAML, and on nothing else. Ever.
+Depends on the standard library and nothing else, and knows nothing about the
+subpackages built on it.
 """
 
 from __future__ import annotations
 
-from xaig.core.errors import AdapterError, SpecError, XaigError
-from xaig.core.model import AttrValue, Campaign, MetricSeries, Run, RunStatus
+from xaig.core.errors import AdapterError, MissingExtraError, SpecError, XaigError
+from xaig.core.model import (
+    RESERVED_ATTRS,
+    AttrValue,
+    Campaign,
+    Issue,
+    MetricSeries,
+    Run,
+    RunStatus,
+    coerce_attr,
+)
 from xaig.core.protocols import (
     ArtifactStore,
     Discoverer,
+    IdParser,
     MetricSource,
     StatusProbe,
     resolve_status,
 )
-from xaig.core.spec import CampaignSpec, Factor
 
 __all__ = [
+    "RESERVED_ATTRS",
     "AdapterError",
     "ArtifactStore",
     "AttrValue",
     "Campaign",
-    "CampaignSpec",
     "Discoverer",
-    "Factor",
+    "IdParser",
+    "Issue",
     "MetricSeries",
     "MetricSource",
+    "MissingExtraError",
     "Run",
     "RunStatus",
     "SpecError",
     "StatusProbe",
     "XaigError",
+    "coerce_attr",
     "resolve_status",
 ]

@@ -1,13 +1,18 @@
-"""Campaign tracking, the command half. Parsing and formatting only -- no logic."""
+"""Campaign tracking, the command half: a thin client of ``api``.
+
+Parsing and formatting only. Anything worth testing without a terminal belongs
+in ``api``, where a notebook can reach it too.
+"""
 
 from __future__ import annotations
+
+import json
 
 import click
 
 from xaig import _render
 from xaig.caig import api
-from xaig.core import spec as spec_module
-from xaig.core.errors import XaigError
+from xaig.caig import spec as spec_module
 
 _spec_option = click.option(
     "-s", "--spec", "spec_name", required=True, help="Bundled spec name or path to a spec YAML."
@@ -28,10 +33,20 @@ def _load(spec_name: str, source: str | None, adapter: str | None):
 
 def _default_columns(spec, campaign) -> list[str]:
     """Prefer the spec's own vocabulary; fall back to whatever the source had."""
-    if spec.factors:
-        head = [c for c in ("exp", "realm", "seed") if c in campaign.attr_names()]
+    if spec.factors or spec.id_fields:
+        present = campaign.attr_names()
+        head = [c for c in spec.id_fields if c in present]
         return head + [f.name for f in spec.factors]
     return campaign.attr_names()
+
+
+def _select(campaign, items: tuple[str, ...]):
+    for item in items:
+        key, equals, value = item.partition("=")
+        if not equals or not key:
+            raise click.BadParameter(f"--select expects KEY=VALUE, got {item!r}")
+        campaign = campaign.filter(**{key.strip(): value.strip()})
+    return campaign
 
 
 @click.group(name="caig")
@@ -52,26 +67,31 @@ def specs_cmd() -> None:
 @_spec_option
 @_source_option
 @_adapter_option
-@click.option("--select", multiple=True, metavar="KEY=VALUE", help="Filter, repeatable.")
+@click.option(
+    "--select", multiple=True, metavar="KEY=VALUE", help="Filter (also id, status); repeatable."
+)
 @click.option("-c", "--columns", help="Comma-separated columns to show.")
 @click.option("--sort", help="Comma-separated attributes to sort by.")
-def ls_cmd(spec_name, source, adapter, select, columns, sort) -> None:
+@click.option("--json", "as_json", is_flag=True, help="Emit rows as JSON, for other tools.")
+def ls_cmd(spec_name, source, adapter, select, columns, sort, as_json) -> None:
     """List runs in a campaign."""
     spec, campaign = _load(spec_name, source, adapter)
-    for item in select:
-        key, _, value = item.partition("=")
-        if not _:
-            raise click.BadParameter(f"--select expects KEY=VALUE, got {item!r}")
-        campaign = campaign.filter(**{key: value})
+    campaign = _select(campaign, select)
     if sort:
         campaign = campaign.sorted_by(*[s.strip() for s in sort.split(",")])
     cols = [c.strip() for c in columns.split(",")] if columns else _default_columns(spec, campaign)
     rows = campaign.table(cols)
+    if as_json:
+        click.echo(json.dumps(rows, indent=2))
+        return
     if not rows:
         click.echo("no runs matched")
         return
-    click.echo(_render.table(rows, ["id", "status", *cols]))
+    click.echo(_render.table(rows))
     click.echo(f"\n{len(rows)} run(s)")
+    flagged = sum(1 for run in campaign if run.issues)
+    if flagged:
+        click.echo(f"{flagged} of them with issues; see `xaig caig check`", err=True)
 
 
 @caig.command("show")
@@ -92,6 +112,9 @@ def show_cmd(run_id, spec_name, source, adapter) -> None:
     if run.metrics:
         click.echo("\nmetrics")
         click.echo(_render.pairs({n: f"{len(m)} point(s)" for n, m in run.metrics.items()}))
+    if run.issues:
+        click.echo("\nissues")
+        click.echo("\n".join(f"{issue}" for issue in run.issues))
 
 
 @caig.command("check")
@@ -99,14 +122,24 @@ def show_cmd(run_id, spec_name, source, adapter) -> None:
 @_source_option
 @_adapter_option
 def check_cmd(spec_name, source, adapter) -> None:
-    """Round-trip every run id through the spec and report disagreements."""
+    """Check run ids against the spec, and the source's metadata against the ids."""
     spec, campaign = _load(spec_name, source, adapter)
-    failures = api.check_ids(campaign, spec)
-    if failures:
-        for run_id, reason in failures:
-            click.echo(f"FAIL  {run_id}: {reason}", err=True)
-        raise click.ClickException(f"{len(failures)} of {len(campaign)} run id(s) disagree")
-    click.echo(f"OK  {len(campaign)} run id(s) round-trip through spec {spec.name!r}")
+    findings = api.check_campaign(campaign, spec)
+    if not findings:
+        grammar = "round-trip through" if spec.id_pattern else "are unique under"
+        click.echo(f"OK  {len(campaign)} run id(s) {grammar} spec {spec.name!r}")
+        return
+    ids = [f for f in findings if f.kind == "id"]
+    rest = [f for f in findings if f.kind != "id"]
+    for heading, group in (("run ids", ids), ("metadata", rest)):
+        if group:
+            click.echo(f"{heading}:", err=True)
+            for f in group:
+                click.echo(f"  FAIL  {f.run_id}: {f.message}", err=True)
+    raise click.ClickException(
+        f"{len(ids)} run id problem(s) and {len(rest)} metadata problem(s) "
+        f"across {len(campaign)} run(s)"
+    )
 
 
-__all__ = ["caig", "XaigError"]
+__all__ = ["caig"]

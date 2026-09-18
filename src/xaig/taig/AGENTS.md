@@ -2,7 +2,7 @@
 
 Reusable neural blocks and architectures for testing concepts.
 
-**Skeleton in 0.1.0.** Requires the `toys` extra (torch) once implemented.
+**Skeleton in 0.1.0.** Requires the `taig` extra (torch) once implemented.
 
 ## Rules
 

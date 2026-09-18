@@ -5,7 +5,8 @@ get, and which arm won" from a directory or table of runs.
 
 ## Non-goals
 
-- **No live tracking.** No server, no daemon, no streaming. You run a command.
+- **No live tracking.** No tracking server, no daemon, no streaming. You run a command.
+  (A local viewer that reads the same on-disk artifacts is a client, not a tracker.)
 - **No network and no credentials** in the base path. Metrics are read from what the
   runs already wrote on disk.
 - No dependency on any particular training framework — that is what adapters are for.
@@ -24,8 +25,21 @@ This constraint shapes everything here:
 
 ## Layout
 
+- `spec.py` — campaign specs: id grammar, factors, parents, metric; loading and the
+  bundled ones. Unknown keys are errors, and nothing defaults to one campaign's words
+  (`parent_key` has no default; CLI columns come from the id's own groups).
 - `api.py` — importable; returns objects, prints nothing
-- `cli.py` — `xaig caig ...`; parses and formats, no domain logic
+- `cli.py` — `xaig caig ...`; a thin client of `api`
 - `campaigns/*.yaml` — bundled campaign specs (data, not code)
 
 Adding a campaign means adding a YAML file here, not writing Python.
+
+## `check` asks two questions
+
+- **run ids** — does each id fit the grammar, round-trip byte for byte, and occur once?
+- **metadata** — did the source say something that contradicts the id (`seed` 99 on a
+  run named `…S01`), or that could not be read? The id wins, and the disagreement is
+  reported rather than dropped. A column repeating the id's notation (`S01` for 1) agrees.
+
+The pre-registered seed-spread decision rule (`caig compare`) is deliberately not
+implemented yet: it must be transcribed from the campaign's own protocol, not invented.

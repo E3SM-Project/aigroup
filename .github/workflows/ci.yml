@@ -28,6 +28,14 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.13"]
+        # base: PyYAML + Click only, which is all caig may need; numpy-backed tests
+        # skip. full: every extra the suite can exercise.
+        tier: ["base", "full"]
+        include:
+          - tier: base
+            extras: "dev"
+          - tier: full
+            extras: "dev,daig"
     steps:
       - uses: actions/checkout@v5
         with:
@@ -42,23 +50,22 @@ jobs:
       - name: Install
         run: |
           uv venv --python ${{ matrix.python-version }}
-          uv pip install -e '.[dev]'
+          uv pip install -e '.[${{ matrix.extras }}]'
       - name: Show interpreter
         run: .venv/bin/python -VV
       - name: Lint
         run: .venv/bin/ruff check
       - name: Test
         run: .venv/bin/pytest
-      # The base tier must stay installable with no scientific stack at all.
-      # If this step starts needing numpy, the core/adapter boundary has leaked.
-      - name: Assert the base install is light
+      # That the base tier stays light, and that core stays pure, are tests now
+      # (tests/test_purity.py), so they run locally as well as here. What only CI
+      # can show is that the base tier really has no scientific stack installed.
+      - name: Assert the base tier has no scientific stack
+        if: matrix.tier == 'base'
         run: |
           .venv/bin/python - <<'PY'
-          import sys
-          for heavy in ("numpy", "xarray", "netCDF4", "torch", "matplotlib", "pandas"):
-              assert heavy not in sys.modules, f"{heavy} imported at rest"
-          import xaig, xaig.caig  # noqa: F401
-          for heavy in ("numpy", "xarray", "netCDF4", "torch", "matplotlib", "pandas"):
-              assert heavy not in sys.modules, f"importing xaig pulled in {heavy}"
+          from importlib.util import find_spec
+          present = [m for m in ("numpy", "xarray", "netCDF4", "torch", "matplotlib") if find_spec(m)]
+          assert not present, f"base tier unexpectedly has {present}"
           print("base tier is light")
           PY

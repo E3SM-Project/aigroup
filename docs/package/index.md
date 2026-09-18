@@ -21,14 +21,14 @@ $ uv venv --python 3.11 .venv
 $ uv pip install -e '.[dev]'
 ```
 
-The base install pulls only PyYAML and Click. Anything that knows about a specific
-training framework lives behind an extra.
+The base install pulls only PyYAML and Click, and is all `caig` needs. Anything heavier
+sits behind an extra named after the subpackage that needs it:
 
 | Extra | Pulls | Gets you |
 | --- | --- | --- |
-| `fme` | numpy, xarray, netCDF4 | the ACE/FME adapter |
+| `daig` | numpy | `xaig.daig` |
 | `viz` | matplotlib | plots and reports |
-| `toys` | torch | `taig` |
+| `taig` | torch | `xaig.taig` |
 
 !!! tip "uv cache"
 
@@ -40,14 +40,22 @@ training framework lives behind an extra.
 
 ## Why it is built this way
 
-The group expects to move to systems profoundly unlike ACE/FME/Samudra. So `xaig.core`
-knows nothing about any framework: it holds a data model, four protocols, and generic
-algorithms, and depends only on the standard library and PyYAML. Everything that knows
-about a real file layout, log format or scheduler lives in `xaig.adapters`.
+Three concerns are kept apart, because each has a different answer:
 
-Supporting a new system means writing a new adapter, never editing core. Adapters are
-found through the `xaig.adapters` entry-point group, so one can ship from a completely
-separate package.
+- **Framework coupling lives in adapters.** The group expects to move to systems
+  profoundly unlike ACE/FME/Samudra, so everything that knows a real file layout, log
+  format or scheduler lives in `xaig.adapters`, behind a small protocol. Supporting a new
+  system means writing a new adapter, never editing the code that uses it. Adapters are
+  found through the `xaig.adapters` entry-point group and nothing else, so one can ship
+  from a completely separate package.
+- **Science lives in the subpackage that uses it**, with the dependencies it honestly
+  needs: PCA needs numpy and is not an adapter. What it may not know is a file format or
+  a user interface.
+- **Weight lives behind extras.** `xaig.core` depends on the standard library alone, and
+  `import xaig` never pulls in the scientific stack.
+
+Every API returns objects and prints nothing; the CLI is one client of it, a notebook
+another. These rules are enforced by `tests/test_purity.py`, not by convention.
 
 A *campaign spec* is a YAML file describing one campaign's conventions — its run-id
 grammar, its factors, its parent map, its metric. Adding a campaign does not mean writing
@@ -83,7 +91,31 @@ $ xaig caig ls --spec aug26 --source .../MANIFEST.tsv --select realm=ocn -c exp,
 ```
 
 `STATUS` reads `unknown` above because status probing arrives with the FME adapter — see
-[remaining tasks](#remaining-tasks).
+[remaining tasks](#remaining-tasks). Until then a manifest can carry it: name the column,
+and map its vocabulary onto xaig's, in the spec's `discovery` block.
+
+```yaml
+discovery:
+  adapter: table
+  id_column: runid
+  status_column: state
+  status_map: { done: finished, crashed: failed }
+```
+
+`id` and `status` can be selected and sorted on like any attribute, numbers sort
+numerically, and `--json` hands the rows to another tool:
+
+```console
+$ xaig caig ls --spec aug26 --source .../MANIFEST.tsv --select status=running --sort batch,seed
+$ xaig caig ls --spec aug26 --source .../MANIFEST.tsv --json | jq '.[].id'
+```
+
+A misspelt option is an error, not a silent default:
+
+```console
+$ xaig caig ls --spec ./typo.yaml --source .../MANIFEST.tsv
+error: adapter 'table' does not accept option(s) status_colum; accepted: delimiter, id_column, status_column, status_map, strict
+```
 
 Show one run:
 
@@ -94,28 +126,47 @@ $ xaig caig show E05.aug26.atm.A3_B16_C1_L0_O5_W0_X0.S01 --spec aug26 --source .
 ## Checking a campaign
 
 A run id that disagrees with the config it names is the worst failure a campaign can
-have, because every table and plot is labelled by the id. `check` round-trips every id
-through the spec:
+have, because every table and plot is labelled by the id. `check` asks two questions and
+reports them apart, because they have different fixes:
+
+- **run ids** — does every id fit the spec's grammar, round-trip through it byte for
+  byte, and occur once?
+- **metadata** — does the source say something that contradicts the id? The id wins (it
+  is the primary key), but the disagreement is reported rather than dropped. A column
+  that repeats the id's own notation (`S01` for seed 1) agrees with it.
 
 ```console
 $ xaig caig check --spec aug26 --source .../MANIFEST.tsv
 OK  35 run id(s) round-trip through spec 'aug26'
 ```
 
+```console
+$ xaig caig check --spec aug26 --source broken.tsv
+run ids:
+  FAIL  not-an-id: run id 'not-an-id' does not match spec 'aug26'
+metadata:
+  FAIL  E05.aug26.atm.A3_B08_C1_L0_O5_W0_X0.S02: column seed=99 disagrees with the id, which says 2; the id wins
+Error: 1 run id problem(s) and 1 metadata problem(s) across 4 run(s)
+```
+
+`ls` stays usable on such a campaign, and says how many of its runs have issues.
+
 ## Python API
 
-The API is a peer of the CLI, not a layer beneath it. Both sit on `xaig.core`.
+The CLI is a thin client of this API; anything it can do, a notebook can.
 
 ```python
-from xaig.caig import load_campaign
-from xaig.core import spec as spec_module
+from xaig.caig import check_campaign, load_campaign, load_spec
 
-spec = spec_module.load("aug26")
+spec = load_spec("aug26")
 campaign = load_campaign(spec, source=".../runs/MANIFEST.tsv")
 
 ocean = campaign.filter(realm="ocn")
 for run in ocean.sorted_by("exp", "seed"):
     print(run.id, run.attrs["ocean_step"])
+
+for finding in check_campaign(campaign, spec):
+    print(finding.kind, finding.run_id, finding.message)
 ```
 
 ## Adding a campaign
@@ -141,7 +192,24 @@ $ xaig caig ls --spec ./toy.yaml --source runs.csv
 ```
 
 A campaign whose run ids carry no structure simply omits `id_pattern`; its adapter
-attaches attributes instead.
+attaches attributes instead. A key the spec does not know is an error, so `id_patern:`
+cannot quietly mean "this campaign has no grammar".
+
+## Adding an adapter
+
+An adapter is one class implementing one or more protocols — `discover()` to find runs,
+`probe(run)` for status, `metrics(run, names)` for scalar series — constructed as
+`Adapter(source, **options)`. Register it, from this repo or any other package:
+
+```toml
+[project.entry-points."xaig.adapters"]
+myframework = "mypkg.adapter:MyAdapter"
+```
+
+```console
+$ uv pip install -e .   # entry points are read from installed metadata
+$ xaig caig ls --spec ./mine.yaml --adapter myframework --source /path/to/runs
+```
 
 ## Remaining tasks
 

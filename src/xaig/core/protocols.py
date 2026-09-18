@@ -1,9 +1,17 @@
-"""The four protocols that separate durable code from disposable code.
+"""The run-shaped protocols that separate durable code from disposable code.
 
 Everything framework-specific -- file layouts, log formats, schedulers, metric
-storage -- is reached only through these. Core calls them; adapters implement
-them. Adding support for a profoundly different system means writing a new
-adapter module, never editing core.
+storage -- is reached only through protocols like these. Callers use them;
+adapters implement them. Adding support for a profoundly different system means
+writing a new adapter module, never editing core.
+
+An adapter is *one object implementing one or more* of these. Callers ask what
+it can do with ``isinstance`` (the protocols are runtime-checkable), so a
+framework's discovery, status and metrics travel together under one name.
+
+Only contracts shared across subpackages live here. A contract with a single
+consumer stays next to it (``xaig.daig.latent.LatentSource``, for one) and is
+promoted only when a second consumer appears.
 """
 
 from __future__ import annotations
@@ -11,7 +19,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from typing import Protocol, runtime_checkable
 
-from xaig.core.model import MetricSeries, Run, RunStatus
+from xaig.core.model import AttrValue, MetricSeries, Run, RunStatus
 
 
 @runtime_checkable
@@ -53,6 +61,18 @@ class ArtifactStore(Protocol):
     """
 
     def artifacts(self, run: Run) -> dict[str, str]: ...
+
+
+@runtime_checkable
+class IdParser(Protocol):
+    """Decomposes a run id into attributes.
+
+    What a discoverer is handed as context when the campaign has an id grammar.
+    It raises ``SpecError`` for an id that does not fit, and returns ``{}`` when
+    there is no grammar at all.
+    """
+
+    def parse_id(self, run_id: str) -> dict[str, AttrValue]: ...
 
 
 def resolve_status(run: Run, probes: Iterable[StatusProbe]) -> RunStatus:

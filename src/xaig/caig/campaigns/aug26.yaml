@@ -23,6 +23,7 @@ factors:
   - { key: X, name: amp,        width: 1 }  # 0 baseline, 1 bf16 autocast
 
 # Single-seed arms are judged against the three-seed spread of their parent.
+parent_key: exp
 parents:
   E03: E02
   E04: E02

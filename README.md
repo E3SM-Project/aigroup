@@ -15,8 +15,9 @@ $ uv venv --python 3.11 .venv
 $ uv pip install -e '.[dev]'
 ```
 
-The base install pulls only PyYAML and Click. Framework-specific readers live behind
-extras (`fme`, `viz`, `toys`) so the core stays nimble.
+The base install pulls only PyYAML and Click. Anything heavier sits behind an extra named
+after the subpackage that needs it (`daig`, `taig`, plus `viz`), so the core
+stays nimble: `uv pip install -e '.[dev,daig]'`.
 
 ## Use
 

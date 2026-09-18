@@ -5,8 +5,9 @@ import yaml
 
 from conftest import TOY_SPEC
 from xaig.adapters.table import TableDiscoverer
-from xaig.core import spec as spec_module
+from xaig.caig import spec as spec_module
 from xaig.core.errors import AdapterError
+from xaig.core.model import RunStatus
 
 
 @pytest.fixture
@@ -38,6 +39,55 @@ def test_spec_attributes_win_over_columns(tmp_path, toy_spec):
     assert run.attrs["mode"] == "fast"
 
 
+def test_a_conflicting_column_loses_but_is_not_forgotten(tmp_path, toy_spec):
+    """The id wins, and the disagreement stays on the run for `check` to report."""
+    path = tmp_path / "t.csv"
+    path.write_text("name,seed\nrun001-fast-d1-w08-s1,99\n")
+    run = next(TableDiscoverer(path, id_column="name", spec=toy_spec).discover())
+    assert run.attrs["seed"] == 1
+    assert [i.kind for i in run.issues] == ["metadata"]
+    assert "seed=99" in run.issues[0].message
+
+
+@pytest.mark.parametrize("column", ["1", "01", "s1", "S01"])
+def test_a_column_repeating_the_ids_notation_is_not_a_conflict(tmp_path, toy_spec, column):
+    path = tmp_path / "t.csv"
+    path.write_text(f"name,seed\nrun001-fast-d1-w08-s1,{column}\n")
+    run = next(TableDiscoverer(path, id_column="name", spec=toy_spec).discover())
+    assert run.attrs["seed"] == 1 and run.issues == ()
+
+
+def test_columns_cannot_shadow_the_runs_own_id_and_status(tmp_path):
+    path = tmp_path / "t.csv"
+    path.write_text("name,id,status\nr01,shadow,finished\n")
+    run = next(TableDiscoverer(path, id_column="name").discover())
+    assert (run.id, run.status) == ("r01", RunStatus.UNKNOWN)
+    assert run.attrs == {"table_id": "shadow", "table_status": "finished"}
+
+
+def test_status_is_read_only_from_the_column_named_for_it(tmp_path):
+    path = tmp_path / "t.csv"
+    path.write_text("name,state\na,FINISHED\nb,done\nc,exploded\nd,\n")
+    runs = list(
+        TableDiscoverer(
+            path, id_column="name", status_column="state", status_map={"done": "finished"}
+        ).discover()
+    )
+    assert [r.status for r in runs] == [
+        RunStatus.FINISHED,
+        RunStatus.FINISHED,
+        RunStatus.UNKNOWN,
+        RunStatus.UNKNOWN,
+    ]
+    assert [i.kind for i in runs[2].issues] == ["status"]
+    assert all("state" not in r.attrs for r in runs)
+
+
+def test_status_map_must_map_onto_real_statuses(tmp_path):
+    with pytest.raises(AdapterError, match="statuses are"):
+        TableDiscoverer(tmp_path / "t.csv", status_map={"done": "completed"})
+
+
 def test_delimiter_is_sniffed(tmp_path, toy_spec):
     path = tmp_path / "t.tsv"
     path.write_text("name\tnote\nrun001-fast-d1-w08-s1\thi\n")
@@ -58,6 +108,7 @@ def test_unparseable_id_is_tolerated_by_default(tmp_path, toy_spec):
     run = next(TableDiscoverer(path, id_column="name", spec=toy_spec).discover())
     assert run.id == "not-a-valid-id"
     assert run.attrs["note"] == "x"
+    assert [i.kind for i in run.issues] == ["id"]
 
 
 def test_strict_mode_rejects_an_unparseable_id(tmp_path, toy_spec):

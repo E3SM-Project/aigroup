@@ -13,3 +13,8 @@ class SpecError(XaigError):
 
 class AdapterError(XaigError):
     """An adapter could not be resolved or failed to read its source."""
+
+
+class MissingExtraError(XaigError, ImportError):
+    """An optional dependency is absent. Also an ``ImportError``, so code that
+    guards an optional import the usual way keeps working."""

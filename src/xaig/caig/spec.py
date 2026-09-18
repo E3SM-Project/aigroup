@@ -1,8 +1,8 @@
 """Campaign specs: the declarative description of one campaign's conventions.
 
-Core never hard-codes a run-id grammar, a parent map, or a metric name. A spec
-supplies them, so a new campaign is a YAML file rather than a code change. A
-system that has no id grammar at all simply omits ``id_pattern`` and lets its
+Nothing in xaig hard-codes a run-id grammar, a parent map, or a metric name. A
+spec supplies them, so a new campaign is a YAML file rather than a code change.
+A system that has no id grammar at all simply omits ``id_pattern`` and lets its
 adapter attach attributes directly.
 """
 
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -18,15 +18,9 @@ from typing import Any
 import yaml
 
 from xaig.core.errors import SpecError
-from xaig.core.model import AttrValue
+from xaig.core.model import RESERVED_ATTRS, AttrValue, coerce_attr
 
 _SPEC_PACKAGE = "xaig.caig.campaigns"
-
-
-def _coerce(value: str) -> AttrValue:
-    """Digit strings become ints so ``batch=16`` compares numerically.
-    Anything else is left alone -- ``E01`` must stay ``E01``."""
-    return int(value) if value.isdigit() else value
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,13 +44,44 @@ class CampaignSpec:
     factor_field: str | None = None
     factor_separator: str = "_"
     factors: tuple[Factor, ...] = ()
-    parent_key: str = "exp"
+    parent_key: str | None = None
     parents: Mapping[str, str] = field(default_factory=dict)
     metric: str | None = None
     noise_floor: float | None = None
     discovery: Mapping[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        groups = self._groups()
+        if self.factor_field and self.id_pattern and self.factor_field not in groups:
+            raise SpecError(
+                f"spec {self.name!r}: factor_field {self.factor_field!r} is not a named "
+                f"group of id_pattern (groups: {', '.join(groups) or 'none'})"
+            )
+        if self.parents and not self.parent_key:
+            raise SpecError(f"spec {self.name!r}: 'parents' needs a 'parent_key' to look up by")
+        taken = [n for n in (*groups, *(f.name for f in self.factors)) if n in RESERVED_ATTRS]
+        if taken:
+            raise SpecError(
+                f"spec {self.name!r}: {', '.join(taken)} cannot name a group or factor; a run "
+                "already has an id and a status of its own"
+            )
+
     # -- id grammar -------------------------------------------------------
+
+    def _groups(self) -> tuple[str, ...]:
+        if not self.id_pattern:
+            return ()
+        try:
+            compiled = re.compile(self.id_pattern)
+        except re.error as exc:
+            raise SpecError(f"spec {self.name!r}: id_pattern does not compile: {exc}") from exc
+        return tuple(compiled.groupindex)
+
+    @property
+    def id_fields(self) -> tuple[str, ...]:
+        """Attributes the id names directly, in id order -- the compound factor
+        word aside, since its content is what ``factors`` spells out."""
+        return tuple(g for g in self._groups() if g != self.factor_field)
 
     @property
     def _by_key(self) -> dict[str, Factor]:
@@ -73,7 +98,7 @@ class CampaignSpec:
         match = re.match(self.id_pattern, run_id)
         if match is None:
             raise SpecError(f"run id {run_id!r} does not match spec {self.name!r}")
-        attrs: dict[str, AttrValue] = {k: _coerce(v) for k, v in match.groupdict().items() if v}
+        attrs: dict[str, AttrValue] = {k: coerce_attr(v) for k, v in match.groupdict().items() if v}
         if self.factor_field and self.factor_field in attrs:
             attrs.update(self._parse_factors(str(attrs[self.factor_field]), run_id))
         return attrs
@@ -87,7 +112,7 @@ class CampaignSpec:
             factor = by_key.get(token[0])
             if factor is None:
                 raise SpecError(f"{run_id!r}: unknown factor key {token[0]!r} in {word!r}")
-            out[factor.name] = _coerce(token[1:])
+            out[factor.name] = coerce_attr(token[1:])
         missing = [f.name for f in self.factors if f.name not in out]
         if missing:
             raise SpecError(f"{run_id!r}: factor word {word!r} is missing {', '.join(missing)}")
@@ -102,16 +127,18 @@ class CampaignSpec:
         if not self.id_template:
             raise SpecError(f"spec {self.name!r} has no id_template")
         values = dict(attrs)
-        if self.factor_field and self.factors:
-            values[self.factor_field] = self.factor_separator.join(
-                f.render(attrs[f.name]) for f in self.factors
-            )
         try:
+            if self.factor_field and self.factors:
+                values[self.factor_field] = self.factor_separator.join(
+                    f.render(attrs[f.name]) for f in self.factors
+                )
             return self.id_template.format(**values)
         except KeyError as exc:
             raise SpecError(
                 f"spec {self.name!r}: id_template needs {exc} but it was not given"
             ) from exc
+        except (TypeError, ValueError) as exc:
+            raise SpecError(f"spec {self.name!r}: cannot format an id: {exc}") from exc
 
     def parent_of(self, run: Mapping[str, AttrValue] | str) -> str | None:
         """Parent experiment of an arm, for the seed-spread comparison.
@@ -119,7 +146,7 @@ class CampaignSpec:
         Keys are compared as strings because YAML turns an unquoted ``2:`` into
         an int, which would otherwise miss silently and report "no parent".
         """
-        key = run if isinstance(run, str) else run.get(self.parent_key, "")
+        key = run if isinstance(run, str) else run.get(self.parent_key or "", "")
         return self.parents.get(str(key))
 
 
@@ -131,15 +158,29 @@ def _factors_from(raw: Any, spec_name: str) -> tuple[Factor, ...]:
         return ()
     if not isinstance(raw, list):
         raise SpecError(f"spec {spec_name!r}: 'factors' must be a list")
-    return tuple(
-        Factor(key=str(f["key"]), name=str(f["name"]), width=int(f.get("width", 1))) for f in raw
-    )
+    try:
+        return tuple(
+            Factor(key=str(f["key"]), name=str(f["name"]), width=int(f.get("width", 1)))
+            for f in raw
+        )
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise SpecError(
+            f"spec {spec_name!r}: each factor needs a 'key' and a 'name' ({exc!r})"
+        ) from exc
 
 
 def from_mapping(data: Mapping[str, Any]) -> CampaignSpec:
     if "name" not in data:
         raise SpecError("campaign spec has no 'name'")
     name = str(data["name"])
+    known = {f.name for f in fields(CampaignSpec)}
+    unknown = sorted(set(data) - known)
+    if unknown:
+        # A misspelt key would otherwise mean "use the default", with no sign of it.
+        raise SpecError(
+            f"spec {name!r}: unknown key(s) {', '.join(unknown)}; known: {', '.join(sorted(known))}"
+        )
+    parent_key = data.get("parent_key")
     return CampaignSpec(
         name=name,
         description=str(data.get("description", "")),
@@ -148,7 +189,7 @@ def from_mapping(data: Mapping[str, Any]) -> CampaignSpec:
         factor_field=data.get("factor_field"),
         factor_separator=str(data.get("factor_separator", "_")),
         factors=_factors_from(data.get("factors"), name),
-        parent_key=str(data.get("parent_key", "exp")),
+        parent_key=None if parent_key is None else str(parent_key),
         parents={str(k): str(v) for k, v in (data.get("parents") or {}).items()},
         metric=data.get("metric"),
         noise_floor=data.get("noise_floor"),
@@ -168,7 +209,7 @@ def bundled_names() -> list[str]:
 def load(name_or_path: str | Path) -> CampaignSpec:
     """Load a spec by bundled name (``aug26``) or filesystem path."""
     path = Path(name_or_path)
-    if path.exists():
+    if path.is_file():
         text = path.read_text()
     else:
         resource = resources.files(_SPEC_PACKAGE) / f"{name_or_path}.yaml"
@@ -176,7 +217,10 @@ def load(name_or_path: str | Path) -> CampaignSpec:
             known = ", ".join(bundled_names()) or "none"
             raise SpecError(f"no spec {str(name_or_path)!r}; bundled specs: {known}")
         text = resource.read_text()
-    data = yaml.safe_load(text)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise SpecError(f"spec {name_or_path!s} is not valid YAML: {exc}") from exc
     if not isinstance(data, dict):
         raise SpecError(f"spec {name_or_path!s} did not parse to a mapping")
     return from_mapping(data)

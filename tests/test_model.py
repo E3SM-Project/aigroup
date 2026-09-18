@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from xaig.core.model import Campaign, MetricSeries, Run, RunStatus
+from xaig.core.model import Campaign, MetricSeries, Run, RunStatus, coerce_attr
 
 
 def test_interrupted_is_not_failed():
@@ -73,3 +73,50 @@ def test_table_includes_id_and_status(campaign):
     row = campaign.table(["realm"])[0]
     assert set(row) == {"id", "status", "realm"}
     assert row["status"] == "unknown"
+
+
+def test_numbers_sort_numerically_and_missing_sorts_last():
+    """Sorting on str() would give 16, 32, 8."""
+    c = Campaign("c", tuple(Run(str(b), {"batch": b}) for b in (16, None, 8, 32)))
+    assert [r.attrs["batch"] for r in c.sorted_by("batch")] == [8, 16, 32, None]
+
+
+def test_mixed_numbers_and_text_still_sort():
+    c = Campaign("c", (Run("a", {"k": "x"}), Run("b", {"k": 2}), Run("c", {"k": "a"})))
+    assert [r.id for r in c.sorted_by("k")] == ["b", "c", "a"]
+
+
+def test_id_and_status_are_addressable_like_attributes():
+    c = Campaign("c", (Run("b", status=RunStatus.FINISHED), Run("a", status=RunStatus.FAILED)))
+    assert [r.id for r in c.filter(status="finished")] == ["b"]
+    assert [r.id for r in c.sorted_by("id")] == ["a", "b"]
+    assert c.get("a").get("status") == "failed"
+
+
+@pytest.mark.parametrize("name", ["id", "status"])
+def test_an_attribute_may_not_stand_in_for_the_runs_id_or_status(name):
+    with pytest.raises(ValueError, match="reserved"):
+        Run("r01", {name: "shadow"})
+
+
+def test_table_asked_for_id_does_not_duplicate_or_shadow_it(campaign):
+    row = campaign.table(["id", "status", "realm"])[0]
+    assert list(row) == ["id", "status", "realm"]
+    assert row["id"] == "b"
+
+
+def test_runs_are_hashable():
+    assert len({Run("a", {"x": 1}), Run("a", {"x": 1}), Run("b")}) == 2
+
+
+@pytest.mark.parametrize(
+    ("text", "value"),
+    [("16", 16), ("08", 8), ("-3", -3), ("E01", "E01"), ("1.5", "1.5"), ("", None), (None, None)],
+)
+def test_coerce_attr(text, value):
+    assert coerce_attr(text) == value
+
+
+def test_coerce_attr_leaves_non_ascii_digits_alone():
+    """str.isdigit() accepts this; int() does not."""
+    assert coerce_attr("\u00b2") == "\u00b2"

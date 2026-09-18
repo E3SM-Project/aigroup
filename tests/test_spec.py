@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from conftest import TOY_SPEC
-from xaig.core import spec as spec_module
+from xaig.caig import spec as spec_module
 from xaig.core.errors import SpecError
 
 
@@ -85,6 +85,51 @@ def test_missing_name_is_an_error():
 def test_unknown_bundled_spec_lists_what_exists():
     with pytest.raises(SpecError, match="bundled specs"):
         spec_module.load("no-such-campaign")
+
+
+def test_unknown_key_is_an_error_not_a_silent_default():
+    """`id_patern:` must not quietly mean "this campaign has no grammar"."""
+    with pytest.raises(SpecError, match="unknown key.*id_patern"):
+        spec_module.from_mapping({"name": "typo", "id_patern": "^x$"})
+
+
+def test_pattern_that_does_not_compile_is_a_spec_error():
+    with pytest.raises(SpecError, match="does not compile"):
+        spec_module.from_mapping({"name": "bad", "id_pattern": "^(unclosed"})
+
+
+def test_factor_field_must_be_a_group_of_the_pattern():
+    with pytest.raises(SpecError, match="not a named group"):
+        spec_module.from_mapping(
+            {"name": "bad", "id_pattern": r"^(?P<a>\d+)$", "factor_field": "knobs"}
+        )
+
+
+def test_parents_need_an_explicit_parent_key():
+    """No default: 'exp' is one campaign's vocabulary, not a property of campaigns."""
+    with pytest.raises(SpecError, match="parent_key"):
+        spec_module.from_mapping({"name": "bad", "parents": {"E03": "E02"}})
+
+
+def test_a_group_may_not_be_called_id_or_status():
+    with pytest.raises(SpecError, match="status cannot name"):
+        spec_module.from_mapping({"name": "bad", "id_pattern": r"^(?P<status>\w+)$"})
+
+
+def test_id_fields_follow_the_id_and_skip_the_factor_word(toy):
+    assert toy.id_fields == ("num", "mode", "seed")
+
+
+def test_unformattable_attributes_are_a_spec_error(toy):
+    attrs = {**toy.parse_id("run001-fast-d1-w08-s1"), "num": "not-a-number"}
+    with pytest.raises(SpecError, match="cannot format"):
+        toy.format_id(attrs)
+
+
+def test_a_directory_named_like_a_spec_does_not_shadow_it(tmp_path, monkeypatch):
+    (tmp_path / "aug26").mkdir()
+    monkeypatch.chdir(tmp_path)
+    assert spec_module.load("aug26").name == "aug26"
 
 
 # -- the shipped aug26 spec -------------------------------------------------
