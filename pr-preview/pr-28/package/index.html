@@ -666,6 +666,8 @@
       
         
       
+        
+      
     
     
     
@@ -738,6 +740,34 @@
     
   
     Latent diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="waig/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web app
   
 
     
@@ -928,6 +958,14 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 <td><code>taig</code></td>
 <td>reusable neural blocks <em>(skeleton)</em></td>
 </tr>
+<tr>
+<td><code>viz</code></td>
+<td>figures, with no web framework in them</td>
+</tr>
+<tr>
+<td><code>waig</code></td>
+<td><a href="waig/">a local web app</a> over <code>caig</code> and <code>daig</code></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition warning">
@@ -967,7 +1005,17 @@ sits behind an extra named after the subpackage that needs it, and a missing one
 <tr>
 <td><code>viz</code></td>
 <td>matplotlib</td>
-<td>plots and reports</td>
+<td><code>xaig.viz</code>: maps and figures</td>
+</tr>
+<tr>
+<td><code>maps</code></td>
+<td>cartopy</td>
+<td>coastlines on those maps</td>
+</tr>
+<tr>
+<td><code>waig</code></td>
+<td>streamlit</td>
+<td><a href="waig/"><code>xaig waig</code></a></td>
 </tr>
 <tr>
 <td><code>taig</code></td>
@@ -1117,7 +1165,6 @@ cannot quietly mean "this campaign has no grammar".</p>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig</code>: bias and time-mean maps, spectra, zonal means (a <code>FieldSource</code> beside
       <code>LatentSource</code>, on the same <code>daig.grid</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig.latent</code>: a GraphCast mesh adapter; the activation exporter as an adapter</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>waig</code>: a local explorer over the <code>caig</code> and <code>daig</code> APIs</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>taig</code>: the first reusable blocks</li>
 </ul>
 
