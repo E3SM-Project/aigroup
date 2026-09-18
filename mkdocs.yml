@@ -139,4 +139,5 @@ nav:
   - Package:
       - Overview: package/index.md
       - Latent diagnostics: package/latents.md
+      - Web app: package/waig.md
 

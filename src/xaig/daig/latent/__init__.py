@@ -23,6 +23,7 @@ from xaig.daig.latent.analysis import (
     analyse_region,
     cosine_similarity,
     fit_pca,
+    load_channels,
     rank_channels,
 )
 from xaig.daig.latent.source import LatentInfo, LatentSource, LayerInfo, open_source
@@ -38,6 +39,7 @@ __all__ = [
     "analyse_region",
     "cosine_similarity",
     "fit_pca",
+    "load_channels",
     "open_source",
     "rank_channels",
 ]

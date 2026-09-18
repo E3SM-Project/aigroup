@@ -9,6 +9,8 @@ adding subpackages and adapters rather than by widening what exists.
 | `caig` | campaign tracking — offline, no server, no live streaming | base tier |
 | `daig` | diagnostics of emulators: their outputs and their internals | `xaig[daig]` |
 | `taig` | reusable neural blocks | `xaig[taig]` |
+| `viz` | figures, with no web framework in them | `xaig[viz]`, `xaig[maps]` |
+| `waig` | a local web app: presentation only | `xaig[waig]` |
 | `adapters` | everything that knows a framework, a file layout or a scheduler | per adapter |
 
 ## Three concerns, kept apart
@@ -34,11 +36,13 @@ answer.
 core        <-  everything; imports nothing of xaig, and no third party
 adapters    ->  core, and the domain contract each one implements
 caig, daig, taig  ->  core (and _render, for their cli)
+viz         ->  core, daig
+waig        ->  core, caig, daig, viz;  nothing imports waig
 ```
 
 Domains never import `adapters` — they ask `core.registry` for one by name — and never
-import each other. A future front end (`waig`) sits downstream: it may import `caig` and
-`daig`; nothing may import it.
+import each other. Presentation sits downstream of all of them: `viz` draws what `daig`
+computes, and `waig` puts widgets on both.
 
 The authoritative version is the `ALLOWED` and `THIRD_PARTY` tables in
 `tests/test_purity.py`. Adding a subpackage without declaring its edges there fails the
@@ -68,6 +72,8 @@ so heavy imports happen inside the command that needs them.
 | a campaign | a YAML file in `caig/campaigns/` |
 | support for a framework | a module in `adapters/` + an entry point in `pyproject.toml` |
 | a diagnostic | a module in `daig/`, on `daig.grid` |
+| a figure | a function in `viz/` that returns a `Figure` |
+| a view in the app | a module with a `page()` in `waig/`, and a line in `waig/app.py` |
 | a command | a `cli.py`, named in `_cli._COMMANDS` (or the `xaig.commands` entry-point group, from another distribution) |
 | a subpackage | the directory, an extra, its row in `tests/test_purity.py`, an `AGENTS.md` |
 

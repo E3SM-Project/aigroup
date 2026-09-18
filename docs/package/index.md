@@ -8,6 +8,8 @@ this repo alongside the guides, as a peer rather than an appendix.
 | `caig` | campaign tracking — offline, no server, no live streaming |
 | `daig` | diagnostics of emulators: their outputs and [their internals](latents.md) |
 | `taig` | reusable neural blocks *(skeleton)* |
+| `viz` | figures, with no web framework in them |
+| `waig` | [a local web app](waig.md) over `caig` and `daig` |
 
 !!! warning "research tool"
 
@@ -34,7 +36,9 @@ error: numpy is not installed; it comes with the 'daig' extra: uv pip install 'x
 | --- | --- | --- |
 | `daig` | numpy | `xaig.daig` |
 | `netcdf` | netCDF4 | masks read from a reference file |
-| `viz` | matplotlib | plots and reports |
+| `viz` | matplotlib | `xaig.viz`: maps and figures |
+| `maps` | cartopy | coastlines on those maps |
+| `waig` | streamlit | [`xaig waig`](waig.md) |
 | `taig` | torch | `xaig.taig` |
 
 !!! tip "uv cache"
@@ -228,5 +232,4 @@ $ xaig caig ls --spec ./mine.yaml --adapter myframework --source /path/to/runs
 - [ ] `daig`: bias and time-mean maps, spectra, zonal means (a `FieldSource` beside
       `LatentSource`, on the same `daig.grid`)
 - [ ] `daig.latent`: a GraphCast mesh adapter; the activation exporter as an adapter
-- [ ] `waig`: a local explorer over the `caig` and `daig` APIs
 - [ ] `taig`: the first reusable blocks

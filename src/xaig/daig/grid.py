@@ -63,6 +63,23 @@ def great_circle_km(lat: np.ndarray, lon: np.ndarray, lat0: float, lon0: float) 
     return 2.0 * EARTH_RADIUS_KM * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
 
 
+def small_circle(
+    lat0: float, lon0: float, radius_km: float, n: int = 181
+) -> tuple[np.ndarray, np.ndarray]:
+    """The outline of a region: ``n`` points ``radius_km`` from a centre, as
+    ``(lat, lon)`` with longitude in -180..180. It is a circle on the sphere, so
+    on a map it flattens toward the poles and may cross the dateline."""
+    bearing = np.linspace(0.0, 2.0 * np.pi, n)
+    delta = radius_km / EARTH_RADIUS_KM
+    lat0_r, lon0_r = np.radians(lat0), np.radians(lon0)
+    sin_lat = np.sin(lat0_r) * np.cos(delta) + np.cos(lat0_r) * np.sin(delta) * np.cos(bearing)
+    lat = np.arcsin(np.clip(sin_lat, -1.0, 1.0))
+    lon = lon0_r + np.arctan2(
+        np.sin(bearing) * np.sin(delta) * np.cos(lat0_r), np.cos(delta) - np.sin(lat0_r) * sin_lat
+    )
+    return np.degrees(lat), (np.degrees(lon) + 180.0) % 360.0 - 180.0
+
+
 @dataclass(frozen=True, eq=False)
 class Grid:
     """Where a set of nodes is, and which of them mean anything.

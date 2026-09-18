@@ -151,6 +151,25 @@ def fit_pca(latents: np.ndarray, n_components: int, weights: np.ndarray | None =
     return PCA(mean=mean, components=components, explained_variance_ratio=ratio[:n_components])
 
 
+def load_channels(
+    source: LatentSource,
+    *,
+    time: str | int,
+    layer: int,
+    channels: Sequence[int],
+    centred: bool = False,
+) -> np.ndarray:
+    """A few channels over the whole grid, ``(n_nodes, len(channels))``, ready to
+    map: NaN where the grid is invalid, and with each channel's area-weighted
+    global mean removed when ``centred``. Only the channels asked for are read."""
+    grid = source.grid()
+    values = source.load(time, layer, channels=list(channels)).astype(np.float64)
+    if centred:
+        values -= grid.mean(values)
+    values[~grid.valid] = np.nan
+    return values
+
+
 @dataclass(frozen=True, eq=False)
 class RegionAnalysis:
     """Everything ``analyse_region`` found, with what it takes to find it again.

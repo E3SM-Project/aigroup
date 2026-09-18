@@ -107,6 +107,9 @@ grid = source.grid()
 first_pc = grid.to_map(result.scores[:, 0])  # (n_lat, n_lon), NaN where invalid
 ```
 
+To draw any of it, `xaig.viz.map_figure(grid, values, region=...)` returns a matplotlib
+figure, and [`xaig waig`](waig.md) puts the whole routine behind widgets.
+
 The pieces are plain functions over `(n_nodes, n_channels)` arrays — `rank_channels`,
 `cosine_similarity`, `fit_pca` — for when the routine above is not the question being
 asked. `source.load(time, layer, channels=..., nodes=...)` reads only what it is asked for.
@@ -201,8 +204,6 @@ Meshes need no special handling: without a `grid_shape` everything works except
 
 ## Remaining tasks
 
-- [ ] Maps and report figures (`viz` extra), so a result can be drawn without the app
 - [ ] A GraphCast mesh adapter, including the app's translator
 - [ ] The activation exporter as an adapter of its own, behind a framework extra
 - [ ] Ensemble members and per-layer grids in `LatentSource`
-- [ ] `waig`: a local explorer on this API

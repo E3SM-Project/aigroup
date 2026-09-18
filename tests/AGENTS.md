@@ -12,6 +12,9 @@
   consumer and that `import xaig` / `xaig --help` stay light. A new subpackage must be
   added to the tables or the suite fails. These are cheap and unglamorous; without them
   the boundary erodes in a month.
+- The app is tested headlessly with `streamlit.testing.v1.AppTest`: what a view shows,
+  that a widget changes it, and that the command and code it offers reproduce it. That
+  cannot see layout; look at the app before calling a view done.
 - Two tiers. Tests needing numpy start with `pytest.importorskip("numpy")`, so the suite
   passes on a base install; CI runs both.
 - Give a fixture a known right answer. The synthetic latent archive plants a bump in one

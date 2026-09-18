@@ -23,6 +23,6 @@ Two peers live here. Neither exists to serve the other.
 | `src/xaig/` | package architecture, who may import whom, how to extend it |
 | `src/xaig/core/` | the purity contract |
 | `src/xaig/adapters/` | the factory contract; writing a new adapter |
-| `src/xaig/{caig,daig,taig}/` | each subpackage's scope and non-goals |
+| `src/xaig/{caig,daig,taig,viz,waig}/` | each subpackage's scope, rules and non-goals |
 | `tests/` | fixture rules |
 | `docs/` | prose and nav conventions |

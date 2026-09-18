@@ -33,6 +33,8 @@ ALLOWED: dict[str, set[str]] = {
     "caig": {"core", "_render"},
     "daig": {"core", "_render"},
     "taig": {"core"},
+    "viz": {"core", "daig"},
+    "waig": {"core", "caig", "daig", "viz"},  # downstream of everything; nothing imports it
 }
 
 # unit -> third-party roots it may import. Units absent from this table are not
@@ -44,6 +46,8 @@ THIRD_PARTY: dict[str, set[str]] = {
     "core": set(),
     "caig": {"click", "yaml"},
     "daig": {"click", "numpy"},  # the science stays free of any UI or file format
+    "viz": {"cartopy", "matplotlib", "numpy"},  # figures, with no web framework in them
+    "waig": {"click", "numpy", "streamlit"},  # widgets; figures come from viz
 }
 
 # The entry-point group shares the adapters package's name; it is an identifier,
