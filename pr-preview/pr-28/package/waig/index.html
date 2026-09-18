@@ -1028,7 +1028,7 @@
 <p><code>xaig waig</code> is a local web app over the rest of the package: an explorer for
 <a href="../latents/">latent archives</a> and a view of a <a href="../#tracking-a-campaign">campaign</a>.
 It is presentation only — every number on screen comes from <code>xaig.daig</code> or <code>xaig.caig</code>
-and every figure from <code>xaig.viz</code> — so anything you see there can be redone in a notebook
+and every figure from <code>xaig.faig</code> — so anything you see there can be redone in a notebook
 or a batch job, and the app tells you how.</p>
 <div class="admonition warning">
 <p class="admonition-title">local, not a service</p>
@@ -1109,7 +1109,7 @@ up</em> — the same findings as <a href="../#checking-a-campaign"><code>xaig ca
 the grammar or occur twice, and metadata that contradicts an id.</p>
 <h2 id="the-same-figures-without-the-app">The same figures without the app</h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.daig.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyse_region</span><span class="p">,</span> <span class="n">open_source</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_figure</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.faig</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_figure</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">region</span> <span class="o">=</span> <span class="n">Region</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">lon</span><span class="o">=-</span><span class="mi">140</span><span class="p">,</span> <span class="n">radius_km</span><span class="o">=</span><span class="mi">1500</span><span class="p">)</span>

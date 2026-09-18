@@ -1209,7 +1209,7 @@ agrees.</p>
 </span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">grid</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
 </span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">first_pc</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">to_map</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">scores</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (n_lat, n_lon), NaN where invalid</span>
 </span></code></pre></div>
-<p>To draw any of it, <code>xaig.viz.map_figure(grid, values, region=...)</code> returns a matplotlib
+<p>To draw any of it, <code>xaig.faig.map_figure(grid, values, region=...)</code> returns a matplotlib
 figure, and <a href="../waig/"><code>xaig waig</code></a> puts the whole routine behind widgets.</p>
 <p>The pieces are plain functions over <code>(n_nodes, n_channels)</code> arrays — <code>rank_channels</code>,
 <code>cosine_similarity</code>, <code>fit_pca</code> — for when the routine above is not the question being
