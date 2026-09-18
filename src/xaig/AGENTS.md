@@ -7,7 +7,7 @@ adding subpackages and adapters rather than by widening what exists.
 |---|---|---|
 | `core` | run-shaped data model, shared protocols, adapter registry | stdlib |
 | `caig` | campaign tracking — offline, no server, no live streaming | base tier |
-| `daig` | emulator-vs-reference diagnostics *(skeleton)* | `xaig[daig]` |
+| `daig` | diagnostics of emulators: their outputs and their internals | `xaig[daig]` |
 | `taig` | reusable neural blocks | `xaig[taig]` |
 | `adapters` | everything that knows a framework, a file layout or a scheduler | per adapter |
 
@@ -48,7 +48,7 @@ suite, so the decision is always made on purpose.
 
 Keep shared contracts few and small. `core/protocols.py` holds the run-shaped ones
 (`Discoverer`, `StatusProbe`, `MetricSource`, `ArtifactStore`, `IdParser`). A contract with
-one consumer lives next to it, and is promoted to core when
+one consumer lives next to it — `daig.latent.LatentSource` — and is promoted to core when
 a second consumer appears, not before.
 
 ## API first; everything else is a client
@@ -67,6 +67,7 @@ so heavy imports happen inside the command that needs them.
 |---|---|
 | a campaign | a YAML file in `caig/campaigns/` |
 | support for a framework | a module in `adapters/` + an entry point in `pyproject.toml` |
+| a diagnostic | a module in `daig/`, on `daig.grid` |
 | a command | a `cli.py`, named in `_cli._COMMANDS` (or the `xaig.commands` entry-point group, from another distribution) |
 | a subpackage | the directory, an extra, its row in `tests/test_purity.py`, an `AGENTS.md` |
 

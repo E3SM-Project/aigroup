@@ -1,16 +1,14 @@
-"""daig -- emulator-vs-reference diagnostics.
+"""daig -- diagnostics of emulators: what they output, and what they hold inside.
 
-Skeleton only in 0.1.0. The intended API, for reference while it is built:
+- ``xaig.daig.grid``    nodes on a sphere: masks, area weights, regions
+- ``xaig.daig.latent``  what a network's internal channels respond to
 
-    from xaig.daig import reduce_epoch, compare_fields
+Still to come is the emulator-vs-reference half: bias and time-mean maps,
+spectra, zonal means, drift. It will sit on ``grid`` exactly as ``latent`` does.
 
-    scalars = reduce_epoch(run, block="inference", epoch=15)  # -> dict[str, float]
-    diff    = compare_fields(prediction, reference, weights="area")
-
-Reductions must be area-weighted and NaN-aware: unweighted means on a Gaussian
-grid are wrong, and ocean channels are undefined over land.
-
-Requires the ``viz`` extra for plotting and an adapter for reading fields.
+Needs the ``daig`` extra (numpy). This package module stays importable without
+it, so that ``xaig --help`` can list the ``daig`` command on a base install; the
+modules above say which extra they need the moment they are imported.
 """
 
 from __future__ import annotations

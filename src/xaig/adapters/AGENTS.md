@@ -27,6 +27,7 @@ with `isinstance`, so a framework's discovery, status and metrics travel under o
 | `core.StatusProbe` | `probe(run)` → `RunStatus` | `caig` |
 | `core.MetricSource` | `metrics(run, names=None)` → `dict[str, MetricSeries]` | `caig` |
 | `core.ArtifactStore` | `artifacts(run)` → `dict[str, str]` of handles | — |
+| `daig.latent.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `daig` |
 
 ## Registering
 
@@ -44,16 +45,19 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 
 ## Rules
 
-- An adapter may import `xaig.core` and the domain contract it implements. Nothing
-  imports an adapter; it is reached through the registry.
+- An adapter may import `xaig.core` and the domain contract it implements
+  (`xaig.daig.latent`). Nothing imports an adapter; it is reached through the registry.
 - Heavy dependencies go behind an extra and are imported by the adapter, which loads
   lazily — never at `import xaig` time.
 - Tolerate partial data. A run being written right now has truncated logs and missing
   epochs; that is a normal reading, not an error. Missing means `None`, not an exception.
 - What you tolerate, record: attach an `Issue` to the run instead of swallowing it.
 - Return `RunStatus.UNKNOWN` rather than guess.
+- Read selectively. A `LatentSource` asked for a region must not load the layer.
 
 ## Present adapters
 
 - `table.py` — runs from a delimited table (stdlib `csv`, base tier). The most
   framework-neutral source there is.
+- `latent_archive.py` — activations recorded from a model, as a directory of
+  memory-mapped arrays (`xaig[daig]`; format in `docs/package/latents.md`).

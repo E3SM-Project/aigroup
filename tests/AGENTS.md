@@ -14,6 +14,8 @@
   the boundary erodes in a month.
 - Two tiers. Tests needing numpy start with `pytest.importorskip("numpy")`, so the suite
   passes on a base install; CI runs both.
-
+- Give a fixture a known right answer. The synthetic latent archive plants a bump in one
+  channel and a constant offset in another, so ranking and centring can be asserted, not
+  just exercised.
 - Test the behaviour that would actually bite: an id that round-trips, a status that is
   interrupted rather than failed, a missing epoch that reads as missing.

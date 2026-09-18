@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 # Shipped commands, by import path. Listing them for --help imports every cli
 # module, so each must stay importable on the base tier: anything heavier is
 # imported inside the command that needs it (tests/test_purity.py holds them to it).
-_COMMANDS = {"caig": "xaig.caig.cli:caig"}
+_COMMANDS = {"caig": "xaig.caig.cli:caig", "daig": "xaig.daig.cli:daig"}
 
 # A separate distribution adds a command by registering a ``click.Command``
 # under this entry-point group. Shipped names win a clash.

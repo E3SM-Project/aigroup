@@ -6,7 +6,7 @@ This repo hosts two peers:
 
 - **`docs/`** — the guide site, published at <https://e3sm-project.github.io/aigroup>
 - **`src/xaig/`** — `xaig`, a light Python package for campaign tracking (`caig`),
-  emulator diagnostics (`daig`), and reusable neural blocks (`taig`)
+  emulator diagnostics, latent space included (`daig`), and reusable neural blocks (`taig`)
 
 ## Install
 
@@ -16,7 +16,7 @@ $ uv pip install -e '.[dev]'
 ```
 
 The base install pulls only PyYAML and Click. Anything heavier sits behind an extra named
-after the subpackage that needs it (`daig`, `taig`, plus `viz`), so the core
+after the subpackage that needs it (`daig`, `taig`, plus `viz` and `netcdf`), so the core
 stays nimble: `uv pip install -e '.[dev,daig]'`.
 
 ## Use
@@ -25,6 +25,8 @@ stays nimble: `uv pip install -e '.[dev,daig]'`.
 $ xaig caig specs
 $ xaig caig ls --spec aug26 --source /path/to/runs/MANIFEST.tsv
 $ xaig caig check --spec aug26 --source /path/to/runs/MANIFEST.tsv
+$ xaig daig latent info /path/to/latents/atmosphere
+$ xaig daig latent region /path/to/latents/atmosphere --lat 5 --lon -140 --centred --pcs 3
 ```
 
 ## Develop

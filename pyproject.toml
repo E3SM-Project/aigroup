@@ -20,6 +20,7 @@ dependencies = ["pyyaml>=6.0", "click>=8.1"]
 # with their adapters.
 [project.optional-dependencies]
 daig = ["numpy>=1.24"]
+netcdf = ["netCDF4>=1.6"]
 viz = ["matplotlib>=3.7"]
 taig = ["torch>=2.0"]
 dev = ["pytest>=7.4", "ruff>=0.5"]
@@ -32,6 +33,7 @@ xaig = "xaig._cli:main"
 # entry here, reinstall (`uv pip install -e .`) so the metadata is refreshed.
 [project.entry-points."xaig.adapters"]
 table = "xaig.adapters.table:TableDiscoverer"
+latent-archive = "xaig.adapters.latent_archive:LatentArchive"
 
 [project.urls]
 Homepage = "https://e3sm-project.github.io/aigroup"

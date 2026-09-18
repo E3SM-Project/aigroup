@@ -6,13 +6,14 @@ this repo alongside the guides, as a peer rather than an appendix.
 | Subpackage | Scope |
 | --- | --- |
 | `caig` | campaign tracking — offline, no server, no live streaming |
-| `daig` | emulator-vs-reference diagnostics *(skeleton)* |
+| `daig` | diagnostics of emulators: their outputs and [their internals](latents.md) |
 | `taig` | reusable neural blocks *(skeleton)* |
 
 !!! warning "research tool"
 
-    `xaig` is early. The `caig` surface described here works; `daig` and `taig` are
-    skeletons with their intended APIs sketched in their module docstrings.
+    `xaig` is early. The `caig` surface described here and `daig`'s
+    [latent diagnostics](latents.md) work; emulator-vs-reference diagnostics and `taig`
+    are still to come.
 
 ## Install
 
@@ -22,11 +23,17 @@ $ uv pip install -e '.[dev]'
 ```
 
 The base install pulls only PyYAML and Click, and is all `caig` needs. Anything heavier
-sits behind an extra named after the subpackage that needs it:
+sits behind an extra named after the subpackage that needs it, and a missing one says so:
+
+```console
+$ xaig daig latent info latents/atmosphere
+error: numpy is not installed; it comes with the 'daig' extra: uv pip install 'xaig[daig]'
+```
 
 | Extra | Pulls | Gets you |
 | --- | --- | --- |
 | `daig` | numpy | `xaig.daig` |
+| `netcdf` | netCDF4 | masks read from a reference file |
 | `viz` | matplotlib | plots and reports |
 | `taig` | torch | `xaig.taig` |
 
@@ -218,5 +225,8 @@ $ xaig caig ls --spec ./mine.yaml --adapter myframework --source /path/to/runs
 - [ ] Incremental scan index, so polling a live campaign is cheap
 - [ ] `caig compare`: the pre-registered seed-spread decision rule
 - [ ] `caig doctor`: machine-checked campaign guardrails
-- [ ] `daig`: bias and time-mean maps, spectra, zonal means
+- [ ] `daig`: bias and time-mean maps, spectra, zonal means (a `FieldSource` beside
+      `LatentSource`, on the same `daig.grid`)
+- [ ] `daig.latent`: a GraphCast mesh adapter; the activation exporter as an adapter
+- [ ] `waig`: a local explorer over the `caig` and `daig` APIs
 - [ ] `taig`: the first reusable blocks

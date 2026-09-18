@@ -35,7 +35,7 @@ jobs:
           - tier: base
             extras: "dev"
           - tier: full
-            extras: "dev,daig"
+            extras: "dev,daig,netcdf"
     steps:
       - uses: actions/checkout@v5
         with:

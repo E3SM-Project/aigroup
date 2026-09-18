@@ -29,7 +29,7 @@ ALLOWED: dict[str, set[str]] = {
     "_cli": {"core"},  # subcommands are named by string and loaded lazily
     "_render": set(),
     "core": set(),
-    "adapters": {"core"},
+    "adapters": {"core", "daig"},  # an adapter imports the contract it implements
     "caig": {"core", "_render"},
     "daig": {"core", "_render"},
     "taig": {"core"},
@@ -43,6 +43,7 @@ THIRD_PARTY: dict[str, set[str]] = {
     "_render": set(),
     "core": set(),
     "caig": {"click", "yaml"},
+    "daig": {"click", "numpy"},  # the science stays free of any UI or file format
 }
 
 # The entry-point group shares the adapters package's name; it is an identifier,
