@@ -29,16 +29,16 @@ from functools import lru_cache
 from typing import Any, Protocol
 
 from xaig.core.extras import missing_extra
-from xaig.daig.grid import Grid, small_circle
 
+# Checked before anything of daig's is imported: whoever wants figures should be
+# pointed at the one extra that brings everything, not at numpy's and then ours.
 try:
     import numpy as np
-except ImportError as exc:
-    raise missing_extra("numpy", "daig") from exc
-try:
     from matplotlib.figure import Figure
 except ImportError as exc:
-    raise missing_extra("matplotlib", "viz") from exc
+    raise missing_extra(exc.name or "matplotlib", "faig") from exc
+
+from xaig.daig.grid import Grid, small_circle
 
 log = logging.getLogger(__name__)
 

@@ -28,5 +28,5 @@ and siblings may not import each other.
   in its own precision, and never make a second copy of one. `xaig daig latent region`
   on the real atmosphere archive peaks near 210 MB; the first draft took 650.
 - **Deterministic results.** No dependence on node order; PCA signs are fixed.
-- Plotting requires the `viz` extra. Do not import matplotlib at package import time.
+- Plotting requires the `faig` extra. Do not import matplotlib at package import time.
 - May not import `caig` or `taig`.

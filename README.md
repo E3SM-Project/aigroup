@@ -17,7 +17,7 @@ $ uv pip install -e '.[dev]'
 ```
 
 The base install pulls only PyYAML and Click. Anything heavier sits behind an extra named
-after the subpackage that needs it (`daig`, `taig`, `viz`, `waig`, plus `maps` and `netcdf`), so the core
+after the subpackage that needs it (`daig`, `faig`, `taig`, `waig`, plus `maps` and `netcdf`), so the core
 stays nimble: `uv pip install -e '.[dev,daig]'`.
 
 ## Use

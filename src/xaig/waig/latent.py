@@ -1,7 +1,7 @@
 """The latent explorer: pick a region, see what the model's channels do there.
 
 Widgets and layout only. The analysis is ``xaig.daig.latent.analyse_region`` and
-the maps are ``xaig.viz.map_figure``; the last tab hands back the settings,
+the maps are ``xaig.faig.map_figure``; the last tab hands back the settings,
 command and code that reproduce what is on screen.
 
 Streamlit reruns this function on every interaction, so whatever is slow is
@@ -20,7 +20,7 @@ import streamlit as st
 
 from xaig.core.errors import XaigError
 from xaig.daig.latent import Region, RegionAnalysis, analyse_region, load_channels, open_source
-from xaig.viz import have_coastlines, map_figure, to_png
+from xaig.faig import have_coastlines, map_figure, to_png
 from xaig.waig.config import configured_latents
 
 _CACHED = 16

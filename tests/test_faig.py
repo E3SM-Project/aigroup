@@ -8,7 +8,7 @@ pytest.importorskip("matplotlib")
 from conftest import BUMP, write_latent_archive  # noqa: E402
 from xaig.daig.grid import Grid, small_circle  # noqa: E402
 from xaig.daig.latent import Region, load_channels, open_source  # noqa: E402
-from xaig.viz import map_figure, maps, to_png  # noqa: E402
+from xaig.faig import map_figure, maps, to_png  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -95,6 +95,20 @@ def test_the_outline_is_a_circle_on_the_sphere():
     lat, lon = small_circle(60.0, -170.0, 2000.0)
     assert great_circle_km(lat, lon, 60.0, -170.0) == pytest.approx(2000.0)
     assert lon.min() >= -180.0 and lon.max() < 180.0
+
+
+def test_a_missing_dependency_names_the_one_extra_that_brings_everything():
+    """Not numpy's extra first and ours second."""
+    import subprocess
+    import sys
+
+    code = (
+        "import sys\n"
+        "sys.modules['numpy'] = None\n"  # as if it were not installed
+        "try:\n    import xaig.faig\nexcept ImportError as exc:\n    print(exc)\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True).stdout
+    assert "xaig[faig]" in out and "xaig[daig]" not in out
 
 
 def test_values_must_be_one_per_node(latent_archive):

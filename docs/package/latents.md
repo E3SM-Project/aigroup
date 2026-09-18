@@ -107,7 +107,7 @@ grid = source.grid()
 first_pc = grid.to_map(result.scores[:, 0])  # (n_lat, n_lon), NaN where invalid
 ```
 
-To draw any of it, `xaig.viz.map_figure(grid, values, region=...)` returns a matplotlib
+To draw any of it, `xaig.faig.map_figure(grid, values, region=...)` returns a matplotlib
 figure, and [`xaig waig`](waig.md) puts the whole routine behind widgets.
 
 The pieces are plain functions over `(n_nodes, n_channels)` arrays — `rank_channels`,

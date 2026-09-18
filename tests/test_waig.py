@@ -52,7 +52,7 @@ pytest.importorskip("streamlit")
 pytest.importorskip("matplotlib")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
-from xaig.viz import maps  # noqa: E402
+from xaig.faig import maps  # noqa: E402
 
 APP = str(waig_cli.Path(waig_cli.__file__).with_name("app.py"))
 

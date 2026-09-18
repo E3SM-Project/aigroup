@@ -3,7 +3,7 @@
 `xaig waig` is a local web app over the rest of the package: an explorer for
 [latent archives](latents.md) and a view of a [campaign](index.md#tracking-a-campaign).
 It is presentation only — every number on screen comes from `xaig.daig` or `xaig.caig`
-and every figure from `xaig.viz` — so anything you see there can be redone in a notebook
+and every figure from `xaig.faig` — so anything you see there can be redone in a notebook
 or a batch job, and the app tells you how.
 
 !!! warning "local, not a service"
@@ -81,7 +81,7 @@ the grammar or occur twice, and metadata that contradicts an id.
 
 ```python
 from xaig.daig.latent import Region, analyse_region, open_source
-from xaig.viz import map_figure
+from xaig.faig import map_figure
 
 source = open_source("latents/atmosphere")
 region = Region(lat=5, lon=-140, radius_km=1500)

@@ -32,9 +32,9 @@ ALLOWED: dict[str, set[str]] = {
     "adapters": {"core", "daig"},  # an adapter imports the contract it implements
     "caig": {"core", "_render"},
     "daig": {"core", "_render"},
+    "faig": {"core", "daig"},
     "taig": {"core"},
-    "viz": {"core", "daig"},
-    "waig": {"core", "caig", "daig", "viz"},  # downstream of everything; nothing imports it
+    "waig": {"core", "caig", "daig", "faig"},  # downstream of everything; nothing imports it
 }
 
 # unit -> third-party roots it may import. Units absent from this table are not
@@ -46,8 +46,8 @@ THIRD_PARTY: dict[str, set[str]] = {
     "core": set(),
     "caig": {"click", "yaml"},
     "daig": {"click", "numpy"},  # the science stays free of any UI or file format
-    "viz": {"cartopy", "matplotlib", "numpy"},  # figures, with no web framework in them
-    "waig": {"click", "numpy", "streamlit"},  # widgets; figures come from viz
+    "faig": {"cartopy", "matplotlib", "numpy"},  # figures, with no web framework in them
+    "waig": {"click", "numpy", "streamlit"},  # widgets; figures come from faig
 }
 
 # The entry-point group shares the adapters package's name; it is an identifier,

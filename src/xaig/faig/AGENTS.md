@@ -1,7 +1,7 @@
-# viz — reusable figures
+# faig — reusable figures
 
 Plotting functions with no web framework in them, so a notebook, a report and `waig`
-draw the same picture. May import `core` and `daig`; needs the `viz` extra (matplotlib),
+draw the same picture. May import `core` and `daig`; needs the `faig` extra (matplotlib),
 and `maps` (cartopy) for coastlines.
 
 ## Rules
