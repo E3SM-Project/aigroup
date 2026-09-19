@@ -1,0 +1,49 @@
+# The e3sm_hist_v20260812 ("aug26") ablation campaign.
+#
+# Nothing in this file is code. A different campaign -- or a profoundly different
+# training system -- is a new file like this one, not a change to xaig.
+name: aug26
+description: >-
+  35 runs (25 atmosphere, 10 ocean) ablating aerosol, CO2, batch size, learning
+  rate, ocean stepping, loss weights and mixed precision, with seed replicates on
+  the four baselines.
+
+# E05.aug26.atm.A3_B16_C1_L0_O5_W0_X0.S01
+id_pattern: '^(?P<exp>E\d+)\.(?P<campaign>[a-z0-9]+)\.(?P<realm>atm|ocn|cpl)\.(?P<factors>[A-Z0-9_]+)\.S(?P<seed>\d+)$'
+id_template: '{exp}.{campaign}.{realm}.{factors}.S{seed:02d}'
+
+factor_field: factors
+factors:
+  - { key: A, name: aerosol,    width: 1 }  # 0 none, 1 inputs, 2 outputs, 3 both
+  - { key: B, name: batch,      width: 2 }  # global batch size: 08, 16, 32
+  - { key: C, name: co2,        width: 1 }  # 0 without, 1 with global_mean_co2
+  - { key: L, name: lr,         width: 1 }  # 0 baseline, 1 scaled by sqrt(batch/16)
+  - { key: O, name: ocean_step, width: 1 }  # 1-daily or 5-daily ocean stepping
+  - { key: W, name: weights,    width: 1 }  # 0 equal, 1 flux upweight, 2 dilution, 3/4 zeroed
+  - { key: X, name: amp,        width: 1 }  # 0 baseline, 1 bf16 autocast
+
+# Single-seed arms are judged against the three-seed spread of their parent.
+parent_key: exp
+parents:
+  E03: E02
+  E04: E02
+  E06: E05
+  E07: E05
+  E08: E05
+  E09: E05
+  E10: E05
+  E15: E05
+  E12: E11
+  E13: E11
+  E14: E11
+  E16: E11
+  E17: E11
+
+# Measured noise floor on this metric; effects as small as 0.0025 are expected,
+# which is why single-seed arms cannot be read on their own.
+metric: time_mean/rmse/channel_mean
+noise_floor: 0.0035
+
+discovery:
+  adapter: table
+  id_column: runid
