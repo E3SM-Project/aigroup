@@ -16,7 +16,7 @@
         <link rel="prev" href="../">
       
       
-        <link rel="next" href="../waig/">
+        <link rel="next" href="../taig/">
       
       
         
@@ -668,6 +668,8 @@
       
         
       
+        
+      
     
     
     
@@ -825,6 +827,50 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#methods-a-basis-is-a-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Methods: a basis is a value
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#through-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Through time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-run-against-its-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A run against its control
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-finding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature-finding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#python-api" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -894,6 +940,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../taig/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse autoencoders
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -987,6 +1061,50 @@
     <span class="md-ellipsis">
       
         What responds in a region
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#methods-a-basis-is-a-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Methods: a basis is a value
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#through-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Through time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-run-against-its-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A run against its control
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-finding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature-finding
       
     </span>
   </a>
@@ -1094,7 +1212,8 @@
 
 <h1 id="latent-diagnostics">Latent diagnostics</h1>
 <p><code>xaig.daig.latent</code> asks what a model's internal channels respond to: which ones light up
-over a region, where else the model looks the same, and what the main patterns are. It
+over a region, where else the model looks the same, what the main patterns are, how they
+evolve from one physics step to the next, and what a perturbation did to them. It
 grew out of the <a href="https://github.com/ktempestuous/latent_space_visualiser_weather_models">latent space visualiser</a>
 (Tempest, Beylich &amp; Craig 2026,
 <a href="https://doi.org/10.1007/978-3-032-29915-4_10">doi:10.1007/978-3-032-29915-4_10</a>; cite it
@@ -1108,9 +1227,9 @@ checkpoint, usually a pinned Python. Studying them needs numpy. The
 other's stack.</p>
 </div>
 <h2 id="install">Install</h2>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s1">'.[dev,daig]'</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">                      </span><span class="c1"># in a checkout: everything</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'</span><span class="w">   </span><span class="c1"># elsewhere</span>
 </span></code></pre></div>
-<p>Add <code>netcdf</code> to read a mask out of a reference file (see <a href="#masks">masks</a>).</p>
 <h2 id="what-is-in-an-archive">What is in an archive</h2>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">source      latents/atmosphere</span>
@@ -1150,8 +1269,10 @@ equatorial Pacific, and fit three principal components there:</p>
 </span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
 </span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="go">PC2   10.6%  326(+0.21)  351(-0.19)  179(+0.19)  336(+0.15)  349(-0.14)  344(+0.14)</span>
 </span></code></pre></div>
-<p>This takes 0.4 s and peaks near 210 MB on an Apple M1 Max, for an archive whose layers
-total 7.6 GB: one layer at one time is ever in memory. <code>--json</code> emits the settings,
+<p>This takes 0.3 s and peaks near 275 MB resident (<code>/usr/bin/time -l</code>) on an Apple M1 Max,
+for an archive whose layers total 7.6 GB: one layer at one time is ever in memory, and
+everything that can be refused — no such layer, an empty region, more components than the
+region's nodes can carry — is refused before the first read. <code>--json</code> emits the settings,
 provenance and results, which is enough to rerun an analysis and to check that the rerun
 agrees.</p>
 <table>
@@ -1168,11 +1289,11 @@ agrees.</p>
 </tr>
 <tr>
 <td><code>--layer</code></td>
-<td>the layer similarity and PCA are computed at; the last by default</td>
+<td>the layer similarity and the features are computed at; the last by default</td>
 </tr>
 <tr>
 <td><code>--rank-layer</code></td>
-<td>the layer channels are ranked at; the last by default — what the network ends up emphasising</td>
+<td>the layer channels are ranked at; the last by default — what the network ends up emphasising. It must be as wide as <code>--layer</code>: a channel is followed from one to the other by its index, which only means something along a residual stream</td>
 </tr>
 <tr>
 <td><code>--centred</code></td>
@@ -1186,34 +1307,167 @@ agrees.</p>
 <td><code>--reference</code></td>
 <td>what "the region" is as one vector: the <code>nearest</code> node to its centre, or its area-weighted <code>mean</code></td>
 </tr>
+<tr>
+<td><code>--pcs</code>, <code>--features</code></td>
+<td>how many features to map: principal components fitted in the region or, with <code>--basis</code>, the features of that basis which respond most strongly there</td>
+</tr>
+<tr>
+<td><code>--basis</code></td>
+<td>a <a href="#methods-a-basis-is-a-value">basis file</a>: a global PCA, a sparse autoencoder</td>
+</tr>
 </tbody>
 </table>
+<h2 id="methods-a-basis-is-a-value">Methods: a basis is a value</h2>
+<p>A PCA fitted in the region is one way to turn channels into features. A PCA fitted over
+the whole globe and every time is another, and a <a href="../taig/">sparse autoencoder</a> a third.
+They differ in how they are found and agree in what is done with them afterwards, so all
+of them are a <code>Decomposition</code> — <code>transform</code>, <code>directions</code>, <code>describe</code> — and every analysis,
+the CLI and the <a href="../waig/">web app</a> take one wherever they take another.</p>
+<p>A basis is fitted once and used many times, so it has a file: one <code>.npz</code> of plain arrays
+and a JSON record of how it was made.</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>pca<span class="w"> </span>latents/atmosphere<span class="w"> </span>--components<span class="w"> </span><span class="m">32</span><span class="w"> </span>--out<span class="w"> </span>pca8.npz
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">wrote pca8.npz: 32 component(s) of layer 8 over 17 time(s), 69.1% of the variance</span>
+</span></code></pre></div>
+<p>That is an area-weighted PCA over all 1.1 million node-times of the layer, from moments
+accumulated a block at a time: 2.9 s, and the sums are 384 × 384 however many times there
+are. It is the baseline a learned dictionary has to beat — on this layer, 32 components
+hold 69.1% of the variance, and <a href="../taig/">a top-32 sparse autoencoder</a> 82.0%.</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--centred<span class="w"> </span>--top<span class="w"> </span><span class="m">6</span><span class="w"> </span>--features<span class="w"> </span><span class="m">3</span><span class="w"> </span>--basis<span class="w"> </span>sae8.npz
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">...</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">F676  peak 21.8  45(-0.21)  107(+0.16)  129(+0.16)  351(-0.15)  285(+0.15)  124(+0.15)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go">F48   peak 12.9  124(+0.16)  380(+0.15)  108(+0.15)  326(-0.15)  104(+0.14)  236(-0.14)</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">F500  peak 7.43  22(+0.18)  332(+0.18)  280(+0.18)  351(-0.17)  205(+0.17)  211(+0.15)</span>
+</span></code></pre></div>
+<p>A basis is given the raw latents whatever <code>--centred</code> says: it carries the standardisation
+it was fitted with, and centring twice is simply wrong. Only the features asked for are
+computed, so a map of three features out of 1,024 does not cost the other 1,021.</p>
+<div class="admonition tip">
+<p class="admonition-title">the way back to the model</p>
+<p>The same file is the hand-off to a steering experiment. The model's environment
+needs nothing but numpy to read it — <code>np.load("sae8.npz")["decoder"][676]</code> is the
+direction feature 676 writes, and <code>["components"][0]</code> the first principal component —
+and the file's <code>record</code> says which archive, layer and times it was fitted on.</p>
+</div>
+<h2 id="through-time">Through time</h2>
+<p><code>analyse_region</code> is a snapshot. To follow a region from one physics step to the next:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>series<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--channel<span class="w"> </span><span class="m">45</span><span class="w"> </span>--channel<span class="w"> </span><span class="m">107</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">TIME                 HOURS  45        107</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">0425-01-03T18:00:00  0      0.04793   4.694</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">0425-01-04T00:00:00  6      0.1133    4.762</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">...</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">0425-01-05T12:00:00  42     0.1648    4.633</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">0425-01-07T00:00:00  78     0.1314    4.9</span>
+</span></code></pre></div>
+<p><code>HOURS</code> comes from the archive's own calendar, by hand: positions are not lead times. This
+exporter kept two runs of steps a day and a half apart, and a plot against position would
+hide that. Uncentred, only the region's nodes are read — a series over every time of the
+7.6 GB archive is a few MB — and <code>--basis … --feature N</code> follows a feature instead.</p>
+<h2 id="a-run-against-its-control">A run against its control</h2>
+<p>A perturbed or steered run is set against its control node for node and channel for
+channel, so the two must be the same model on the same grid; that is checked, not assumed.</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--growth
+</span></code></pre></div>
+<p>The first ranks channels by the area-weighted RMS of <code>steered − control</code> at one time —
+which channels the change reached. <code>--growth</code> follows its size through every layer and
+every time the two share, relative to the control's own spread across the globe.</p>
+<p>For two archives to be told apart at all, the exporter has to say what it did. Anything
+under <code>experiment</code> in the <a href="#the-latent-archive">manifest</a> — a seed, a perturbed input, a
+steered channel — is shown by <code>latent info</code> and carried into the provenance of every
+result, as is the way the archive was read (a mask variable).</p>
+<h2 id="feature-finding">Feature-finding</h2>
+<p>An archive that keeps physical fields beside its latents (<code>reference.nc</code>) can say which
+channels, or which features of a basis, track one of them:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w">          </span><span class="c1"># the 62 fields this archive keeps</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">channels of layer 8 against surface_precipitation_rate at 0425-01-03T18:00:00</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">RANK  CHANNEL  CORRELATION</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">1     45       -0.588</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">2     248      -0.540</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go">3     224      +0.509</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span>--basis<span class="w"> </span>sae8.npz
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="go">features of layer 8 against surface_precipitation_rate at 0425-01-03T18:00:00</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="go">RANK  FEATURE  CORRELATION</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="go">1     676      +0.948</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="go">2     824      +0.545</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="go">3     625      +0.542</span>
+</span></code></pre></div>
+<p>No single channel of this layer follows precipitation better than |r| = 0.59; one feature
+of a <a href="../taig/">sparse autoencoder trained in fifteen seconds</a> follows it at 0.95 — the
+same feature 676 that answered most strongly in the equatorial Pacific above, built mostly
+from the same channel 45. Correlation is area-weighted over valid nodes, leaves out nodes
+where the field is missing, is taken at one time, and says nothing about cause: it is
+where an expedition starts, and a <a href="#a-run-against-its-control">steering experiment</a> is
+where it ends.</p>
 <h2 id="python-api">Python API</h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.daig.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyse_region</span><span class="p">,</span> <span class="n">open_source</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyse_region</span><span class="p">(</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">source</span><span class="p">,</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">time</span><span class="o">=</span><span class="s2">"0425-01-03T18:00:00"</span><span class="p">,</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">region</span><span class="o">=</span><span class="n">Region</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">lon</span><span class="o">=-</span><span class="mi">140</span><span class="p">,</span> <span class="n">radius_km</span><span class="o">=</span><span class="mi">1500</span><span class="p">),</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">centred</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">)</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">result</span><span class="o">.</span><span class="n">ranking</span><span class="o">.</span><span class="n">channels</span>  <span class="c1"># which channels respond in the region</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="n">result</span><span class="o">.</span><span class="n">similarity</span>  <span class="c1"># per node: where else the model looks like this</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">result</span><span class="o">.</span><span class="n">pca</span><span class="o">.</span><span class="n">top_loadings</span><span class="p">()</span>  <span class="c1"># per component: the channels that weigh most</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">result</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>  <span class="c1"># settings + provenance + results, JSON-ready</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">grid</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">first_pc</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">to_map</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">scores</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (n_lat, n_lon), NaN where invalid</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.daig.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyse_region</span><span class="p">,</span> <span class="n">open_source</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyse_region</span><span class="p">(</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">source</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">time</span><span class="o">=</span><span class="s2">"0425-01-03T18:00:00"</span><span class="p">,</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">region</span><span class="o">=</span><span class="n">Region</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">lon</span><span class="o">=-</span><span class="mi">140</span><span class="p">,</span> <span class="n">radius_km</span><span class="o">=</span><span class="mi">1500</span><span class="p">),</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">centred</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="p">)</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="n">result</span><span class="o">.</span><span class="n">ranking</span><span class="o">.</span><span class="n">channels</span>  <span class="c1"># which channels respond in the region</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="n">result</span><span class="o">.</span><span class="n">similarity</span>  <span class="c1"># per node: where else the model looks like this</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">result</span><span class="o">.</span><span class="n">feature_info</span>  <span class="c1"># per feature: its label, size, and the channels that weigh most</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">result</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>  <span class="c1"># settings + provenance + results, JSON-ready</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="n">grid</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="n">first_pc</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">to_map</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">scores</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (n_lat, n_lon), NaN where invalid</span>
 </span></code></pre></div>
 <p>To draw any of it, <code>xaig.faig.map_figure(grid, values, region=...)</code> returns a matplotlib
 figure, and <a href="../waig/"><code>xaig waig</code></a> puts the whole routine behind widgets.</p>
 <p>The pieces are plain functions over <code>(n_nodes, n_channels)</code> arrays — <code>rank_channels</code>,
-<code>cosine_similarity</code>, <code>fit_pca</code> — for when the routine above is not the question being
-asked. <code>source.load(time, layer, channels=..., nodes=...)</code> reads only what it is asked for.</p>
+<code>cosine_similarity</code>, <code>fit_pca</code>, <code>correlate_field</code> — for when the routine above is not the
+question being asked. <code>source.load(time, layer, channels=..., nodes=...)</code> reads only what
+it is asked for. The rest of what this page shows:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.daig.latent</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">accumulate_moments</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">difference</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">difference_growth</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">iter_batches</span><span class="p">,</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">load_basis</span><span class="p">,</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">pca_from_moments</span><span class="p">,</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">rank_by_field</span><span class="p">,</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">region_series</span><span class="p">,</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">save_basis</span><span class="p">,</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="p">)</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="n">moments</span> <span class="o">=</span> <span class="n">accumulate_moments</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>  <span class="c1"># area-weighted, over every time</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="n">save_basis</span><span class="p">(</span><span class="s2">"pca8.npz"</span><span class="p">,</span> <span class="n">pca_from_moments</span><span class="p">(</span><span class="n">moments</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="n">provenance</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">info</span><span class="p">()</span><span class="o">.</span><span class="n">provenance</span><span class="p">())</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="n">basis</span> <span class="o">=</span> <span class="n">load_basis</span><span class="p">(</span><span class="s2">"sae8.npz"</span><span class="p">)</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyse_region</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">)</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="n">series</span> <span class="o">=</span> <span class="n">region_series</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="mi">676</span><span class="p">])</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="n">series</span><span class="o">.</span><span class="n">elapsed_seconds</span>  <span class="c1"># under the archive's calendar; None when it cannot say</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="n">control</span><span class="p">,</span> <span class="n">steered</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/control"</span><span class="p">),</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/steered"</span><span class="p">)</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="n">difference</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">steered</span><span class="p">,</span> <span class="n">time</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span><span class="o">.</span><span class="n">ranking</span><span class="o">.</span><span class="n">channels</span>  <span class="c1"># what the change reached</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="n">difference_growth</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">steered</span><span class="p">)</span><span class="o">.</span><span class="n">relative</span>  <span class="c1"># (n_times, n_layers)</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a><span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iter_batches</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4096</span><span class="p">):</span>  <span class="c1"># to train on</span>
+</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>    <span class="o">...</span>  <span class="c1"># float32 (4096, 384): valid nodes only, drawn in proportion to area</span>
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">area, again</p>
+<p>A 1° grid has as many nodes in its last row as on the equator, covering 1/115 of the
+area, and a third of an ocean model's nodes are land. <code>iter_batches</code> draws nodes by
+area and never where the grid is invalid, so a plain mean over a batch is already the
+area-weighted loss. Anything trained on <code>source.load(...)</code> directly should do the same.</p>
+</div>
+<p>What a request cannot have — a layer that is not there, an empty region, a basis for a
+different width — is a <code>RequestError</code> (an <code>XaigError</code> and a <code>ValueError</code>), raised before
+anything is read; any other exception is a bug and keeps its traceback.</p>
 <h2 id="where-this-departs-from-the-app-on-purpose">Where this departs from the app, on purpose</h2>
 <p>Checked on the real SamudrACE-E3SMv3 atmosphere latents: region selection and the
 uncentred ranking are identical to the app's, node for node, and the unweighted PCA
@@ -1236,9 +1490,9 @@ flip colour between two runs of the same analysis.</p>
 <p>A grid's mask travels in <code>grid.npz</code> when the archive carries one. For an archive that
 does not, name a variable of its reference file that is missing exactly where nodes mean
 nothing — <code>sst</code> for the ocean:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/ocean<span class="w"> </span>--mask-variable<span class="w"> </span>sst
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">...</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">grid        180x360, 64800 nodes, 44892 valid</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/ocean<span class="w"> </span>--mask-variable<span class="w"> </span>sst
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">...</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="go">grid        180x360, 64800 nodes, 44892 valid</span>
 </span></code></pre></div>
 <p>That is 30.7% of points over land, excluded from everything that follows.</p>
 <h2 id="the-latent-archive">The latent archive</h2>
@@ -1271,42 +1525,55 @@ nothing — <code>sst</code> for the ocean:</p>
 </tr>
 </tbody>
 </table>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SamudrACE-E3SMv3"</span><span class="p">,</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">"component"</span><span class="p">:</span><span class="w"> </span><span class="s2">"atmosphere"</span><span class="p">,</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">"checkpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SamudrACE-E3SMv3.tar"</span><span class="p">,</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">"calendar"</span><span class="p">:</span><span class="w"> </span><span class="s2">"noleap"</span><span class="p">,</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">"timestep_seconds"</span><span class="p">:</span><span class="w"> </span><span class="mi">21600</span><span class="p">,</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">"n_nodes"</span><span class="p">:</span><span class="w"> </span><span class="mi">64800</span><span class="p">,</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nt">"latent_times"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"0425-01-03T18:00:00"</span><span class="p">,</span><span class="w"> </span><span class="s2">"..."</span><span class="p">],</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="nt">"steps"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span><span class="p">{</span><span class="nt">"index"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"encoder output"</span><span class="p">,</span><span class="w"> </span><span class="nt">"file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"step_00.npy"</span><span class="p">,</span><span class="w"> </span><span class="nt">"n_channels"</span><span class="p">:</span><span class="w"> </span><span class="mi">384</span><span class="p">}</span>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">  </span><span class="p">],</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="nt">"extra_steps"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span><span class="nt">"reference_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"reference.nc"</span>
-</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">"model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SamudrACE-E3SMv3"</span><span class="p">,</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">"component"</span><span class="p">:</span><span class="w"> </span><span class="s2">"atmosphere"</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">"checkpoint"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SamudrACE-E3SMv3.tar"</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">"calendar"</span><span class="p">:</span><span class="w"> </span><span class="s2">"noleap"</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="nt">"timestep_seconds"</span><span class="p">:</span><span class="w"> </span><span class="mi">21600</span><span class="p">,</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">  </span><span class="nt">"n_nodes"</span><span class="p">:</span><span class="w"> </span><span class="mi">64800</span><span class="p">,</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="nt">"latent_times"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"0425-01-03T18:00:00"</span><span class="p">,</span><span class="w"> </span><span class="s2">"..."</span><span class="p">],</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="nt">"steps"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="p">{</span><span class="nt">"index"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"encoder output"</span><span class="p">,</span><span class="w"> </span><span class="nt">"file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"step_00.npy"</span><span class="p">,</span><span class="w"> </span><span class="nt">"n_channels"</span><span class="p">:</span><span class="w"> </span><span class="mi">384</span><span class="p">}</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">  </span><span class="p">],</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">  </span><span class="nt">"extra_steps"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span><span class="nt">"reference_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"reference.nc"</span><span class="p">,</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">  </span><span class="nt">"reference_times"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"0425-01-03T12:00:00"</span><span class="p">,</span><span class="w"> </span><span class="s2">"..."</span><span class="p">],</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">  </span><span class="nt">"experiment"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"seed"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"steer"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"layer"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="nt">"basis"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sae4.npz"</span><span class="p">,</span><span class="w"> </span><span class="nt">"feature"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="nt">"by"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.0</span><span class="p">}}</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><code>n_nodes</code>, <code>latent_times</code> and <code>steps</code> (each with <code>index</code>, <code>file</code>, <code>n_channels</code>) are
-required; the rest is provenance, carried into every result. Times are labels, kept as
-text: emulators run on calendars (no-leap, year 425) that the usual datetime types cannot
-hold. <code>extra_steps</code> are layers recorded on a coarser grid than <code>grid.npz</code> describes — the
+required; the rest is provenance, carried into every result. <code>experiment</code> is free-form:
+whatever distinguishes this run from a plain one. <code>reference_times</code> labels the reference
+file's time axis, which usually holds the state each forward call started from as well;
+without it the file is taken to share the latents' times. Times are labels, kept as text:
+emulators run on calendars (no-leap, year 425) that the usual datetime types cannot hold,
+and <code>grid_shape</code> is <code>(n_lat, n_lon)</code> in C order — latitude constant along a row — which
+the reader checks, because nodes stored the other way round reshape without complaint
+and weight wrongly. <code>extra_steps</code> are layers recorded on a coarser grid than <code>grid.npz</code> describes — the
 inner levels of a U-Net — and are listed but not loadable. A file whose shape contradicts
 the manifest is refused rather than misread.</p>
 <h2 id="another-source-of-latents">Another source of latents</h2>
 <p><code>LatentSource</code> is three methods — <code>info()</code>, <code>grid()</code> and <code>load(time, layer, channels,
-nodes)</code> — and an adapter for a different layout registers exactly like any other:</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[project.entry-points.</span><span class="s2">"xaig.adapters"</span><span class="k">]</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">graphcast-latents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"mypkg.latents:GraphCastLatents"</span>
+nodes)</code> — plus, optionally, <code>ReferenceFields</code> (<code>field_names()</code>, <code>field(name, time)</code>) for
+the physical fields kept beside them. An adapter for a different layout registers exactly
+like any other:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">[project.entry-points.</span><span class="s2">"xaig.adapters"</span><span class="k">]</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">graphcast-latents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"mypkg.latents:GraphCastLatents"</span>
 </span></code></pre></div>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"/path/to/latents"</span><span class="p">,</span> <span class="n">adapter</span><span class="o">=</span><span class="s2">"graphcast-latents"</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"/path/to/latents"</span><span class="p">,</span> <span class="n">adapter</span><span class="o">=</span><span class="s2">"graphcast-latents"</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Meshes need no special handling: without a <code>grid_shape</code> everything works except
 <code>to_map</code>, and weights are uniform unless the adapter supplies <code>area</code>.</p>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A GraphCast mesh adapter, including the app's translator</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> The activation exporter as an adapter of its own, behind a framework extra</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> The activation exporter as an adapter of its own, behind a framework extra — with
+      the hooks that <em>write</em> a layer, for steering along a basis file's direction, and an
+      <code>experiment</code> block (the SamudrACE exporter takes <code>--seed</code> and does not record it)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Ensemble members and per-layer grids in <code>LatentSource</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Differences and series in a basis's features between two runs</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A time–longitude figure beside the line plot</li>
 </ul>
 
 
@@ -1362,13 +1629,13 @@ nodes)</code> — and an adapter for a different layout registers exactly like a
         
         
           
-          <a href="../waig/" class="md-footer__link md-footer__link--next" aria-label="Next: Web app">
+          <a href="../taig/" class="md-footer__link md-footer__link--next" aria-label="Next: Sparse autoencoders">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Web app
+                Sparse autoencoders
               </div>
             </div>
             <div class="md-footer__button md-icon">

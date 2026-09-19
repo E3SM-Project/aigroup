@@ -668,6 +668,8 @@
       
         
       
+        
+      
     
     
     
@@ -740,6 +742,34 @@
     
   
     Latent diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="taig/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse autoencoders
   
 
     
@@ -956,7 +986,7 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 </tr>
 <tr>
 <td><code>taig</code></td>
-<td>reusable neural blocks <em>(skeleton)</em></td>
+<td>reusable neural blocks and toy architectures: <a href="taig/">sparse autoencoders</a></td>
 </tr>
 <tr>
 <td><code>faig</code></td>
@@ -970,18 +1000,25 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 </table>
 <div class="admonition warning">
 <p class="admonition-title">research tool</p>
-<p><code>xaig</code> is early. The <code>caig</code> surface described here and <code>daig</code>'s
-<a href="latents/">latent diagnostics</a> work; emulator-vs-reference diagnostics and <code>taig</code>
-are still to come.</p>
+<p><code>xaig</code> is early. The <code>caig</code> surface described here, <code>daig</code>'s
+<a href="latents/">latent diagnostics</a> and <code>taig</code>'s <a href="taig/">sparse autoencoders</a> work;
+emulator-vs-reference diagnostics are still to come.</p>
 </div>
 <h2 id="install">Install</h2>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.11<span class="w"> </span>.venv
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s1">'.[dev]'</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>xaig<span class="w"> </span>--help
+</span></code></pre></div>
+<p>In a checkout, <code>uv sync</code> (or the first <code>uv run</code>) installs every extra below but <code>taig</code>,
+plus pytest and ruff. Torch is large, and whether it should be a CPU or a CUDA build is the
+machine's business: ask for it with <code>uv sync --extra taig</code>. <code>xaig</code> is not on PyPI; to use
+it from another project, install it from this repository, asking for the extras you need:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'</span>
 </span></code></pre></div>
 <p>The base install pulls only PyYAML and Click, and is all <code>caig</code> needs. Anything heavier
-sits behind an extra named after the subpackage that needs it, and a missing one says so:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">error: numpy is not installed; it comes with the 'daig' extra: uv pip install 'xaig[daig]'</span>
+sits behind an extra named after the subpackage that needs it. A missing one says so,
+with the command that fits how this <code>xaig</code> was installed:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">Error: numpy is not installed; it comes with the 'daig' extra: uv pip install -e '/path/to/aigroup[daig]'  (in that checkout: `uv sync --extra daig`)</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -994,40 +1031,30 @@ sits behind an extra named after the subpackage that needs it, and a missing one
 <tbody>
 <tr>
 <td><code>daig</code></td>
-<td>numpy</td>
+<td>numpy, xarray, netCDF4</td>
 <td><code>xaig.daig</code></td>
 </tr>
 <tr>
-<td><code>netcdf</code></td>
-<td>netCDF4</td>
-<td>masks read from a reference file</td>
-</tr>
-<tr>
 <td><code>faig</code></td>
-<td>matplotlib</td>
-<td><code>xaig.faig</code>: maps and figures</td>
-</tr>
-<tr>
-<td><code>maps</code></td>
-<td>cartopy</td>
-<td>coastlines on those maps</td>
+<td>matplotlib, cartopy</td>
+<td><code>xaig.faig</code>: maps and figures (brings <code>daig</code>)</td>
 </tr>
 <tr>
 <td><code>waig</code></td>
 <td>streamlit</td>
-<td><a href="waig/"><code>xaig waig</code></a></td>
+<td><a href="waig/"><code>xaig waig</code></a> (brings <code>faig</code>)</td>
 </tr>
 <tr>
 <td><code>taig</code></td>
 <td>torch</td>
-<td><code>xaig.taig</code></td>
+<td><a href="taig/"><code>xaig.taig</code></a> and <code>xaig taig</code> (not part of a plain <code>uv sync</code>)</td>
 </tr>
 </tbody>
 </table>
 <div class="admonition tip">
 <p class="admonition-title">uv cache</p>
 <p>On NERSC, keep the cache off <code>$HOME</code>:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span><span class="nb">export</span><span class="w"> </span><span class="nv">UV_CACHE_DIR</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PSCRATCH</span><span class="s2">/.cache/uv"</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span><span class="nb">export</span><span class="w"> </span><span class="nv">UV_CACHE_DIR</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PSCRATCH</span><span class="s2">/.cache/uv"</span>
 </span></code></pre></div>
 </div>
 <h2 id="why-it-is-built-this-way">Why it is built this way</h2>
@@ -1047,48 +1074,55 @@ sits behind an extra named after the subpackage that needs it, and a missing one
 </ul>
 <p>Every API returns objects and prints nothing; the CLI is one client of it, a notebook
 another. These rules are enforced by <code>tests/test_purity.py</code>, not by convention.</p>
+<p>Errors xaig raises on purpose are <code>XaigError</code>s and reach a terminal as one line; anything
+else is a bug and keeps its traceback, as does everything under <code>xaig --debug</code>.</p>
 <p>A <em>campaign spec</em> is a YAML file describing one campaign's conventions — its run-id
 grammar, its factors, its parent map, its metric. Adding a campaign does not mean writing
 Python.</p>
 <h2 id="tracking-a-campaign">Tracking a campaign</h2>
 <p>Specs bundled with the package:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>specs
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">aug26  35 runs (25 atmosphere, 10 ocean) ablating aerosol, CO2, batch size, ...</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>specs
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">aug26  35 runs (25 atmosphere, 10 ocean) ablating aerosol, CO2, batch size, ...</span>
 </span></code></pre></div>
 <p>List the runs of the <code>e3sm_hist_v20260812</code> campaign, reading its manifest:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--source<span class="w"> </span>/pscratch/sd/m/mahf708/ace/configs/experiments/e3sm_hist_v20260812/runs/MANIFEST.tsv
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">ID                                       STATUS   EXP  REALM  SEED  AEROSOL  BATCH  CO2  LR  OCEAN_STEP  WEIGHTS  AMP</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">E01.aug26.atm.A0_B16_C0_L0_O5_W0_X0.S01  unknown  E01  atm    1     0        16     0    0   5           0        0</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go">E02.aug26.atm.A0_B16_C1_L0_O5_W0_X0.S01  unknown  E02  atm    1     0        16     1    0   5           0        0</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">...</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go">35 run(s)</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--source<span class="w"> </span>/pscratch/sd/m/mahf708/ace/configs/experiments/e3sm_hist_v20260812/runs/MANIFEST.tsv
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">ID                                       STATUS   EXP  REALM  SEED  AEROSOL  BATCH  CO2  LR  OCEAN_STEP  WEIGHTS  AMP</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">E01.aug26.atm.A0_B16_C0_L0_O5_W0_X0.S01  unknown  E01  atm    1     0        16     0    0   5           0        0</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">E02.aug26.atm.A0_B16_C1_L0_O5_W0_X0.S01  unknown  E02  atm    1     0        16     1    0   5           0        0</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">...</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">35 run(s)</span>
 </span></code></pre></div>
 <p>The factor word in each run id is decomposed into named attributes, so you can filter on
 them:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv<span class="w"> </span>--select<span class="w"> </span><span class="nv">realm</span><span class="o">=</span>ocn<span class="w"> </span>-c<span class="w"> </span>exp,seed,ocean_step
+<div class="language-console highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv<span class="w"> </span>--select<span class="w"> </span><span class="nv">realm</span><span class="o">=</span>ocn<span class="w"> </span>-c<span class="w"> </span>exp,seed,ocean_step
 </span></code></pre></div>
 <p><code>STATUS</code> reads <code>unknown</code> above because status probing arrives with the FME adapter — see
 <a href="#remaining-tasks">remaining tasks</a>. Until then a manifest can carry it: name the column,
 and map its vocabulary onto xaig's, in the spec's <code>discovery</code> block.</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">discovery</span><span class="p">:</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">adapter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">table</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">id_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">runid</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">status_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">state</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">status_map</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> done</span><span class="p">:</span><span class="w"> </span><span class="nv">finished</span><span class="p p-Indicator">,</span><span class="nt"> crashed</span><span class="p">:</span><span class="w"> </span><span class="nv">failed</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">discovery</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">adapter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">table</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">id_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">runid</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">status_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">state</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">status_map</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> done</span><span class="p">:</span><span class="w"> </span><span class="nv">finished</span><span class="p p-Indicator">,</span><span class="nt"> crashed</span><span class="p">:</span><span class="w"> </span><span class="nv">failed</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span></code></pre></div>
+<p>Or say it on the command line, without touching a bundled spec. <code>-o</code> passes an option to
+the adapter, over the spec's <code>discovery</code> block; the value is YAML:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span>-o<span class="w"> </span><span class="nv">status_column</span><span class="o">=</span>state<span class="w"> </span>-o<span class="w"> </span><span class="s1">'status_map={done: finished, crashed: failed}'</span>
 </span></code></pre></div>
 <p><code>id</code> and <code>status</code> can be selected and sorted on like any attribute, numbers sort
 numerically, and <code>--json</code> hands the rows to another tool:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv<span class="w"> </span>--select<span class="w"> </span><span class="nv">status</span><span class="o">=</span>running<span class="w"> </span>--sort<span class="w"> </span>batch,seed
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv<span class="w"> </span>--json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.[].id'</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv<span class="w"> </span>--select<span class="w"> </span><span class="nv">status</span><span class="o">=</span>running<span class="w"> </span>--sort<span class="w"> </span>batch,seed
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv<span class="w"> </span>--json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.[].id'</span>
 </span></code></pre></div>
 <p>A misspelt option is an error, not a silent default:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>./typo.yaml<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">error: adapter 'table' does not accept option(s) status_colum; accepted: delimiter, id_column, status_column, status_map, strict</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>./typo.yaml<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">Error: adapter 'table' does not accept option(s) status_colum; accepted: delimiter, id_column, status_column, status_map, strict</span>
 </span></code></pre></div>
 <p>Show one run:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>show<span class="w"> </span>E05.aug26.atm.A3_B16_C1_L0_O5_W0_X0.S01<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv
+<div class="language-console highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>show<span class="w"> </span>E05.aug26.atm.A3_B16_C1_L0_O5_W0_X0.S01<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv
 </span></code></pre></div>
 <h2 id="checking-a-campaign">Checking a campaign</h2>
 <p>A run id that disagrees with the config it names is the worst failure a campaign can
@@ -1101,59 +1135,60 @@ reports them apart, because they have different fixes:</p>
   is the primary key), but the disagreement is reported rather than dropped. A column
   that repeats the id's own notation (<code>S01</code> for seed 1) agrees with it.</li>
 </ul>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>check<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">OK  35 run id(s) round-trip through spec 'aug26'</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>check<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>.../MANIFEST.tsv
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">OK  35 run id(s) round-trip through spec 'aug26'</span>
 </span></code></pre></div>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>check<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>broken.tsv
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="go">run ids:</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="go">  FAIL  not-an-id: run id 'not-an-id' does not match spec 'aug26'</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="go">metadata:</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="go">  FAIL  E05.aug26.atm.A3_B08_C1_L0_O5_W0_X0.S02: column seed=99 disagrees with the id, which says 2; the id wins</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="go">Error: 1 run id problem(s) and 1 metadata problem(s) across 4 run(s)</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>check<span class="w"> </span>--spec<span class="w"> </span>aug26<span class="w"> </span>--source<span class="w"> </span>broken.tsv
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="go">run ids:</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="go">  FAIL  not-an-id: run id 'not-an-id' does not match spec 'aug26'</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="go">metadata:</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="go">  FAIL  E05.aug26.atm.A3_B08_C1_L0_O5_W0_X0.S02: column seed=99 disagrees with the id, which says 2; the id wins</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="go">Error: 1 run id problem(s) and 1 metadata problem(s) across 4 run(s)</span>
 </span></code></pre></div>
 <p><code>ls</code> stays usable on such a campaign, and says how many of its runs have issues.</p>
 <h2 id="python-api">Python API</h2>
 <p>The CLI is a thin client of this API; anything it can do, a notebook can.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.caig</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_campaign</span><span class="p">,</span> <span class="n">load_campaign</span><span class="p">,</span> <span class="n">load_spec</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">spec</span> <span class="o">=</span> <span class="n">load_spec</span><span class="p">(</span><span class="s2">"aug26"</span><span class="p">)</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">campaign</span> <span class="o">=</span> <span class="n">load_campaign</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">".../runs/MANIFEST.tsv"</span><span class="p">)</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">ocean</span> <span class="o">=</span> <span class="n">campaign</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">realm</span><span class="o">=</span><span class="s2">"ocn"</span><span class="p">)</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">ocean</span><span class="o">.</span><span class="n">sorted_by</span><span class="p">(</span><span class="s2">"exp"</span><span class="p">,</span> <span class="s2">"seed"</span><span class="p">):</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"ocean_step"</span><span class="p">])</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="k">for</span> <span class="n">finding</span> <span class="ow">in</span> <span class="n">check_campaign</span><span class="p">(</span><span class="n">campaign</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">finding</span><span class="o">.</span><span class="n">kind</span><span class="p">,</span> <span class="n">finding</span><span class="o">.</span><span class="n">run_id</span><span class="p">,</span> <span class="n">finding</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.caig</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_campaign</span><span class="p">,</span> <span class="n">load_campaign</span><span class="p">,</span> <span class="n">load_spec</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">spec</span> <span class="o">=</span> <span class="n">load_spec</span><span class="p">(</span><span class="s2">"aug26"</span><span class="p">)</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">campaign</span> <span class="o">=</span> <span class="n">load_campaign</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">".../runs/MANIFEST.tsv"</span><span class="p">)</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">ocean</span> <span class="o">=</span> <span class="n">campaign</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">realm</span><span class="o">=</span><span class="s2">"ocn"</span><span class="p">)</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">ocean</span><span class="o">.</span><span class="n">sorted_by</span><span class="p">(</span><span class="s2">"exp"</span><span class="p">,</span> <span class="s2">"seed"</span><span class="p">):</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"ocean_step"</span><span class="p">])</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="k">for</span> <span class="n">finding</span> <span class="ow">in</span> <span class="n">check_campaign</span><span class="p">(</span><span class="n">campaign</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">finding</span><span class="o">.</span><span class="n">kind</span><span class="p">,</span> <span class="n">finding</span><span class="o">.</span><span class="n">run_id</span><span class="p">,</span> <span class="n">finding</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="adding-a-campaign">Adding a campaign</h2>
 <p>Write a spec. This one describes a grammar with nothing in common with <code>aug26</code>:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">toy</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nt">id_pattern</span><span class="p">:</span><span class="w"> </span><span class="s">'^run(?P&lt;num&gt;\d+)-(?P&lt;mode&gt;fast|slow)-(?P&lt;knobs&gt;[a-z0-9-]+)-s(?P&lt;seed&gt;\d+)$'</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nt">id_template</span><span class="p">:</span><span class="w"> </span><span class="s">'run{num:03d}-{mode}-{knobs}-s{seed:d}'</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nt">factor_field</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">knobs</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="nt">factor_separator</span><span class="p">:</span><span class="w"> </span><span class="s">"-"</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nt">factors</span><span class="p">:</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> key</span><span class="p">:</span><span class="w"> </span><span class="nv">d</span><span class="p p-Indicator">,</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">depth</span><span class="p p-Indicator">,</span><span class="nt"> width</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="w"> </span><span class="p p-Indicator">}</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> key</span><span class="p">:</span><span class="w"> </span><span class="nv">w</span><span class="p p-Indicator">,</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">width</span><span class="p p-Indicator">,</span><span class="nt"> width</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="w"> </span><span class="p p-Indicator">}</span>
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="nt">discovery</span><span class="p">:</span>
-</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">  </span><span class="nt">adapter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">table</span>
-</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">  </span><span class="nt">id_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">name</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">toy</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="nt">id_pattern</span><span class="p">:</span><span class="w"> </span><span class="s">'^run(?P&lt;num&gt;\d+)-(?P&lt;mode&gt;fast|slow)-(?P&lt;knobs&gt;[a-z0-9-]+)-s(?P&lt;seed&gt;\d+)$'</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="nt">id_template</span><span class="p">:</span><span class="w"> </span><span class="s">'run{num:03d}-{mode}-{knobs}-s{seed:d}'</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="nt">factor_field</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">knobs</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="nt">factor_separator</span><span class="p">:</span><span class="w"> </span><span class="s">"-"</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="nt">factors</span><span class="p">:</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> key</span><span class="p">:</span><span class="w"> </span><span class="nv">d</span><span class="p p-Indicator">,</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">depth</span><span class="p p-Indicator">,</span><span class="nt"> width</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> key</span><span class="p">:</span><span class="w"> </span><span class="nv">w</span><span class="p p-Indicator">,</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">width</span><span class="p p-Indicator">,</span><span class="nt"> width</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="nt">discovery</span><span class="p">:</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span><span class="nt">adapter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">table</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">  </span><span class="nt">id_column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">name</span>
 </span></code></pre></div>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>./toy.yaml<span class="w"> </span>--source<span class="w"> </span>runs.csv
+<div class="language-console highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>./toy.yaml<span class="w"> </span>--source<span class="w"> </span>runs.csv
 </span></code></pre></div>
-<p>A campaign whose run ids carry no structure simply omits <code>id_pattern</code>; its adapter
-attaches attributes instead. A key the spec does not know is an error, so <code>id_patern:</code>
+<p>A factor <code>key</code> is one or more letters (<code>LR03</code>), followed by a whole number. A campaign whose
+run ids carry no structure simply omits <code>id_pattern</code>; its adapter attaches attributes
+instead. A key the spec does not know is an error, so <code>id_patern:</code>
 cannot quietly mean "this campaign has no grammar".</p>
 <h2 id="adding-an-adapter">Adding an adapter</h2>
 <p>An adapter is one class implementing one or more protocols — <code>discover()</code> to find runs,
 <code>probe(run)</code> for status, <code>metrics(run, names)</code> for scalar series — constructed as
 <code>Adapter(source, **options)</code>. Register it, from this repo or any other package:</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">[project.entry-points.</span><span class="s2">"xaig.adapters"</span><span class="k">]</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">myframework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"mypkg.adapter:MyAdapter"</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">[project.entry-points.</span><span class="s2">"xaig.adapters"</span><span class="k">]</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">myframework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"mypkg.adapter:MyAdapter"</span>
 </span></code></pre></div>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w">   </span><span class="c1"># entry points are read from installed metadata</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>./mine.yaml<span class="w"> </span>--adapter<span class="w"> </span>myframework<span class="w"> </span>--source<span class="w"> </span>/path/to/runs
+<div class="language-console highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">   </span><span class="c1"># entry points are read from installed metadata</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>caig<span class="w"> </span>ls<span class="w"> </span>--spec<span class="w"> </span>./mine.yaml<span class="w"> </span>--adapter<span class="w"> </span>myframework<span class="w"> </span>--source<span class="w"> </span>/path/to/runs
 </span></code></pre></div>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
@@ -1164,8 +1199,9 @@ cannot quietly mean "this campaign has no grammar".</p>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>caig doctor</code>: machine-checked campaign guardrails</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig</code>: bias and time-mean maps, spectra, zonal means (a <code>FieldSource</code> beside
       <code>LatentSource</code>, on the same <code>daig.grid</code>)</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig.latent</code>: a GraphCast mesh adapter; the activation exporter as an adapter</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>taig</code>: the first reusable blocks</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig.latent</code>: a GraphCast mesh adapter; the activation exporter as an adapter,
+      with a steering hook</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>taig</code>: a cross-layer transcoder; a better training loop</li>
 </ul>
 
 
