@@ -6,7 +6,13 @@ subpackages built on it.
 
 from __future__ import annotations
 
-from xaig.core.errors import AdapterError, MissingExtraError, SpecError, XaigError
+from xaig.core.errors import (
+    AdapterError,
+    MissingExtraError,
+    RequestError,
+    SpecError,
+    XaigError,
+)
 from xaig.core.model import (
     RESERVED_ATTRS,
     AttrValue,
@@ -38,6 +44,7 @@ __all__ = [
     "MetricSeries",
     "MetricSource",
     "MissingExtraError",
+    "RequestError",
     "Run",
     "RunStatus",
     "SpecError",

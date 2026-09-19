@@ -20,7 +20,7 @@ through entry points alone.) Enforced by `tests/test_purity.py`, statically and 
 | `protocols.py` | the run-shaped protocols, and `resolve_status` |
 | `registry.py` | adapter lookup and construction; the factory contract |
 | `extras.py` | naming the extra that provides a missing dependency |
-| `errors.py` | `XaigError` and friends |
+| `errors.py` | `XaigError` and friends: `SpecError`, `AdapterError`, `RequestError`, `MissingExtraError` |
 
 Campaign specs are a campaign concept and live in `caig/spec.py`.
 
@@ -39,5 +39,8 @@ Campaign specs are a campaign concept and live in `caig/spec.py`.
 - `MetricSeries.at()` does not interpolate. A missing epoch reads as missing.
 - Attributes sort numerically when they are numbers (8 before 16), text after, missing
   last. They *compare* as strings, so `--select batch=16` matches the int 16.
+- `RequestError` is for what was asked and cannot be had. It is also a `ValueError`, but
+  raise it rather than one wherever a person's input is at fault: clients show an
+  `XaigError` in one line and let everything else keep its traceback.
 - The registry validates what it passes to a factory. A misspelt option is an error
   naming the accepted ones; it must never silently mean "use the default".

@@ -6,19 +6,27 @@ This repo hosts two peers:
 
 - **`docs/`** — the guide site, published at <https://e3sm-project.github.io/aigroup>
 - **`src/xaig/`** — `xaig`, a light Python package for campaign tracking (`caig`),
-  emulator diagnostics, latent space included (`daig`), reusable neural blocks (`taig`),
-  and a local web app over them (`waig`)
+  emulator diagnostics, latent space included (`daig`), reusable neural blocks and sparse
+  autoencoders (`taig`), figures (`faig`), and a local web app over them (`waig`)
 
 ## Install
 
 ```console
-$ uv venv --python 3.11 .venv
-$ uv pip install -e '.[dev]'
+$ uv sync
+$ uv run xaig --help
+```
+
+In a checkout, `uv sync` (or the first `uv run`) installs every extra but torch, plus
+pytest and ruff; `uv sync --extra taig` adds torch. `xaig` is not on PyPI; to use it from
+another project, install it from this repository, asking for the extras you need:
+
+```console
+$ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
 ```
 
 The base install pulls only PyYAML and Click. Anything heavier sits behind an extra named
-after the subpackage that needs it (`daig`, `faig`, `taig`, `waig`, plus `maps` and `netcdf`), so the core
-stays nimble: `uv pip install -e '.[dev,daig]'`.
+after the subpackage that needs it (`daig`, `faig`, `taig`, `waig`), so the core
+stays nimble.
 
 ## Use
 
@@ -28,15 +36,17 @@ $ xaig caig ls --spec aug26 --source /path/to/runs/MANIFEST.tsv
 $ xaig caig check --spec aug26 --source /path/to/runs/MANIFEST.tsv
 $ xaig daig latent info /path/to/latents/atmosphere
 $ xaig daig latent region /path/to/latents/atmosphere --lat 5 --lon -140 --centred --pcs 3
-$ xaig waig --latents /path/to/latents/atmosphere   # the same, in a local web app
+$ xaig taig sae /path/to/latents/atmosphere --out sae.npz      # needs `uv sync --extra taig`
+$ xaig daig latent region /path/to/latents/atmosphere --lat 5 --lon -140 --features 3 --basis sae.npz
+$ xaig waig --latents /path/to/latents/   # the same, in a local web app
 ```
 
 ## Develop
 
 ```console
-$ uv run ruff check
+$ uv run ruff check && uv run ruff format --check
 $ uv run pytest
-$ uv run mkdocs build --strict
+$ uv run --group docs mkdocs build --strict   # MKDOCS_SOCIAL=false without cairo
 ```
 
 See `AGENTS.md` for how the pieces fit together, and the `AGENTS.md` in each

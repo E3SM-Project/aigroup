@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-# Deliberately unlike aug26 -- different separator, different field order, a
-# two-letter factor key, no realm. If core is quietly shaped by one campaign,
-# this fixture is what fails.
+# Deliberately unlike aug26 -- different separator, different field order,
+# lower-case keys, a parent key of its own, no realm. If core is quietly shaped
+# by one campaign, this fixture is what fails.
 TOY_SPEC = r"""
 name: toy
 description: A tiny campaign that looks nothing like aug26.
@@ -68,8 +68,15 @@ N_LAT, N_LON, N_CHANNELS, N_TIMES = 12, 24, 6, 2
 LATENT_TIMES = ["0425-01-01T06:00:00", "0425-01-01T12:00:00"]
 
 
-def write_latent_archive(path: Path, mesh: bool = False, mask=None, reference=None) -> Path:
-    """Write an archive in the layout ``adapters/latent_archive.py`` reads."""
+def write_latent_archive(
+    path: Path, mesh: bool = False, mask=None, reference=None, experiment=None, shift=None
+) -> Path:
+    """Write an archive in the layout ``adapters/latent_archive.py`` reads.
+
+    The noise is seeded, so two archives are twins node for node. ``shift`` is
+    ``(channel, amount)``, added everywhere from the second time on: a perturbed
+    run whose difference from its control is known exactly.
+    """
     import json
 
     import numpy as np
@@ -86,6 +93,8 @@ def write_latent_archive(path: Path, mesh: bool = False, mask=None, reference=No
         data = rng.normal(0.0, 0.05, (N_TIMES, lat.size, N_CHANNELS))
         data[:, :, 1] += 50.0
         data[:, :, 4] += (1 + index) * 3.0 * np.exp(-((distance / 20.0) ** 2))
+        if shift is not None:
+            data[1:, :, shift[0]] += shift[1]
         if mask is not None:
             data[:, ~mask, :] = 0.0
         np.save(path / f"step_{index:02d}.npy", data.astype(np.float16))
@@ -114,6 +123,8 @@ def write_latent_archive(path: Path, mesh: bool = False, mask=None, reference=No
     }
     if reference is not None:
         manifest["reference_file"] = reference
+    if experiment is not None:
+        manifest["experiment"] = experiment
     (path / "manifest.json").write_text(json.dumps(manifest))
     return path
 

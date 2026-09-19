@@ -93,7 +93,7 @@ def test_specs_lists_bundled_campaigns(runner):
 def test_unknown_spec_names_the_alternatives(runner, toy_table_path):
     result = runner.invoke(cli, ["caig", "ls", "--spec", "nope", "--source", str(toy_table_path)])
     assert result.exit_code != 0
-    assert "bundled specs" in str(result.output) + str(result.exception)
+    assert "bundled specs" in result.output and "Traceback" not in result.output
 
 
 def test_default_columns_come_from_the_spec_not_from_aug26(runner, toy):
@@ -138,6 +138,34 @@ def test_check_fails_on_metadata_that_contradicts_the_id(runner, toy_spec_path, 
     assert "metadata:" in result.output and "0 run id problem(s) and 1 metadata" in result.output
 
 
+def test_adapter_options_can_be_given_without_editing_the_spec(runner, toy_spec_path, tmp_path):
+    """A bundled spec cannot know that *this* manifest has a status column."""
+    table = tmp_path / "t.csv"
+    table.write_text("name,state\nrun001-fast-d1-w08-s1,done\nrun002-fast-d2-w08-s1,running\n")
+    args = ["caig", "ls", "--spec", str(toy_spec_path), "--source", str(table), "--json"]
+    args += ["-o", "status_column=state", "-o", "status_map={done: finished}"]
+    rows = json.loads(runner.invoke(cli, args).output)
+    assert [r["status"] for r in rows] == ["finished", "running"]
+
+
+@pytest.mark.parametrize(
+    ("option", "message"),
+    [
+        ("status_column", "expects KEY=VALUE"),
+        ("source=elsewhere.csv", "use --source"),
+        ("status_map={unclosed", "not valid YAML"),
+    ],
+)
+def test_malformed_adapter_options_are_explained(runner, toy, option, message):
+    result = runner.invoke(cli, ["caig", "ls", *toy, "-o", option])
+    assert result.exit_code != 0 and message in result.output
+
+
+def test_a_misspelt_adapter_option_names_the_real_ones(runner, toy):
+    result = runner.invoke(cli, ["caig", "check", *toy, "-o", "status_colum=state"])
+    assert result.exit_code != 0 and "accepted:" in result.output
+
+
 # -- the top-level command loads its subcommands lazily --------------------
 
 
@@ -167,3 +195,25 @@ def test_a_plugin_cannot_replace_a_shipped_command(runner, monkeypatch):
     impostor = click.Command("caig", callback=lambda: click.echo("impostor"))
     monkeypatch.setattr(_cli, "entry_points", lambda group: [_FakeEntryPoint("caig", impostor)])
     assert "impostor" not in runner.invoke(cli, ["caig", "specs"]).output
+
+
+# -- one way out for deliberate errors ---------------------------------------
+
+
+def test_deliberate_errors_are_one_line_and_debug_keeps_the_traceback(runner, toy_table_path):
+    from xaig.core.errors import SpecError
+
+    args = ["caig", "ls", "--spec", "nope", "--source", str(toy_table_path)]
+    plain = runner.invoke(cli, args)
+    assert plain.exit_code == 1 and plain.output.startswith("Error: no spec 'nope'")
+    assert isinstance(runner.invoke(cli, ["--debug", *args]).exception, SpecError)
+
+
+def test_an_exit_code_asked_for_inside_a_command_reaches_the_shell(monkeypatch):
+    """Not standalone, click returns the code of a `ctx.exit(n)` rather than exiting."""
+    monkeypatch.setattr(_cli.cli, "main", lambda **kwargs: 3)
+    with pytest.raises(SystemExit) as stopped:
+        _cli.main()
+    assert stopped.value.code == 3
+    monkeypatch.setattr(_cli.cli, "main", lambda **kwargs: None)
+    _cli.main()  # and nothing to report is not an exit at all

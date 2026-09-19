@@ -1,10 +1,12 @@
 """xaig -- light, framework-agnostic tooling for E3SM AI campaigns.
 
-Subpackages are siblings, not layers:
+Three domains, and two layers of presentation downstream of them:
 
 - ``xaig.caig``  campaign tracking (offline; no live server)
-- ``xaig.daig``  emulator-vs-reference diagnostics
-- ``xaig.taig``  reusable neural blocks
+- ``xaig.daig``  diagnostics of emulators: their outputs and their internals
+- ``xaig.taig``  reusable neural blocks and toy architectures, trained on ``daig``'s latents
+- ``xaig.faig``  figures of what ``daig`` computes, with no web framework in them
+- ``xaig.waig``  a local web app over all of the above; nothing imports it
 
 Everything framework-specific lives in ``xaig.adapters``. See ``AGENTS.md``.
 """

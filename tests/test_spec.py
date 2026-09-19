@@ -161,3 +161,41 @@ def test_aug26_parent_map():
     assert spec.parent_of({"exp": "E07"}) == "E05"
     assert spec.parent_of({"exp": "E17"}) == "E11"
     assert spec.parent_of({"exp": "E01"}) is None
+
+
+# -- factor keys ------------------------------------------------------------
+
+
+def _keyed(*keys):
+    factors = [{"key": k, "name": f"f{i}", "width": 2} for i, k in enumerate(keys)]
+    return spec_module.from_mapping(
+        {
+            "name": "keys",
+            "id_pattern": r"^(?P<word>[A-Za-z0-9_]+)$",
+            "id_template": "{word}",
+            "factor_field": "word",
+            "factors": factors,
+        }
+    )
+
+
+def test_a_factor_key_may_be_more_than_one_letter():
+    """It used to be read as the token's first character, so `LR` loaded without
+    complaint and then matched nothing."""
+    spec = _keyed("LR", "L", "wd")
+    attrs = spec.parse_id("LR03_L01_wd12")
+    assert (attrs["f0"], attrs["f1"], attrs["f2"]) == (3, 1, 12)
+    assert spec.format_id(attrs) == "LR03_L01_wd12"
+    with pytest.raises(SpecError, match="unknown factor key 'LX'"):
+        spec.parse_id("LX03_L01_wd12")
+
+
+def test_factor_keys_that_cannot_work_are_refused_when_the_spec_is_read():
+    with pytest.raises(SpecError, match=r"factor key\(s\) A appear twice"):
+        _keyed("A", "A")
+    with pytest.raises(SpecError, match="must be letters only"):
+        _keyed("A1")
+    with pytest.raises(SpecError, match=r"factor name\(s\) depth appear twice"):
+        spec_module.from_mapping(
+            {"name": "n", "factors": [{"key": "a", "name": "depth"}, {"key": "b", "name": "depth"}]}
+        )

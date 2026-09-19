@@ -82,7 +82,7 @@ def get(name: str) -> Callable[..., Any]:
     if not found and not _REGISTERED:
         raise AdapterError(
             f"unknown adapter {name!r}: no adapters are registered at all, which usually "
-            "means xaig is not installed (try `uv pip install -e .`)"
+            "means xaig is not installed (in a checkout: `uv sync`)"
         )
     raise AdapterError(f"unknown adapter {name!r}; available: {', '.join(available())}")
 

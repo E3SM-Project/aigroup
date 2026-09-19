@@ -12,7 +12,7 @@ from click.testing import CliRunner  # noqa: E402
 from conftest import LATENT_TIMES, N_CHANNELS, N_LAT, N_LON, write_latent_archive  # noqa: E402
 from xaig._cli import cli  # noqa: E402
 from xaig.core import registry  # noqa: E402
-from xaig.core.errors import AdapterError  # noqa: E402
+from xaig.core.errors import AdapterError, RequestError  # noqa: E402
 from xaig.daig.latent import LatentSource, open_source  # noqa: E402
 
 
@@ -38,15 +38,22 @@ def test_a_selective_load_equals_a_slice_of_the_full_one(latent_archive):
 def test_times_are_addressed_by_label_or_position(latent_archive):
     source = open_source(latent_archive)
     assert np.array_equal(source.load(LATENT_TIMES[1], 0), source.load(-1, 0))
-    with pytest.raises(KeyError, match="times are"):
+    with pytest.raises(RequestError, match="times are"):
         source.load("0425-02-01T00:00:00", 0)
-    with pytest.raises(KeyError, match="out of range"):
+    with pytest.raises(RequestError, match="out of range"):
         source.load(5, 0)
 
 
 def test_a_directory_that_is_not_an_archive(tmp_path):
     with pytest.raises(AdapterError, match="not a latent archive"):
         open_source(tmp_path)
+
+
+def test_a_path_that_is_not_there_says_so():
+    """An unset shell variable turns `$A/atmosphere` into `/atmosphere`; calling that
+    "not an archive" sends the reader looking for a manifest instead of a typo."""
+    with pytest.raises(AdapterError, match="no such directory: /atmosphere"):
+        open_source("/atmosphere")
 
 
 def test_an_archive_that_contradicts_its_manifest_is_refused(latent_archive):
@@ -70,17 +77,15 @@ def test_the_mask_can_travel_in_the_archive(tmp_path):
 
 
 def test_or_be_taken_from_a_reference_variable(tmp_path):
-    netcdf = pytest.importorskip("netCDF4")
+    xarray = pytest.importorskip("xarray")
     mask = np.arange(N_LAT * N_LON) % 3 != 0
     path = write_latent_archive(tmp_path / "a", mask=mask, reference="reference.nc")
-    with netcdf.Dataset(path / "reference.nc", "w") as ds, warnings.catch_warnings():
+    sst = np.where(mask.reshape(1, N_LAT, N_LON), 1.0, np.nan)
+    with warnings.catch_warnings():
         # netCDF4 1.7's *write* path trips a NumPy 2.5 deprecation of its own. Writing
         # is only this fixture's business; the reader is clean under -W error.
         warnings.simplefilter("ignore", DeprecationWarning)
-        for name, size in (("time", 1), ("lat", N_LAT), ("lon", N_LON)):
-            ds.createDimension(name, size)
-        sst = ds.createVariable("sst", "f4", ("time", "lat", "lon"), fill_value=1e20)
-        sst[0] = np.where(mask.reshape(N_LAT, N_LON), 1.0, 1e20)
+        xarray.Dataset({"sst": (("time", "lat", "lon"), sst)}).to_netcdf(path / "reference.nc")
     assert open_source(path).grid().mask is None  # nothing is guessed
     assert np.array_equal(open_source(path, mask_variable="sst").grid().valid, mask)
     with pytest.raises(AdapterError, match="no variable 'ssh'"):

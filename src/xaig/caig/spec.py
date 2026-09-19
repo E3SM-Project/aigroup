@@ -25,7 +25,8 @@ _SPEC_PACKAGE = "xaig.caig.campaigns"
 
 @dataclass(frozen=True, slots=True)
 class Factor:
-    """One position in a compound factor word such as ``A3_B16_C1``."""
+    """One position in a compound factor word such as ``A3_B16_C1``: a ``key`` of
+    one or more letters, then a whole number."""
 
     key: str
     name: str
@@ -59,6 +60,19 @@ class CampaignSpec:
             )
         if self.parents and not self.parent_key:
             raise SpecError(f"spec {self.name!r}: 'parents' needs a 'parent_key' to look up by")
+        for what, values in (("key", [f.key for f in self.factors]), ("name", self.names())):
+            repeated = sorted({v for v in values if values.count(v) > 1})
+            if repeated:
+                raise SpecError(
+                    f"spec {self.name!r}: factor {what}(s) {', '.join(repeated)} appear twice"
+                )
+        unusable = [f.key for f in self.factors if not f.key.isalpha()]
+        if unusable:
+            # A key ending in a digit cannot be told from the number after it.
+            raise SpecError(
+                f"spec {self.name!r}: factor key(s) {', '.join(map(repr, unusable))} must be "
+                "letters only"
+            )
         taken = [n for n in (*groups, *(f.name for f in self.factors)) if n in RESERVED_ATTRS]
         if taken:
             raise SpecError(
@@ -83,9 +97,8 @@ class CampaignSpec:
         word aside, since its content is what ``factors`` spells out."""
         return tuple(g for g in self._groups() if g != self.factor_field)
 
-    @property
-    def _by_key(self) -> dict[str, Factor]:
-        return {f.key: f for f in self.factors}
+    def names(self) -> list[str]:
+        return [f.name for f in self.factors]
 
     def parse_id(self, run_id: str) -> dict[str, AttrValue]:
         """Decompose a run id into attributes.
@@ -104,15 +117,16 @@ class CampaignSpec:
         return attrs
 
     def _parse_factors(self, word: str, run_id: str) -> dict[str, AttrValue]:
-        by_key = self._by_key
+        by_key = {f.key: f for f in self.factors}
         out: dict[str, AttrValue] = {}
         for token in word.split(self.factor_separator):
             if not token:
                 continue
-            factor = by_key.get(token[0])
+            key = token.rstrip("0123456789")
+            factor = by_key.get(key)
             if factor is None:
-                raise SpecError(f"{run_id!r}: unknown factor key {token[0]!r} in {word!r}")
-            out[factor.name] = coerce_attr(token[1:])
+                raise SpecError(f"{run_id!r}: unknown factor key {key!r} in {word!r}")
+            out[factor.name] = coerce_attr(token[len(key) :])
         missing = [f.name for f in self.factors if f.name not in out]
         if missing:
             raise SpecError(f"{run_id!r}: factor word {word!r} is missing {', '.join(missing)}")

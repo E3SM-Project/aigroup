@@ -27,7 +27,8 @@ with `isinstance`, so a framework's discovery, status and metrics travel under o
 | `core.StatusProbe` | `probe(run)` → `RunStatus` | `caig` |
 | `core.MetricSource` | `metrics(run, names=None)` → `dict[str, MetricSeries]` | `caig` |
 | `core.ArtifactStore` | `artifacts(run)` → `dict[str, str]` of handles | — |
-| `daig.latent.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `daig` |
+| `daig.latent.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `daig`, `taig` |
+| `daig.latent.ReferenceFields` | `field_names()`, `field(name, time)` → per-node values | `daig` |
 
 ## Registering
 
@@ -39,7 +40,7 @@ a completely separate distribution alike:
 myframework = "mypkg.adapter:MyAdapter"
 ```
 
-Then **reinstall** (`uv pip install -e .`): entry points are read from installed
+Then **rerun `uv sync`**: entry points are read from installed
 metadata, and a stale install is the usual reason a new adapter "is not found". xaig's
 own names win a clash, so a plugin can add adapters but never silently replace one.
 
@@ -53,6 +54,11 @@ own names win a clash, so a plugin can add adapters but never silently replace o
   epochs; that is a normal reading, not an error. Missing means `None`, not an exception.
 - What you tolerate, record: attach an `Issue` to the run instead of swallowing it.
 - Return `RunStatus.UNKNOWN` rather than guess.
+- A source that is broken is an `AdapterError`; a request it cannot meet (a node index out
+  of range, a field it does not hold) is a `RequestError`. Never a bare `IndexError`.
+- Carry what the exporter said. A latent adapter puts the manifest's free-form
+  `experiment` block, and the options it was opened with, into `LatentInfo`, so they
+  reach the provenance of every result.
 - Read selectively. A `LatentSource` asked for a region must not load the layer.
 
 ## Present adapters
@@ -60,4 +66,5 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 - `table.py` — runs from a delimited table (stdlib `csv`, base tier). The most
   framework-neutral source there is.
 - `latent_archive.py` — activations recorded from a model, as a directory of
-  memory-mapped arrays (`xaig[daig]`; format in `docs/package/latents.md`).
+  memory-mapped arrays, with the physical fields kept beside them (`xaig[daig]`; format
+  in `docs/package/latents.md`).

@@ -15,13 +15,31 @@ from xaig.faig import map_figure, maps, to_png  # noqa: E402
 def no_coastlines(monkeypatch):
     """Cartopy would reach for the network; the fallback is what is under test."""
     monkeypatch.setenv("XAIG_NO_COASTLINES", "1")
-    maps._cartopy.cache_clear()
+    maps._coastlines.cache_clear()
     yield
-    maps._cartopy.cache_clear()
+    maps._coastlines.cache_clear()
 
 
 def _mesh(figure):
     return figure.axes[0].collections[0]
+
+
+def test_a_map_without_coastlines_can_say_why(monkeypatch):
+    from xaig.faig import have_coastlines, why_no_coastlines
+
+    assert not have_coastlines() and "XAIG_NO_COASTLINES" in why_no_coastlines()
+
+    # Installed, but with no way to get its data: a compute node.
+    monkeypatch.delenv("XAIG_NO_COASTLINES")
+    maps._coastlines.cache_clear()
+    shapereader = pytest.importorskip("cartopy.io.shapereader")
+
+    def offline(*args, **kwargs):
+        raise OSError("no route to host")
+
+    monkeypatch.setattr(shapereader, "natural_earth", offline)
+    assert not have_coastlines()
+    assert "could not get its coastline data (OSError: no route to host)" in why_no_coastlines()
 
 
 def test_signed_fields_get_a_scale_symmetric_about_zero(latent_archive):
@@ -108,7 +126,7 @@ def test_a_missing_dependency_names_the_one_extra_that_brings_everything():
         "try:\n    import xaig.faig\nexcept ImportError as exc:\n    print(exc)\n"
     )
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True).stdout
-    assert "xaig[faig]" in out and "xaig[daig]" not in out
+    assert "'faig' extra" in out and "'daig' extra" not in out
 
 
 def test_values_must_be_one_per_node(latent_archive):
@@ -130,3 +148,48 @@ def test_load_channels_is_ready_to_map(tmp_path):
     centred = load_channels(source, time=0, layer=2, channels=[1, 4], centred=True)
     assert abs(source.grid().mean(np.nan_to_num(centred))[0]) < 1e-6  # ...gone
     assert np.nanargmax(centred[:, 1]) == source.grid().nearest(*BUMP)
+
+
+# -- series ---------------------------------------------------------------------
+
+
+def test_a_series_is_one_line_a_column_placed_in_time():
+    from xaig.faig import series_figure
+
+    values = np.array([[0.0, 1.0], [1.0, -1.0], [4.0, 0.5]])
+    figure = series_figure(values, x=[0.0, 6.0, 42.0], labels=["ch 4", "ch 1"], x_label="hours")
+    axes = figure.axes[0]
+    zero, first, second = axes.lines
+    assert first.get_xdata().tolist() == [0.0, 6.0, 42.0]  # the gap is drawn as a gap
+    assert second.get_ydata().tolist() == [1.0, -1.0, 0.5] and zero.get_ydata()[0] == 0.0
+    assert [t.get_text() for t in axes.get_legend().get_texts()] == ["ch 4", "ch 1"]
+    assert first.get_color() != second.get_color()
+    assert to_png(figure)[:4] == b"\x89PNG"
+
+
+def test_without_real_times_a_series_is_evenly_spaced_and_says_which_is_which():
+    from xaig.faig import series_figure
+
+    figure = series_figure(np.zeros((3, 9)), tick_labels=["a", "b", "c"], dark=True)
+    axes = figure.axes[0]
+    assert [t.get_text() for t in axes.get_xticklabels()] == ["a", "b", "c"]
+    styles = {(line.get_color(), line.get_linestyle()) for line in axes.lines[1:]}
+    assert len(styles) == 9  # a ninth line changes its dash, not to a ninth hue
+    with pytest.raises(ValueError, match="x value"):
+        series_figure(np.zeros((3, 2)), x=[0.0, 1.0])
+
+
+def test_fetching_coastlines_has_a_deadline_and_gives_the_old_one_back(monkeypatch):
+    """Cartopy's fetch has none, and a node that drops packets never refuses."""
+    import socket
+
+    shapereader = pytest.importorskip("cartopy.io.shapereader")
+    seen = []
+    monkeypatch.delenv("XAIG_NO_COASTLINES")
+    maps._coastlines.cache_clear()
+    monkeypatch.setattr(
+        shapereader, "natural_earth", lambda **kwargs: seen.append(socket.getdefaulttimeout())
+    )
+    before = socket.getdefaulttimeout()
+    assert maps.have_coastlines()
+    assert seen == [maps._FETCH_TIMEOUT_SECONDS] and socket.getdefaulttimeout() == before

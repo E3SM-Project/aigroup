@@ -139,3 +139,17 @@ def test_empty_file_yields_nothing(tmp_path):
 def test_works_without_a_spec(toy_table_path):
     runs = list(TableDiscoverer(toy_table_path, id_column="name").discover())
     assert runs[0].attrs == {"mode": "fast", "note": "baseline"}
+
+
+def test_a_spreadsheets_byte_order_mark_is_not_part_of_a_column_name(tmp_path):
+    path = tmp_path / "t.csv"
+    path.write_bytes(b"\xef\xbb\xbfname,note\nr1,a\n")
+    run = next(TableDiscoverer(path, id_column="name").discover())
+    assert (run.id, run.attrs) == ("r1", {"note": "a"})
+
+
+def test_a_quoted_field_may_hold_a_line_break(tmp_path):
+    path = tmp_path / "t.csv"
+    path.write_text('name,note\nr1,"two\nlines"\nr2,b\n')
+    runs = list(TableDiscoverer(path, id_column="name").discover())
+    assert [r.id for r in runs] == ["r1", "r2"] and runs[0].attrs["note"] == "two\nlines"

@@ -64,6 +64,9 @@ exclude_docs: |
 plugins:
   - search
   - social:
+      # Cards are drawn with cairo, a system library. CI has it; a laptop may not:
+      #   MKDOCS_SOCIAL=false uv run --group docs mkdocs build --strict
+      enabled: !ENV [MKDOCS_SOCIAL, true]
       cards_layout_options:
         logo: docs/assets/images/E3SM_Icon_270.png
 
@@ -139,5 +142,6 @@ nav:
   - Package:
       - Overview: package/index.md
       - Latent diagnostics: package/latents.md
+      - Sparse autoencoders: package/taig.md
       - Web app: package/waig.md
 

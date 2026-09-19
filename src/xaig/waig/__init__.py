@@ -7,8 +7,7 @@ Presentation only. Every number on screen comes from ``xaig.caig`` or
 reproduced in a notebook or a batch job -- the app says how. Nothing imports
 this package.
 
-Needs the ``waig`` extra (streamlit, matplotlib, numpy); add ``maps`` for
-coastlines.
+Needs the ``waig`` extra (streamlit, plus everything ``faig`` and ``daig`` need).
 """
 
 from __future__ import annotations

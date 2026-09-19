@@ -13,6 +13,16 @@ it may import `core`, `caig`, `daig` and `faig`; **nothing may import it**.
 - **Cache what is slow, and bound every cache** (`max_entries`). Streamlit reruns a page
   on each interaction and `st.cache_data` copies what it returns. Open sources go in
   `cache_resource`; results and rendered maps in `cache_data`; whole layers nowhere.
+- **A method is a choice, not a page.** Features come from whatever `Decomposition` the
+  sidebar names — a PCA fitted in the region, a basis file — through the one `basis=`
+  argument of the `daig` routines. A new method needs no new view.
+- **Name models, not paths.** The archive drop-down is labelled from each manifest's model
+  and component; `--latents` takes a directory of archives as readily as one.
+- **Catch `RequestError`, nothing wider.** It becomes a warning on the page. A bare
+  `ValueError` is a bug in `daig` and has to surface as one.
+- **Listen on localhost.** Streamlit's default is every interface, and the app opens any
+  path typed into it. The launcher passes `--server.address localhost`; widening it is
+  the user's explicit `--address`.
 - **Local and offline.** It reads what is on disk. No uploads, no accounts, no tracking
   service — `caig`'s non-goals hold here too.
 - `cli.py` and `config.py` must import on a base install (`xaig --help` imports every

@@ -33,7 +33,7 @@ ALLOWED: dict[str, set[str]] = {
     "caig": {"core", "_render"},
     "daig": {"core", "_render"},
     "faig": {"core", "daig"},
-    "taig": {"core"},
+    "taig": {"core", "daig"},  # trains on daig's batches, returns a daig Dictionary
     "waig": {"core", "caig", "daig", "faig"},  # downstream of everything; nothing imports it
 }
 
@@ -47,6 +47,7 @@ THIRD_PARTY: dict[str, set[str]] = {
     "caig": {"click", "yaml"},
     "daig": {"click", "numpy"},  # the science stays free of any UI or file format
     "faig": {"cartopy", "matplotlib", "numpy"},  # figures, with no web framework in them
+    "taig": {"click", "numpy", "torch"},  # blocks over tensors; no training harness
     "waig": {"click", "numpy", "streamlit"},  # widgets; figures come from faig
 }
 

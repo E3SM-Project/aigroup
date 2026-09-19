@@ -98,3 +98,14 @@ def test_inconsistent_grids_are_refused():
         Grid(np.zeros(5), np.zeros(5), shape=(2, 2))
     with pytest.raises(ValueError, match="mask has shape"):
         Grid(np.zeros(4), np.zeros(4), mask=np.ones(3, dtype=bool))
+
+
+def test_nodes_stored_the_other_way_round_are_refused_not_misweighted():
+    """Reshaped without complaint, a (lon, lat) ordering would give every row the
+    weight of a meridian."""
+    lon, lat = np.meshgrid(np.arange(0, 360, 30.0), np.linspace(-75, 75, 6))
+    assert Grid(lat.ravel(), lon.ravel(), shape=lat.shape).weights().sum() == pytest.approx(1.0)
+    with pytest.raises(ValueError, match=r"must be \(n_lat, n_lon\) in C order"):
+        Grid(lat.T.ravel(), lon.T.ravel(), shape=lat.shape)
+    with pytest.raises(ValueError, match="a mesh that should have no shape"):
+        Grid(np.random.default_rng(0).uniform(-90, 90, 72), lon.ravel(), shape=lat.shape)

@@ -8,6 +8,7 @@ import pytest
 np = pytest.importorskip("numpy")
 
 from conftest import BUMP, LATENT_TIMES, write_latent_archive  # noqa: E402
+from xaig.core.errors import RequestError  # noqa: E402
 from xaig.daig.latent import (  # noqa: E402
     Region,
     analyse_region,
@@ -72,8 +73,11 @@ def test_a_node_weighted_twice_counts_as_two_nodes():
 
 
 def test_asking_for_more_components_than_exist_says_what_to_do():
-    with pytest.raises(ValueError, match="at most 3 exist -- widen the region"):
+    """Removing the mean costs a degree of freedom: 3 nodes span 2 directions."""
+    with pytest.raises(RequestError, match="at most 2 exist -- widen the region"):
         fit_pca(np.zeros((3, 8)), n_components=5)
+    with pytest.raises(RequestError, match="at most 2 exist"):
+        fit_pca(np.zeros((3, 8)), n_components=3)
 
 
 # -- the routine, on an archive with planted structure ---------------------
@@ -139,7 +143,7 @@ def test_a_result_says_how_to_get_it_again(latent_archive):
         "peak_abs": pytest.approx(summary["ranking"][0]["peak_abs"]),
         "pinned": True,
     }
-    assert len(summary["pca"]) == 2
+    assert [f["label"] for f in summary["features"]] == ["PC0", "PC1"]
 
 
 def test_invalid_nodes_are_excluded_from_the_region_and_blank_in_the_maps(tmp_path):
@@ -162,9 +166,9 @@ def test_a_mesh_works_like_a_grid_except_for_maps(tmp_path):
 
 def test_an_empty_region_and_an_unknown_layer_are_explained(latent_archive):
     source = open_source(latent_archive)
-    with pytest.raises(ValueError, match="widen the region"):
+    with pytest.raises(RequestError, match="widen the region"):
         analyse_region(source, time=0, layer=2, region=Region(0.0, 7.0, 1.0))
-    with pytest.raises(KeyError, match="layers are 0, 1, 2"):
+    with pytest.raises(RequestError, match="layers are 0, 1, 2"):
         analyse_region(source, time=0, layer=9, region=HERE)
 
 
@@ -182,3 +186,65 @@ def test_ranking_reads_only_the_regions_nodes(latent_archive):
 
     result = analyse_region(Spy(), time=0, layer=1, region=HERE)
     assert asked == [(2, result.nodes.size), (1, None)]
+
+
+class _Spy:
+    """A source that notes what it is asked to load."""
+
+    def __init__(self, real):
+        self.real, self.asked = real, []
+        self.info, self.grid = real.info, real.grid
+
+    def load(self, time, layer, channels=None, nodes=None):
+        self.asked.append((layer, None if nodes is None else len(nodes)))
+        return self.real.load(time, layer, channels=channels, nodes=nodes)
+
+
+@pytest.mark.parametrize("centred", [False, True])
+def test_a_layer_ranked_where_it_is_analysed_is_read_once(latent_archive, centred):
+    """The app's default -- centred, both at the last layer -- used to read and
+    centre the same 100 MB twice."""
+    spy = _Spy(open_source(latent_archive))
+    once = analyse_region(spy, time=0, layer=2, region=HERE, centred=centred, top=3)
+    assert spy.asked == [(2, None)]
+    apart = analyse_region(
+        open_source(latent_archive),
+        time=0,
+        layer=2,
+        rank_layer=2,
+        region=HERE,
+        centred=centred,
+        top=3,
+    )
+    assert once.ranking.channels.tolist() == apart.ranking.channels.tolist()
+
+
+def test_layers_of_different_widths_are_not_followed_by_channel_index(latent_archive):
+    """Channel 5 of a six-channel layer is nothing in a four-channel one."""
+    import json as _json
+
+    narrow = np.load(latent_archive / "step_00.npy")[:, :, :4]
+    np.save(latent_archive / "step_00.npy", narrow)
+    manifest = _json.loads((latent_archive / "manifest.json").read_text())
+    manifest["steps"][0]["n_channels"] = 4
+    (latent_archive / "manifest.json").write_text(_json.dumps(manifest))
+    spy = _Spy(open_source(latent_archive))
+    with pytest.raises(RequestError, match="rank at a layer as wide as the one analysed"):
+        analyse_region(spy, time=0, layer=0, region=HERE)
+    assert spy.asked == []  # refused before anything was read
+    assert (
+        analyse_region(spy, time=0, layer=0, rank_layer=0, region=HERE).ranking.channels.max() < 4
+    )
+
+
+def test_everything_that_can_be_refused_is_refused_before_the_first_read(latent_archive):
+    spy = _Spy(open_source(latent_archive))
+    for bad in (dict(n_components=400), dict(reference="first"), dict(time=9), dict(layer=7)):
+        with pytest.raises(RequestError):
+            analyse_region(spy, **{"time": 0, "layer": 2, "region": HERE, **bad})
+    assert spy.asked == []
+
+
+def test_nodes_a_source_does_not_have_are_a_request_not_a_crash(latent_archive):
+    with pytest.raises(RequestError, match="288 nodes x 6 channels"):
+        open_source(latent_archive).load(0, 2, channels=[6])

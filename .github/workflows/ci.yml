@@ -29,13 +29,17 @@ jobs:
       matrix:
         python-version: ["3.11", "3.13"]
         # base: PyYAML + Click only, which is all caig may need; numpy-backed tests
-        # skip. full: every extra the suite can exercise.
+        # skip. full: every extra but torch, so the taig tests skip. taig: torch as
+        # well, once -- the CPU build, since the default one brings CUDA along.
         tier: ["base", "full"]
         include:
           - tier: base
-            extras: "dev"
+            sync: "--no-default-groups --group dev"
           - tier: full
-            extras: "dev,daig,netcdf,waig"
+            sync: ""
+          - tier: taig
+            python-version: "3.13"
+            sync: ""
     steps:
       - uses: actions/checkout@v5
         with:
@@ -44,22 +48,32 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: pyproject.toml  # no uv.lock is committed
       # uv provides the interpreter, so the matrix version is the one actually
       # tested. Installing into a venv also avoids the runner's /usr, which is
       # externally managed and refuses --system.
       - name: Install
         run: |
-          uv venv --python ${{ matrix.python-version }}
-          uv pip install -e '.[${{ matrix.extras }}]'
+          uv sync --python ${{ matrix.python-version }} ${{ matrix.sync }}
+      - name: Install torch (CPU)
+        if: matrix.tier == 'taig'
+        run: |
+          uv pip install --python .venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
       - name: Show interpreter
         run: .venv/bin/python -VV
       - name: Lint
-        run: .venv/bin/ruff check
+        run: |
+          .venv/bin/ruff check
+          .venv/bin/ruff format --check
       - name: Test
         run: .venv/bin/pytest
       # That the base tier stays light, and that core stays pure, are tests now
       # (tests/test_purity.py), so they run locally as well as here. What only CI
       # can show is that the base tier really has no scientific stack installed.
+      # The taig tests skip without torch, so a failed install would pass quietly.
+      - name: Assert the taig tier has torch
+        if: matrix.tier == 'taig'
+        run: .venv/bin/python -c "import torch, xaig.taig.sae; print('torch', torch.__version__)"
       - name: Assert the base tier has no scientific stack
         if: matrix.tier == 'base'
         run: |

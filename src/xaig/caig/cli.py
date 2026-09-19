@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 
 import click
+import yaml
 
 from xaig import _render
 from xaig.caig import api
@@ -24,11 +25,43 @@ _source_option = click.option(
     help="What the adapter reads (e.g. a manifest).",
 )
 _adapter_option = click.option("--adapter", help="Override the adapter named by the spec.")
+_options_option = click.option(
+    "-o",
+    "--option",
+    "options",
+    multiple=True,
+    metavar="KEY=VALUE",
+    help="An adapter option, over the spec's discovery block. VALUE is YAML, so "
+    "'status_map={done: finished}' is a mapping. Repeatable.",
+)
+
+# Arguments of api.load_campaign itself, which have flags of their own.
+_NOT_OPTIONS = {"spec": "--spec", "source": "--source", "adapter": "--adapter", "metrics": None}
 
 
-def _load(spec_name: str, source: str | None, adapter: str | None):
+def _adapter_options(items: tuple[str, ...]) -> dict:
+    options = {}
+    for item in items:
+        key, equals, value = item.partition("=")
+        key = key.strip()
+        if not equals or not key:
+            raise click.BadParameter(f"--option expects KEY=VALUE, got {item!r}")
+        if key in _NOT_OPTIONS:
+            use = f"; use {_NOT_OPTIONS[key]}" if _NOT_OPTIONS[key] else ""
+            raise click.BadParameter(f"{key!r} is not an adapter option{use}")
+        try:
+            options[key] = yaml.safe_load(value)
+        except yaml.YAMLError as exc:
+            raise click.BadParameter(
+                f"--option {key}: the value is not valid YAML ({exc})"
+            ) from exc
+    return options
+
+
+def _load(spec_name: str, source: str | None, adapter: str | None, options: tuple[str, ...] = ()):
     spec = spec_module.load(spec_name)
-    return spec, api.load_campaign(spec, source=source, adapter=adapter)
+    campaign = api.load_campaign(spec, source=source, adapter=adapter, **_adapter_options(options))
+    return spec, campaign
 
 
 def _default_columns(spec, campaign) -> list[str]:
@@ -67,15 +100,16 @@ def specs_cmd() -> None:
 @_spec_option
 @_source_option
 @_adapter_option
+@_options_option
 @click.option(
     "--select", multiple=True, metavar="KEY=VALUE", help="Filter (also id, status); repeatable."
 )
 @click.option("-c", "--columns", help="Comma-separated columns to show.")
 @click.option("--sort", help="Comma-separated attributes to sort by.")
 @click.option("--json", "as_json", is_flag=True, help="Emit rows as JSON, for other tools.")
-def ls_cmd(spec_name, source, adapter, select, columns, sort, as_json) -> None:
+def ls_cmd(spec_name, source, adapter, options, select, columns, sort, as_json) -> None:
     """List runs in a campaign."""
-    spec, campaign = _load(spec_name, source, adapter)
+    spec, campaign = _load(spec_name, source, adapter, options)
     campaign = _select(campaign, select)
     if sort:
         campaign = campaign.sorted_by(*[s.strip() for s in sort.split(",")])
@@ -99,9 +133,10 @@ def ls_cmd(spec_name, source, adapter, select, columns, sort, as_json) -> None:
 @_spec_option
 @_source_option
 @_adapter_option
-def show_cmd(run_id, spec_name, source, adapter) -> None:
+@_options_option
+def show_cmd(run_id, spec_name, source, adapter, options) -> None:
     """Show one run in full."""
-    _, campaign = _load(spec_name, source, adapter)
+    _, campaign = _load(spec_name, source, adapter, options)
     run = campaign.get(run_id)
     if run is None:
         raise click.ClickException(f"no run {run_id!r} in campaign {campaign.name!r}")
@@ -121,9 +156,10 @@ def show_cmd(run_id, spec_name, source, adapter) -> None:
 @_spec_option
 @_source_option
 @_adapter_option
-def check_cmd(spec_name, source, adapter) -> None:
+@_options_option
+def check_cmd(spec_name, source, adapter, options) -> None:
     """Check run ids against the spec, and the source's metadata against the ids."""
-    spec, campaign = _load(spec_name, source, adapter)
+    spec, campaign = _load(spec_name, source, adapter, options)
     findings = api.check_campaign(campaign, spec)
     if not findings:
         grammar = "round-trip through" if spec.id_pattern else "are unique under"

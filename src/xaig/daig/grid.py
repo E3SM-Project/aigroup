@@ -28,6 +28,7 @@ except ImportError as exc:
 
 EARTH_RADIUS_KM = 6371.0
 _BLOCK = 8192  # nodes per step of a blocked reduction
+_SAME_DEGREES = 1e-6  # coordinates closer than this are one row, or one column
 
 
 def cell_area_weights(lat_1d: np.ndarray) -> np.ndarray:
@@ -99,8 +100,20 @@ class Grid:
         n = self.lat.shape
         if self.lat.ndim != 1 or self.lon.shape != n:
             raise ValueError(f"lat and lon must be flat and alike, got {n} and {self.lon.shape}")
-        if self.shape is not None and self.shape[0] * self.shape[1] != n[0]:
-            raise ValueError(f"grid shape {self.shape} does not hold {n[0]} nodes")
+        if self.shape is not None:
+            if self.shape[0] * self.shape[1] != n[0]:
+                raise ValueError(f"grid shape {self.shape} does not hold {n[0]} nodes")
+            # Band areas and maps both read rows as latitudes. Nodes stored the
+            # other way round reshape without complaint and weight wrongly.
+            lat, lon = self.lat.reshape(self.shape), self.lon.reshape(self.shape)
+            along_rows = float((lat.max(axis=1) - lat.min(axis=1)).max())
+            along_columns = float((lon.max(axis=0) - lon.min(axis=0)).max())
+            if max(along_rows, along_columns) > _SAME_DEGREES:
+                raise ValueError(
+                    f"grid shape {self.shape} must be (n_lat, n_lon) in C order, with latitude "
+                    "constant along a row and longitude along a column; these nodes are not "
+                    "(transposed, or a mesh that should have no shape)"
+                )
         for name in ("mask", "area"):
             extra = getattr(self, name)
             if extra is not None and extra.shape != n:

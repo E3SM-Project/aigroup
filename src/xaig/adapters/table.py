@@ -8,6 +8,7 @@ Uses only stdlib ``csv``, so it stays inside the base dependency tier.
 from __future__ import annotations
 
 import csv
+import io
 import logging
 import re
 from collections.abc import Iterator, Mapping
@@ -88,10 +89,13 @@ class TableDiscoverer:
     def discover(self) -> Iterator[Run]:
         if not self.path.is_file():
             raise AdapterError(f"table not found: {self.path}")
-        text = self.path.read_text()
+        # utf-8-sig: a spreadsheet's export starts with a byte-order mark, which
+        # would otherwise become part of the first column's name.
+        text = self.path.read_text(encoding="utf-8-sig")
         if not text.strip():
             return
-        reader = csv.DictReader(text.splitlines(), delimiter=self._sniff(text[:4096]))
+        # A stream, not lines: a quoted field may hold a line break of its own.
+        reader = csv.DictReader(io.StringIO(text, newline=""), delimiter=self._sniff(text[:4096]))
         columns = reader.fieldnames or []
         for needed in filter(None, (self.id_column, self.status_column)):
             if needed not in columns:

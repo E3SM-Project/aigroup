@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 _COMMANDS = {
     "caig": "xaig.caig.cli:caig",
     "daig": "xaig.daig.cli:daig",
+    "taig": "xaig.taig.cli:taig",
     "waig": "xaig.waig.cli:waig",
 }
 
@@ -48,6 +49,17 @@ class _LazyGroup(click.Group):
                     log.warning("could not load command %r from %s: %s", name, ep.value, exc)
         return None
 
+    def invoke(self, ctx: click.Context) -> object:
+        """Deliberate errors read as one clear line, not a traceback -- here, so
+        that a test runner or an embedding program sees what a terminal does.
+        ``--debug`` keeps the traceback."""
+        try:
+            return super().invoke(ctx)
+        except XaigError as exc:
+            if ctx.params.get("debug"):
+                raise
+            raise click.ClickException(str(exc)) from exc
+
 
 @click.group(cls=_LazyGroup)
 @click.version_option(__version__, prog_name="xaig")
@@ -62,16 +74,16 @@ def cli(debug: bool) -> None:
 
 def main() -> None:
     try:
-        cli.main(standalone_mode=False)
+        # Not standalone, so that an interrupt exits 130 without click's "Aborted!".
+        # click then *returns* the code of a `ctx.exit(n)` instead of exiting with it.
+        code = cli.main(standalone_mode=False)
     except click.ClickException as exc:
         exc.show()
         sys.exit(exc.exit_code)
     except click.Abort:
         sys.exit(130)
-    except XaigError as exc:
-        # Deliberate errors read as one clear line, not a traceback.
-        click.echo(f"error: {exc}", err=True)
-        sys.exit(1)
+    if isinstance(code, int) and code:
+        sys.exit(code)
 
 
 if __name__ == "__main__":

@@ -7,39 +7,47 @@ this repo alongside the guides, as a peer rather than an appendix.
 | --- | --- |
 | `caig` | campaign tracking — offline, no server, no live streaming |
 | `daig` | diagnostics of emulators: their outputs and [their internals](latents.md) |
-| `taig` | reusable neural blocks *(skeleton)* |
+| `taig` | reusable neural blocks and toy architectures: [sparse autoencoders](taig.md) |
 | `faig` | figures, with no web framework in them |
 | `waig` | [a local web app](waig.md) over `caig` and `daig` |
 
 !!! warning "research tool"
 
-    `xaig` is early. The `caig` surface described here and `daig`'s
-    [latent diagnostics](latents.md) work; emulator-vs-reference diagnostics and `taig`
-    are still to come.
+    `xaig` is early. The `caig` surface described here, `daig`'s
+    [latent diagnostics](latents.md) and `taig`'s [sparse autoencoders](taig.md) work;
+    emulator-vs-reference diagnostics are still to come.
 
 ## Install
 
 ```console
-$ uv venv --python 3.11 .venv
-$ uv pip install -e '.[dev]'
+$ uv sync
+$ uv run xaig --help
+```
+
+In a checkout, `uv sync` (or the first `uv run`) installs every extra below but `taig`,
+plus pytest and ruff. Torch is large, and whether it should be a CPU or a CUDA build is the
+machine's business: ask for it with `uv sync --extra taig`. `xaig` is not on PyPI; to use
+it from another project, install it from this repository, asking for the extras you need:
+
+```console
+$ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
 ```
 
 The base install pulls only PyYAML and Click, and is all `caig` needs. Anything heavier
-sits behind an extra named after the subpackage that needs it, and a missing one says so:
+sits behind an extra named after the subpackage that needs it. A missing one says so,
+with the command that fits how this `xaig` was installed:
 
 ```console
 $ xaig daig latent info latents/atmosphere
-error: numpy is not installed; it comes with the 'daig' extra: uv pip install 'xaig[daig]'
+Error: numpy is not installed; it comes with the 'daig' extra: uv pip install -e '/path/to/aigroup[daig]'  (in that checkout: `uv sync --extra daig`)
 ```
 
 | Extra | Pulls | Gets you |
 | --- | --- | --- |
-| `daig` | numpy | `xaig.daig` |
-| `netcdf` | netCDF4 | masks read from a reference file |
-| `faig` | matplotlib | `xaig.faig`: maps and figures |
-| `maps` | cartopy | coastlines on those maps |
-| `waig` | streamlit | [`xaig waig`](waig.md) |
-| `taig` | torch | `xaig.taig` |
+| `daig` | numpy, xarray, netCDF4 | `xaig.daig` |
+| `faig` | matplotlib, cartopy | `xaig.faig`: maps and figures (brings `daig`) |
+| `waig` | streamlit | [`xaig waig`](waig.md) (brings `faig`) |
+| `taig` | torch | [`xaig.taig`](taig.md) and `xaig taig` (not part of a plain `uv sync`) |
 
 !!! tip "uv cache"
 
@@ -67,6 +75,9 @@ Three concerns are kept apart, because each has a different answer:
 
 Every API returns objects and prints nothing; the CLI is one client of it, a notebook
 another. These rules are enforced by `tests/test_purity.py`, not by convention.
+
+Errors xaig raises on purpose are `XaigError`s and reach a terminal as one line; anything
+else is a bug and keeps its traceback, as does everything under `xaig --debug`.
 
 A *campaign spec* is a YAML file describing one campaign's conventions — its run-id
 grammar, its factors, its parent map, its metric. Adding a campaign does not mean writing
@@ -113,6 +124,14 @@ discovery:
   status_map: { done: finished, crashed: failed }
 ```
 
+Or say it on the command line, without touching a bundled spec. `-o` passes an option to
+the adapter, over the spec's `discovery` block; the value is YAML:
+
+```console
+$ xaig caig ls --spec aug26 --source .../MANIFEST.tsv \
+    -o status_column=state -o 'status_map={done: finished, crashed: failed}'
+```
+
 `id` and `status` can be selected and sorted on like any attribute, numbers sort
 numerically, and `--json` hands the rows to another tool:
 
@@ -125,7 +144,7 @@ A misspelt option is an error, not a silent default:
 
 ```console
 $ xaig caig ls --spec ./typo.yaml --source .../MANIFEST.tsv
-error: adapter 'table' does not accept option(s) status_colum; accepted: delimiter, id_column, status_column, status_map, strict
+Error: adapter 'table' does not accept option(s) status_colum; accepted: delimiter, id_column, status_column, status_map, strict
 ```
 
 Show one run:
@@ -202,8 +221,9 @@ discovery:
 $ xaig caig ls --spec ./toy.yaml --source runs.csv
 ```
 
-A campaign whose run ids carry no structure simply omits `id_pattern`; its adapter
-attaches attributes instead. A key the spec does not know is an error, so `id_patern:`
+A factor `key` is one or more letters (`LR03`), followed by a whole number. A campaign whose
+run ids carry no structure simply omits `id_pattern`; its adapter attaches attributes
+instead. A key the spec does not know is an error, so `id_patern:`
 cannot quietly mean "this campaign has no grammar".
 
 ## Adding an adapter
@@ -218,7 +238,7 @@ myframework = "mypkg.adapter:MyAdapter"
 ```
 
 ```console
-$ uv pip install -e .   # entry points are read from installed metadata
+$ uv sync   # entry points are read from installed metadata
 $ xaig caig ls --spec ./mine.yaml --adapter myframework --source /path/to/runs
 ```
 
@@ -231,5 +251,6 @@ $ xaig caig ls --spec ./mine.yaml --adapter myframework --source /path/to/runs
 - [ ] `caig doctor`: machine-checked campaign guardrails
 - [ ] `daig`: bias and time-mean maps, spectra, zonal means (a `FieldSource` beside
       `LatentSource`, on the same `daig.grid`)
-- [ ] `daig.latent`: a GraphCast mesh adapter; the activation exporter as an adapter
-- [ ] `taig`: the first reusable blocks
+- [ ] `daig.latent`: a GraphCast mesh adapter; the activation exporter as an adapter,
+      with a steering hook
+- [ ] `taig`: a cross-layer transcoder; a better training loop

@@ -16,15 +16,17 @@ Figures are built on ``matplotlib.figure.Figure`` directly, never through
 ``pyplot``: no global state, nothing to close, and safe to call from a server
 handling several sessions at once.
 
-Coastlines come from cartopy when it is installed (the ``maps`` extra) and its
-Natural Earth data can be had; otherwise the map is still drawn, on plain axes,
-with the grid's own mask outlined where it has one.
+Coastlines come from cartopy when its Natural Earth data can be had. When it
+cannot -- a compute node with no network is the usual reason -- the map is still
+drawn, on plain axes, with the grid's own mask outlined where it has one, and
+``why_no_coastlines`` says what happened.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import socket
 from functools import lru_cache
 from typing import Any, Protocol
 
@@ -49,6 +51,10 @@ _INK = "#33332f"
 
 # The dark counterparts. "berlin" (blue - black - red) arrived in matplotlib 3.10;
 # before that the light scale is kept, which is legible if not ideal.
+# Cartopy fetches with no timeout of its own. Where packets are dropped rather than
+# refused -- a compute node -- that is minutes of a frozen page for a coastline.
+_FETCH_TIMEOUT_SECONDS = 10.0
+
 DARK_SIGNED_CMAP = "berlin"
 DARK_MAGNITUDE_CMAP = "Blues_r"
 DARK_SURFACE = "#0e1117"
@@ -63,29 +69,42 @@ class _Cap(Protocol):
 
 
 @lru_cache(maxsize=1)
-def _cartopy() -> Any | None:
-    """``cartopy.crs`` if coastlines can actually be drawn, else None.
+def _coastlines() -> tuple[Any | None, str | None]:
+    """``(cartopy.crs, None)`` if coastlines can actually be drawn, else ``(None, why)``.
 
     Cartopy fetches its coastline data on first use, which fails on a compute
-    node with no network -- and fails late, in the middle of rendering. Asking for
-    the file up front turns that into a quiet fallback. ``XAIG_NO_COASTLINES=1``
-    skips the attempt altogether.
+    node with no network -- and fails late, in the middle of rendering, or not at
+    all for minutes. Asking for the file up front, against a deadline, turns that
+    into a quiet fallback with a reason attached. Data already on disk is found
+    without touching the network. ``XAIG_NO_COASTLINES=1`` skips the attempt.
     """
     if os.environ.get("XAIG_NO_COASTLINES"):
-        return None
+        return None, "XAIG_NO_COASTLINES is set"
     try:
         import cartopy.crs as ccrs
         from cartopy.io import shapereader
-
+    except ImportError:
+        return None, "cartopy is not installed; it comes with xaig[faig]"
+    waited = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(_FETCH_TIMEOUT_SECONDS)  # urlopen's only deadline is this one
+    try:
         shapereader.natural_earth(resolution="110m", category="physical", name="coastline")
-    except Exception as exc:  # absent, or present with no way to get its data
-        log.info("drawing maps without coastlines: %s", exc)
-        return None
-    return ccrs
+    except Exception as exc:  # no network, no cache, no write access: all the same to a map
+        reason = f"cartopy could not get its coastline data ({type(exc).__name__}: {exc})"
+        log.info("drawing maps without coastlines: %s", reason)
+        return None, reason
+    finally:
+        socket.setdefaulttimeout(waited)
+    return ccrs, None
 
 
 def have_coastlines() -> bool:
-    return _cartopy() is not None
+    return _coastlines()[0] is not None
+
+
+def why_no_coastlines() -> str | None:
+    """Why maps are being drawn without coastlines, or None when they have them."""
+    return _coastlines()[1]
 
 
 def _limits(values: np.ndarray, symmetric: bool) -> tuple[float, float]:
@@ -139,7 +158,7 @@ def map_figure(
         cmap = cmap if cmap in colormaps else None
     cmap = cmap or (SIGNED_CMAP if symmetric else MAGNITUDE_CMAP)
 
-    ccrs = _cartopy() if coastlines else None
+    ccrs = _coastlines()[0] if coastlines else None
     fig = Figure(figsize=figsize, layout="constrained")
     if dark:
         fig.set_facecolor(DARK_SURFACE)
