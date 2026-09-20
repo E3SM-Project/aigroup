@@ -26,8 +26,9 @@ this repository, asking for the extras you need:
 $ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
 ```
 
-The base install pulls only Click. Anything heavier an extra named after the subpackage that needs it. A missing one says so, with the
-command that fits how this `xaig` was installed:
+The base install pulls only Click. Anything heavier sits behind an extra named after the
+subpackage that needs it. A missing one says so, with the command that fits how this
+`xaig` was installed:
 
 ```console
 $ xaig daig latent info latents/atmosphere
@@ -75,6 +76,26 @@ else is a bug and keeps its traceback, as does everything under `xaig --debug`.
 ```console
 $ xaig daig latent info /path/to/latents/atmosphere
 ```
+
+With no model and no data to hand, make an archive with the toy emulator — an MLP with a
+residual stream on a small Gaussian grid, in numpy, in a few seconds — and read it back:
+
+```console
+$ xaig daig latent toy scratch/toy/control
+$ xaig daig latent toy scratch/toy/steered --steer 2:7:3     # +3 on channel 7 of layer 2, every step
+$ xaig daig latent info scratch/toy/steered --mask-variable sst
+model                  xaig-toy
+calendar               noleap
+grid                   24x48, 1152 nodes, 1062 valid
+times                  8: 0424-02-27T06:00:00 .. 0424-03-02T00:00:00
+experiment.steer       {'layer': 2, 'channel': 7, 'by': 3.0}
+...
+```
+
+The toy is shaped like a real archive where that matters to a reader: kept steps with a
+gap between them, fields that begin one step before the latents, a continent the mask has
+to come from, a calendar without leap days. One channel is planted to follow its storm, so
+an analysis has a right answer to find.
 
 The CLI is a thin client of the API; anything it can do, a notebook can.
 

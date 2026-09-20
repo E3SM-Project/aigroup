@@ -11,3 +11,6 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# throwaway output: toy archives, fitted bases, whatever is made while trying things
+scratch/

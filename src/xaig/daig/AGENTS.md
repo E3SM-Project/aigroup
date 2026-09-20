@@ -6,6 +6,7 @@ What an emulator holds inside.
 |---|---|
 | `grid.py` | nodes on a sphere: masks, area weights, regions, maps |
 | `latent/source.py` | the contract: `LatentSource`, the optional `ReferenceFields`, `LatentInfo` |
+| `latent/toy.py` | a toy emulator in numpy, so an archive can be made with no model and no data |
 
 ## Rules that must not be lost
 

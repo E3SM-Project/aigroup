@@ -29,6 +29,8 @@ after the subpackage that needs it, so the core stays nimble.
 ## Use
 
 ```console
+$ xaig daig latent toy scratch/toy/control        # no model to hand? make an archive with numpy
+$ xaig daig latent info scratch/toy/control --mask-variable sst
 $ xaig daig latent info /path/to/latents/atmosphere
 ```
 

@@ -73,4 +73,44 @@ def info_cmd(source, adapter, mask_variable) -> None:
         click.echo(f"\n{len(opened.field_names())} reference field(s)")
 
 
+@latent.command("toy")
+@click.argument("out", type=click.Path(file_okay=False))
+@click.option("--steps", type=int, default=12, show_default=True, help="Steps to roll forward.")
+@click.option("--keep", default="1-4,9-12", show_default=True, help="Steps whose latents are kept.")
+@click.option("--seed", type=int, default=0, show_default=True)
+@click.option(
+    "--steer",
+    metavar="LAYER:CHANNEL:AMOUNT",
+    help="Add AMOUNT to one channel of one layer at every step; a twin without it is its control.",
+)
+@click.option("--overwrite", is_flag=True, help="Replace OUT if it holds anything.")
+@_adapter_option
+def toy_cmd(out, steps, keep, seed, steer, overwrite, adapter) -> None:
+    """Run a toy emulator and write its latents to OUT, with nothing but numpy.
+
+    An MLP with a residual stream on a small Gaussian grid: no checkpoint, no
+    data, a few seconds. What comes out is read like any other archive.
+    """
+    from xaig.core.errors import RequestError
+    from xaig.daig.latent.toy import parse_steps, write_toy
+
+    pushed = None
+    if steer:
+        try:
+            layer, channel, amount = steer.split(":")
+            pushed = (int(layer), int(channel), float(amount))
+        except ValueError as exc:
+            raise RequestError(f"--steer is LAYER:CHANNEL:AMOUNT, not {steer!r}") from exc
+    path = write_toy(
+        out,
+        adapter=adapter,
+        overwrite=overwrite,
+        n_steps=steps,
+        keep=parse_steps(keep),
+        seed=seed,
+        steer=pushed,
+    )
+    click.echo(f"wrote {path}; try `xaig daig latent info {path} --mask-variable sst`")
+
+
 __all__ = ["daig"]

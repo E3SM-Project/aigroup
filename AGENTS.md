@@ -18,6 +18,8 @@ Two peers live here. Neither exists to serve the other.
   extra plus pytest and ruff by default (the `dev` and `full` dependency groups); an
   installed `xaig` stays on the base tier. ACE itself pins Python 3.11.
 - Ship in ~1000-line increments. Each increment leaves the repo working and useful.
+- `scratch/` is ignored by git: write throwaway output there
+  (`xaig daig latent toy scratch/toy/control`), never beside the code.
 
 ## Where to look
 
