@@ -1228,8 +1228,8 @@ Also, if you run into issues related to git lfs, you may need to install that.</
 <p>After installation, you may need to restart your console or source your profile to use <code>uv</code>.</p>
 <h3 id="4-configure-uv-cache">4. Configure uv Cache</h3>
 <p>Set up the uv cache directory in an accessible location with sufficient storage:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">mkdir -p &quot;$PSCRATCH/.cache/uv&quot;</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">export UV_CACHE_DIR=&quot;$PSCRATCH/.cache/uv&quot;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">mkdir -p "$PSCRATCH/.cache/uv"</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">export UV_CACHE_DIR="$PSCRATCH/.cache/uv"</span>
 </span></code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Cache Location</p>
@@ -1241,7 +1241,7 @@ Also, if you run into issues related to git lfs, you may need to install that.</
 </span></code></pre></div>
 <h3 id="6-pin-setuptools-version">6. Pin Setuptools Version</h3>
 <p>To avoid deprecation warnings related to <code>pkg_resources</code>, pin setuptools to a version below 81:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">uv add --dev &#39;setuptools&lt;81&#39;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">uv add --dev 'setuptools&lt;81'</span>
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">pkg_resources Deprecation</p>

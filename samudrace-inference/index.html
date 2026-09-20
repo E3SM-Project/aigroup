@@ -1120,7 +1120,7 @@ standalone components. For coupled inference you only need <code>SamudrACE-E3SMv
 blobs on clone and pull just what you need:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/allenai/SamudrACE-E3SMv3</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cd SamudrACE-E3SMv3</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">git lfs pull --include=&quot;SamudrACE-E3SMv3.tar,forcing_data/*,initial_conditions/*&quot;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">git lfs pull --include="SamudrACE-E3SMv3.tar,forcing_data/*,initial_conditions/*"</span>
 </span></code></pre></div>
 <p>That gives you:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">&gt; du -h --max-depth=1 --exclude=.git .</span>
@@ -1266,7 +1266,7 @@ of failing after the model has loaded:</p>
 </span></code></pre></div>
 <p>The two <code>autoregressive_predictions.nc</code> files carry the raw trajectories, on each component's own
 timestep:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">&gt; python -c &quot;import xarray as xr; print(xr.open_dataset(&#39;ocean/autoregressive_predictions.nc&#39;)[[&#39;sst&#39;]])&quot;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">&gt; python -c "import xarray as xr; print(xr.open_dataset('ocean/autoregressive_predictions.nc')[['sst']])"</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">&lt;xarray.Dataset&gt; Size: 3MB</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="go">Dimensions:     (sample: 1, time: 12, lat: 180, lon: 360)   # 12 coupled steps, 5-daily</span>
 </span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="go">Coordinates:</span>
@@ -1282,7 +1282,7 @@ timestep:</p>
 </span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="go">    source.git_sha:   e273d5438</span>
 </span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="go">    ...</span>
 </span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="go">&gt; python -c &quot;import xarray as xr; print(xr.open_dataset(&#39;atmosphere/autoregressive_predictions.nc&#39;)[[&#39;TS&#39;]])&quot;</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="go">&gt; python -c "import xarray as xr; print(xr.open_dataset('atmosphere/autoregressive_predictions.nc')[['TS']])"</span>
 </span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="go">&lt;xarray.Dataset&gt; Size: 62MB</span>
 </span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="go">Dimensions:     (sample: 1, time: 240, lat: 180, lon: 360)  # 12 x 20 atmosphere steps, 6-hourly</span>
 </span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="go">...</span>

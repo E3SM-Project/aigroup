@@ -1199,20 +1199,20 @@
 </ul>
 <h3 id="3-set-the-spatial-decomposition-environment-variables">3. Set the spatial-decomposition environment variables</h3>
 <p>Before launching, export the FME backend variables that control the decomposition:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">export FME_DISTRIBUTED_BACKEND=model   # default is &quot;torch&quot; (data-parallel only)</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">export FME_DISTRIBUTED_BACKEND=model   # default is "torch" (data-parallel only)</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">export FME_DISTRIBUTED_H=2             # split height into 2</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">export FME_DISTRIBUTED_W=2             # split width into 2</span>
 </span></code></pre></div>
 <p>For the 2-node × 4-GPU example above, this gives <code>DATA_DIM = 8 / (2*2) = 2</code>, which is compatible with <code>batch_size: 4</code>.</p>
 <h3 id="4-launch-training">4. Launch Training</h3>
 <p>Pick the head node from the SLURM allocation and launch with <code>srun torchrun</code> using a <code>c10d</code> rendezvous on that node:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">HEAD_NODE=$(scontrol show hostnames &quot;$SLURM_JOB_NODELIST&quot; | head -n1)</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">HEAD_NODE=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n1)</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">srun uv run torchrun \</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">    --nnodes=&quot;$SLURM_JOB_NUM_NODES&quot; \</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">    --nnodes="$SLURM_JOB_NUM_NODES" \</span>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go">    --nproc_per_node=4 \</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">    --rdzv_backend=c10d \</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go">    --rdzv_endpoint=&quot;${HEAD_NODE}:29500&quot; \</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go">    --rdzv_endpoint="${HEAD_NODE}:29500" \</span>
 </span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go">    -m fme.ace.train config-train.yaml</span>
 </span></code></pre></div>
 <p>This command will:</p>
