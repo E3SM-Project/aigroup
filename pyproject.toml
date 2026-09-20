@@ -9,25 +9,43 @@ description = "Light, framework-agnostic tooling for E3SM AI campaigns"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "E3SM AI Group" }]
 keywords = ["e3sm", "emulator", "climate", "machine-learning"]
 
+# Base tier stays deliberately tiny: see src/xaig/AGENTS.md
 dependencies = ["click>=8.1"]
 
-# What a checkout gets and a wheel does not. uv installs the `dev` group by default, so
-# `uv run pytest` and `uv run ruff check` work with no flags. The guide site:
-# `uv run --group docs mkdocs build --strict`.
+# One extra per subpackage that needs more than the base tier, named after it, and
+# no others: "to use xaig.daig, install xaig[daig]" is the whole rule.
+[project.optional-dependencies]
+# xarray reads what the adapters read, and needs a backend to open NetCDF with;
+# netCDF4 is the one the rest of the E3SM/ACE stack already uses.
+daig = ["numpy>=1.24", "xarray>=2023.1", "netCDF4>=1.6"]
+
+# What a checkout gets and a wheel does not. uv installs the `dev` and `full` groups by
+# default, so `uv run xaig ...`, `uv run pytest` and `uv run ruff check` work with no
+# flags, while an installed xaig stays on the base tier until an extra is asked for.
+# `full` is every extra. The base tier alone:
+#   uv sync --no-default-groups --group dev
+# and the guide site: `uv run --group docs mkdocs build --strict`.
 [dependency-groups]
 dev = ["pytest>=7.4", "ruff>=0.5"]
+full = ["xaig[daig]"]
 # mkdocs 2 drops the plugin system this site is built on.
 docs = ["mkdocs>=1.6,<2", "mkdocs-material[imaging]>=9.5"]
 
 [tool.uv]
-default-groups = ["dev"]
+default-groups = ["dev", "full"]
 
 [project.scripts]
 xaig = "xaig._cli:main"
+
+# The only way an adapter is found, shipped or third-party alike, so one can ship in a
+# separate distribution without editing xaig at all. After adding an entry here, run
+# `uv sync` so the installed metadata is refreshed.
+[project.entry-points."xaig.adapters"]
+latent-archive = "xaig.adapters.latent_archive:LatentArchive"
 
 [project.urls]
 Homepage = "https://e3sm-project.github.io/aigroup"
@@ -53,3 +71,6 @@ ban-relative-imports = "all"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# A compiled wheel (netCDF4, cftime) built against older numpy headers says this on
+# import. numpy silences it itself; pytest resets the filters, so it is restated here.
+filterwarnings = ["ignore:numpy.ndarray size changed:RuntimeWarning"]

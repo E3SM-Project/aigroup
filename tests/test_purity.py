@@ -23,18 +23,24 @@ SRC = Path(__file__).resolve().parents[1] / "src" / "xaig"
 
 # unit -> the other xaig units it may import. A unit is a subpackage or a
 # top-level module; every unit may import itself and the bare ``xaig`` package.
+# Domains never import adapters: they reach them through ``core.registry``.
 ALLOWED: dict[str, set[str]] = {
     "__init__": {"core"},
     "_cli": {"core"},  # subcommands are named by string and loaded lazily
+    "_render": set(),
     "core": set(),
+    "adapters": {"core", "daig"},  # an adapter imports the contract it implements
+    "daig": {"core", "_render"},
 }
 
 # unit -> third-party roots it may import. Units absent from this table are not
-# limited.
+# limited (an adapter's whole job is to import a framework).
 THIRD_PARTY: dict[str, set[str]] = {
     "__init__": set(),
     "_cli": {"click"},
+    "_render": set(),
     "core": set(),
+    "daig": {"click", "numpy"},  # the science stays free of any UI or file format
 }
 
 # The name of the adapter entry-point group; it is an identifier, not an import path.
@@ -128,6 +134,16 @@ def test_core_does_not_name_its_consumers_in_strings(module: Path) -> None:
         and any(node.value == c or node.value.startswith((c + ".", c + ":")) for c in consumers)
     }
     assert not bad, f"{module.name} names consumer module(s) {sorted(bad)} in a string"
+
+
+def test_the_checks_see_relative_and_from_package_imports(tmp_path: Path, monkeypatch) -> None:
+    """The earlier version of this file skipped both, so neither rule bit."""
+    fake = tmp_path / "xaig" / "core"
+    fake.mkdir(parents=True)
+    module = fake / "leak.py"
+    module.write_text("from ..daig import grid\nfrom . import errors\nfrom xaig import _cli\n")
+    monkeypatch.setattr(sys.modules[__name__], "SRC", tmp_path / "xaig")
+    assert _xaig_units(_imports(module)) == {"daig", "core", "_cli"}
 
 
 def _run(code: str) -> subprocess.CompletedProcess[str]:

@@ -139,4 +139,6 @@ nav:
       - ACE2-EAMv3 Inference: ace2-inference.md
       - SamudrACE-E3SMv3 Coupled Inference: samudrace-inference.md
       - E3SM branch runs: e3sm-branch-runs.md
+  - Package:
+      - Overview: package/index.md
 
