@@ -5,8 +5,7 @@ Docs, scripts, examples, and prototypes for E3SM AI efforts.
 This repo hosts two peers:
 
 - **`docs/`** — the guide site, published at <https://e3sm-project.github.io/aigroup>
-- **`src/xaig/`** — `xaig`, a light Python package for working with AI campaigns: so far,
-  its core and the `xaig` command
+- **`src/xaig/`** — `xaig`, a light Python package for campaign tracking (`caig`)
 
 ## Install
 
@@ -23,7 +22,15 @@ repository:
 $ uv pip install 'xaig @ git+https://github.com/E3SM-Project/aigroup'
 ```
 
-The install pulls only Click.
+The install pulls only PyYAML and Click.
+
+## Use
+
+```console
+$ xaig caig specs
+$ xaig caig ls --spec aug26 --source /path/to/runs/MANIFEST.tsv
+$ xaig caig check --spec aug26 --source /path/to/runs/MANIFEST.tsv
+```
 
 ## Develop
 

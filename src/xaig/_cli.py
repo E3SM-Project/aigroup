@@ -1,7 +1,7 @@
 """Top-level ``xaig`` command.
 
-Subcommands load lazily, so ``xaig --help`` and one command never pay for (or
-require) what stands behind another.
+Subcommands load lazily, so ``xaig --help`` and ``xaig caig ...`` never pay for
+(or require) the scientific stack behind a sibling command.
 """
 
 from __future__ import annotations
@@ -21,7 +21,9 @@ log = logging.getLogger(__name__)
 # Shipped commands, by import path. Listing them for --help imports every cli
 # module, so each must stay importable on the base tier: anything heavier is
 # imported inside the command that needs it (tests/test_purity.py holds them to it).
-_COMMANDS: dict[str, str] = {}
+_COMMANDS = {
+    "caig": "xaig.caig.cli:caig",
+}
 
 # A separate distribution adds a command by registering a ``click.Command``
 # under this entry-point group. Shipped names win a clash.
@@ -60,7 +62,7 @@ class _LazyGroup(click.Group):
 @click.version_option(__version__, prog_name="xaig")
 @click.option("--debug", is_flag=True, help="Verbose logging.")
 def cli(debug: bool) -> None:
-    """Tooling for E3SM AI campaigns."""
+    """Tooling for E3SM AI campaigns: tracking, diagnostics, toys."""
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.WARNING,
         format="%(levelname)s %(name)s: %(message)s",

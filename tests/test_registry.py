@@ -9,8 +9,8 @@ from xaig.core.errors import AdapterError
 
 
 class Reader:
-    def __init__(self, url="https://default.example", retries=3):
-        self.url, self.retries = url, retries
+    def __init__(self, url="https://default.example", retries=3, spec=None):
+        self.url, self.retries, self.spec = url, retries, spec
 
 
 class OpenEnded:
@@ -57,9 +57,37 @@ def test_unknown_option_is_an_error_naming_the_accepted_ones():
         registry.create("reader", options={"retrys": 5})
 
 
-def test_an_open_ended_factory_takes_any_option():
-    built = registry.create("open", source="s", options={"a": 1})
-    assert built.source == "s" and built.anything == {"a": 1}
+def test_context_is_offered_not_forced():
+    assert registry.create("reader", context={"spec": "S"}).spec == "S"
+    assert registry.create("sourceless", context={"spec": "S"}).flavour == "plain"
+
+
+def test_context_is_not_listed_as_a_user_option():
+    with pytest.raises(AdapterError) as err:
+        registry.create("reader", options={"nope": 1}, context={"spec": "S"})
+    assert "spec" not in str(err.value).split("accepted:")[1]
+
+
+def test_an_option_may_not_pose_as_context():
+    with pytest.raises(AdapterError, match="set by xaig"):
+        registry.create("reader", options={"spec": "mine"}, context={"spec": "S"})
+
+
+def test_open_ended_factories_take_any_option_but_only_the_context_they_name():
+    """`**kwargs` is often handed on to another library, which must not find a
+    campaign spec among its arguments. This used to forward all of it."""
+    built = registry.create("open", source="s", options={"a": 1}, context={"spec": "S"})
+    assert built.anything == {"a": 1}
+    # ...so an option of that name is the user's own there, and no clash.
+    mine = registry.create("open", source="s", options={"spec": "mine"}, context={"spec": "S"})
+    assert mine.anything == {"spec": "mine"}
+
+
+def test_context_never_lands_on_the_source():
+    """It used to, as a raw TypeError: "got multiple values for argument"."""
+    assert registry.create("open", source="s", context={"source": "X"}).source == "s"
+    assert registry.create("reader", source="asked", context={"url": "X"}).url == "asked"
+    assert registry.create("reader", context={"url": "X"}).url == "https://default.example"
 
 
 def test_required_source_and_options_are_reported_by_name():
@@ -77,3 +105,13 @@ def test_a_source_nobody_would_read_is_an_error():
 def test_naming_the_source_as_an_option_is_explained():
     with pytest.raises(AdapterError, match="pass it as the source"):
         registry.create("reader", options={"url": "x"})
+
+
+def test_shipped_adapters_are_found_through_entry_points_alone():
+    assert "table" in registry.available()
+    assert registry.get("table").__name__ == "TableDiscoverer"
+
+
+def test_unknown_adapter_names_the_alternatives():
+    with pytest.raises(AdapterError, match="available: .*table"):
+        registry.get("no-such-adapter")

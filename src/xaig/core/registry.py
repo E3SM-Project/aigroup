@@ -13,9 +13,13 @@ The factory contract, in full::
   passed positionally, so the adapter may call its first parameter anything.
 - ``options`` are keyword arguments. One the factory does not accept is an error
   naming the ones it does; a typo must not silently mean "use the default".
+- ``context`` is offered by the caller rather than supplied by the user (a
+  campaign spec, say) and reaches only a factory that declares a parameter of
+  that name. ``**kwargs`` is not a declaration: a factory that hands its
+  keywords on to another library must not find xaig's own objects among them.
+  Nor is the source parameter, whatever it happens to be called.
 
-What the object returned must implement is the caller's business: whoever asks
-for an adapter checks it against the contract it needs.
+The object returned implements one or more protocols; see ``core.protocols``.
 """
 
 from __future__ import annotations
@@ -89,10 +93,12 @@ def create(
     name: str,
     source: str | None = None,
     options: Mapping[str, Any] | None = None,
+    context: Mapping[str, Any] | None = None,
 ) -> Any:
     """Build the adapter ``name`` under the factory contract described above."""
     factory = get(name)
     options = dict(options or {})
+    context = dict(context or {})
     args = () if source is None else (source,)
 
     try:
@@ -114,7 +120,11 @@ def create(
         and p is not source_param
     }
     open_ended = _Parameter.VAR_KEYWORD in kinds
+    offered = {k: v for k, v in context.items() if k in keywords}
 
+    clash = sorted(set(options) & set(offered))
+    if clash:
+        raise AdapterError(f"adapter {name!r}: option(s) {', '.join(clash)} are set by xaig")
     if source is None and source_param is not None and source_param.default is _Parameter.empty:
         raise AdapterError(f"adapter {name!r} needs a source, and none was given")
     if source is not None and source_param is None and _Parameter.VAR_POSITIONAL not in kinds:
@@ -126,13 +136,14 @@ def create(
 
     unknown = [] if open_ended else sorted(set(options) - keywords)
     if unknown:
-        accepted = ", ".join(sorted(keywords)) or "none"
+        accepted = ", ".join(sorted(keywords - set(context))) or "none"
         raise AdapterError(
             f"adapter {name!r} does not accept option(s) {', '.join(unknown)}; accepted: {accepted}"
         )
 
+    given = options.keys() | offered.keys()
     required = {n for n in keywords if params[n].default is _Parameter.empty}
-    missing = sorted(required - options.keys())
+    missing = sorted(required - given)
     if missing:
         raise AdapterError(f"adapter {name!r} is missing required option(s): {', '.join(missing)}")
-    return factory(*args, **options)
+    return factory(*args, **options, **offered)

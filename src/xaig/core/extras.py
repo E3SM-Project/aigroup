@@ -9,9 +9,9 @@ a checkout was never installed from.
 At module level, keep the import conventional so editors still understand it::
 
     try:
-        import heavy
+        import numpy as np
     except ImportError as exc:
-        raise missing_extra("heavy", "the-extra") from exc
+        raise missing_extra("numpy", "daig") from exc
 
 Inside a function, ``require`` does both steps.
 """

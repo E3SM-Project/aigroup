@@ -23,21 +23,28 @@ SRC = Path(__file__).resolve().parents[1] / "src" / "xaig"
 
 # unit -> the other xaig units it may import. A unit is a subpackage or a
 # top-level module; every unit may import itself and the bare ``xaig`` package.
+# Domains never import adapters: they reach them through ``core.registry``.
 ALLOWED: dict[str, set[str]] = {
     "__init__": {"core"},
     "_cli": {"core"},  # subcommands are named by string and loaded lazily
+    "_render": set(),
     "core": set(),
+    "adapters": {"core"},  # an adapter imports the contract it implements
+    "caig": {"core", "_render"},
 }
 
 # unit -> third-party roots it may import. Units absent from this table are not
-# limited.
+# limited (an adapter's whole job is to import a framework).
 THIRD_PARTY: dict[str, set[str]] = {
     "__init__": set(),
     "_cli": {"click"},
+    "_render": set(),
     "core": set(),
+    "caig": {"click", "yaml"},
 }
 
-# The name of the adapter entry-point group; it is an identifier, not an import path.
+# The entry-point group shares the adapters package's name; it is an identifier,
+# not an import path.
 CORE_STRING_EXCEPTIONS = {"xaig.adapters"}
 
 HEAVY = ("numpy", "xarray", "netCDF4", "torch", "matplotlib", "pandas", "scipy", "streamlit")
@@ -109,14 +116,14 @@ _CEILINGED = [m for m in MODULES if m[0] in THIRD_PARTY]
     ("unit", "module"), _CEILINGED, ids=[str(p.relative_to(SRC)) for _, p in _CEILINGED]
 )
 def test_third_party_ceilings(unit: str, module: Path) -> None:
-    """core is stdlib-only and the base tier is click; nothing heavier."""
+    """core is stdlib-only and the base tier is pyyaml + click; nothing heavier."""
     bad = _third_party(_imports(module)) - THIRD_PARTY[unit]
     assert not bad, f"{module.relative_to(SRC)} imports {sorted(bad)}, above {unit}'s ceiling"
 
 
 @pytest.mark.parametrize("module", UNITS["core"], ids=lambda p: p.name)
 def test_core_does_not_name_its_consumers_in_strings(module: Path) -> None:
-    """An import hidden in a string (``resources.files("xaig.consumer...")``) is still a
+    """An import hidden in a string (``resources.files("xaig.caig...")``) is still a
     dependency, and one the import checks above cannot see."""
     consumers = tuple(f"xaig.{u}" for u in UNITS if u != "core")
     bad = {
@@ -128,6 +135,25 @@ def test_core_does_not_name_its_consumers_in_strings(module: Path) -> None:
         and any(node.value == c or node.value.startswith((c + ".", c + ":")) for c in consumers)
     }
     assert not bad, f"{module.name} names consumer module(s) {sorted(bad)} in a string"
+
+
+API_MODULES = [p for _, p in MODULES if p.name == "api.py"]
+
+
+@pytest.mark.parametrize("module", API_MODULES, ids=lambda p: str(p.relative_to(SRC)))
+def test_api_modules_are_click_free(module: Path) -> None:
+    """The CLI is a client of the API; the API knows no front end."""
+    assert "click" not in _third_party(_imports(module)), f"{module} imports click"
+
+
+def test_the_checks_see_relative_and_from_package_imports(tmp_path: Path, monkeypatch) -> None:
+    """The earlier version of this file skipped both, so neither rule bit."""
+    fake = tmp_path / "xaig" / "core"
+    fake.mkdir(parents=True)
+    module = fake / "leak.py"
+    module.write_text("from ..caig import api\nfrom . import model\nfrom xaig import _cli\n")
+    monkeypatch.setattr(sys.modules[__name__], "SRC", tmp_path / "xaig")
+    assert _xaig_units(_imports(module)) == {"caig", "core", "_cli"}
 
 
 def _run(code: str) -> subprocess.CompletedProcess[str]:
@@ -147,13 +173,13 @@ def test_core_imports_no_consumer_at_runtime() -> None:
 
 
 def test_the_base_tier_is_light() -> None:
-    """Importing xaig and printing --help must not pull in the scientific stack --
-    whether or not it happens to be installed. Listing the commands imports every
-    cli module, so this also holds those to the rule that heavy imports happen
-    inside the command that needs them."""
+    """Importing xaig, tracking a campaign and printing --help must not pull in
+    the scientific stack -- whether or not it happens to be installed. Listing
+    the commands imports every cli module, so this also holds those to the rule
+    that heavy imports happen inside the command that needs them."""
     result = _run(
         "import sys\n"
-        "import xaig, xaig._cli\n"
+        "import xaig, xaig.caig, xaig._cli\n"
         "from click.testing import CliRunner\n"
         "out = CliRunner().invoke(xaig._cli.cli, ['--help'])\n"
         "assert out.exit_code == 0, out.output\n"
