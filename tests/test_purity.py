@@ -31,6 +31,7 @@ ALLOWED: dict[str, set[str]] = {
     "core": set(),
     "adapters": {"core", "daig"},  # an adapter imports the contract it implements
     "daig": {"core", "_render"},
+    "taig": {"core", "daig"},  # trains on daig's batches, returns a daig Dictionary
 }
 
 # unit -> third-party roots it may import. Units absent from this table are not
@@ -41,6 +42,7 @@ THIRD_PARTY: dict[str, set[str]] = {
     "_render": set(),
     "core": set(),
     "daig": {"click", "numpy"},  # the science stays free of any UI or file format
+    "taig": {"click", "numpy", "torch"},  # blocks over tensors; no training harness
 }
 
 # The name of the adapter entry-point group; it is an identifier, not an import path.

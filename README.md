@@ -6,7 +6,8 @@ This repo hosts two peers:
 
 - **`docs/`** — the guide site, published at <https://e3sm-project.github.io/aigroup>
 - **`src/xaig/`** — `xaig`, a light Python package for working with AI campaigns: so far,
-  emulator diagnostics, latent space included (`daig`)
+  emulator diagnostics, latent space included (`daig`), and sparse autoencoders trained on
+  it (`taig`)
 
 ## Install
 
@@ -15,16 +16,16 @@ $ uv sync
 $ uv run xaig --help
 ```
 
-In a checkout, `uv sync` (or the first `uv run`) installs every extra, plus pytest and
-ruff. `xaig` is not on PyPI; to use it from another project, install it from this
-repository, asking for the extras you need:
+In a checkout, `uv sync` (or the first `uv run`) installs every extra but torch, plus
+pytest and ruff; `uv sync --extra taig` adds torch. `xaig` is not on PyPI; to use it from
+another project, install it from this repository, asking for the extras you need:
 
 ```console
 $ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
 ```
 
 The base install pulls only Click. Anything heavier sits behind an extra named
-after the subpackage that needs it, so the core stays nimble.
+after the subpackage that needs it (`daig`, `taig`), so the core stays nimble.
 
 ## Use
 
@@ -33,6 +34,8 @@ $ xaig daig latent toy scratch/toy/control        # no model to hand? make an ar
 $ xaig daig latent info scratch/toy/control --mask-variable sst
 $ xaig daig latent info /path/to/latents/atmosphere
 $ xaig daig latent region /path/to/latents/atmosphere --lat 5 --lon -140 --centred --pcs 3
+$ xaig taig sae /path/to/latents/atmosphere --out sae.npz      # needs `uv sync --extra taig`
+$ xaig daig latent region /path/to/latents/atmosphere --lat 5 --lon -140 --features 3 --basis sae.npz
 ```
 
 ## Develop

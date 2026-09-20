@@ -25,7 +25,7 @@ _basis_option = click.option(
     "--basis",
     "basis_path",
     type=click.Path(dir_okay=False),
-    help="A basis file (from `latent pca`) whose features to use.",
+    help="A basis file (from `latent pca` or `xaig taig sae`) whose features to use.",
 )
 _unverified_option = click.option(
     "--allow-unverified-basis",

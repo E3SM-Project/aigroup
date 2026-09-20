@@ -25,8 +25,8 @@ What an emulator holds inside.
   what a framework wrote is an adapter's job (`LatentSource`); drawing is a client's.
   Third-party imports are capped at numpy and click by `tests/test_purity.py`. The one
   file daig itself reads and writes is its own: the basis `.npz` (`basis.py`), plain
-  arrays and a JSON record, because a basis is fitted once and used many times,
-  including from the model's environment, with numpy alone.
+  arrays and a JSON record, because a basis is fitted once — often by `taig`, with torch
+  — and used many times, including from the model's environment, with numpy alone.
 - **An index is not an identity.** Channel 42 of one trained network is not channel 42
   of another, and every layer of a model is as wide as the next. Whatever lines two
   things up by index checks who they are first: `check_comparable` for a run against its
@@ -37,7 +37,7 @@ What an emulator holds inside.
   `--allow-unverified-basis`); known mismatches are always refused.
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
-  product.
+  product. `taig` keeps directions at unit length so that the two agree.
 - **A method is a value.** Anything that turns channels into features is a
   `Decomposition`; routines take one as `basis=` rather than growing an argument per
   method. A basis is handed *raw* latents: its standardisation is its own and travels
@@ -57,3 +57,4 @@ What an emulator holds inside.
   quarter of it the archive's own mapped pages; the first draft took 650.
 - **Deterministic results.** No dependence on node order; PCA signs are fixed; batches
   are a function of their seed.
+- May not import `taig` (`taig` imports this, never the reverse).

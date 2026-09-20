@@ -85,12 +85,12 @@ agrees.
 | `--pin` | list a channel first whatever it scores, to follow it across layers |
 | `--reference` | what "the region" is as one vector: the `nearest` node to its centre, or its area-weighted `mean` |
 | `--pcs`, `--features` | how many features to map: principal components fitted in the region or, with `--basis`, the features of that basis which respond most strongly there |
-| `--basis` | a [basis file](#methods-a-basis-is-a-value): a global PCA |
+| `--basis` | a [basis file](#methods-a-basis-is-a-value): a global PCA, a sparse autoencoder |
 
 ## Methods: a basis is a value
 
 A PCA fitted in the region is one way to turn channels into features. A PCA fitted over
-the whole globe and every time is another.
+the whole globe and every time is another, and a [sparse autoencoder](taig.md) a third.
 They differ in how they are found and agree in what is done with them afterwards, so all
 of them are a `Decomposition` — `transform`, `directions`, `describe` — and every analysis,
 and the CLI take one wherever they take another.
@@ -106,20 +106,20 @@ wrote pca8.npz: 32 component(s) of layer 8 over 17 time(s), 69.1% of the varianc
 That is an area-weighted PCA over all 1.1 million node-times of the layer, from moments
 accumulated a block at a time: 2.9 s, and the sums are 384 × 384 however many times there
 are. It is the baseline a learned dictionary has to beat — on this layer, 32 components
-hold 69.1% of the variance.
+hold 69.1% of the variance, and [a top-32 sparse autoencoder](taig.md) 82.1%.
 
 ```console
 $ xaig daig latent region latents/atmosphere --lat 5 --lon -140 --radius-km 1500 \
-    --centred --top 6 --features 3 --basis pca8.npz
+    --centred --top 6 --features 3 --basis sae8.npz
 ...
-F1  peak 5.23  321(+0.40)  212(+0.20)  124(-0.20)  190(+0.20)  217(+0.20)  167(+0.17)
-F7  peak 3.32  107(+0.16)  351(-0.15)  288(+0.15)  326(+0.15)  61(+0.14)  179(+0.14)
-F3  peak 2.74  108(+0.28)  190(+0.16)  107(+0.16)  342(+0.15)  96(-0.14)  212(+0.14)
+F676  peak 27.5  45(-0.18)  107(+0.14)  351(-0.13)  124(+0.13)  129(+0.13)  326(+0.13)
+F48   peak 12.3  124(+0.16)  326(-0.15)  108(+0.14)  104(+0.14)  380(+0.13)  196(+0.13)
+F500  peak 11.5  280(+0.17)  351(-0.16)  332(+0.16)  211(+0.15)  22(+0.14)  114(-0.14)
 ```
 
 A basis is given the raw latents whatever `--centred` says: it carries the standardisation
 it was fitted with, and centring twice is simply wrong. Only the features asked for are
-computed, so a map of three features out of 32 does not cost the other 29. They are
+computed, so a map of three features out of 1,024 does not cost the other 1,021. They are
 ranked by what each *contributes* in the region — its activation times the length of its
 direction — because a dictionary is free to trade one for the other.
 
@@ -131,8 +131,8 @@ direction — because a dictionary is free to trade one for the other.
 
     ```console
     $ xaig daig latent region latents/atmosphere --lat 5 --lon -140 --layer 4 --rank-layer 4 \
-        --features 3 --basis pca8.npz
-    Error: the basis (pca8.npz) was not fitted here: layer 4 against the layer 8 it was fitted on
+        --features 3 --basis sae8.npz
+    Error: the basis (sae8.npz) was not fitted here: layer 4 against the layer 8 it was fitted on
     ```
 
     A basis that does not say where it was fitted — one made with `fit_pca` from plain
@@ -146,9 +146,9 @@ direction — because a dictionary is free to trade one for the other.
 !!! tip "the way back to the model"
 
     The same file is the hand-off to a steering experiment. The model's environment
-    needs nothing but numpy to read it — `np.load("pca8.npz")["components"][0]` is the
-    first principal component — and the file's `record` says which archive, layer and
-    times it was fitted on.
+    needs nothing but numpy to read it — `np.load("sae8.npz")["decoder"][676]` is the
+    direction feature 676 writes, and `["components"][0]` the first principal component —
+    and the file's `record` says which archive, layer and times it was fitted on.
 
 ## Through time
 
@@ -208,11 +208,23 @@ RANK  CHANNEL  CORRELATION
 1     45       -0.588
 2     248      -0.540
 3     224      +0.509
+$ xaig daig latent fields latents/atmosphere --field surface_precipitation_rate --top 3 \
+    --basis sae8.npz
+features of layer 8 against surface_precipitation_rate at 0425-01-03T18:00:00
+
+RANK  FEATURE  CORRELATION
+1     676      +0.966
+2     48       +0.490
+3     360      +0.469
 ```
 
-Correlation is area-weighted over valid nodes, leaves out nodes where the field is
-missing, is taken at one time, and says nothing about cause: it is where an expedition
-starts, and a [steering experiment](#a-run-against-its-control) is where it ends.
+No single channel of this layer follows precipitation better than |r| = 0.59; one feature
+of a [sparse autoencoder trained in eleven seconds](taig.md) follows it at 0.97 — the
+same feature 676 that answered most strongly in the equatorial Pacific above, built mostly
+from the same channel 45. Correlation is area-weighted over valid nodes, leaves out nodes
+where the field is missing, is taken at one time, and says nothing about cause: it is
+where an expedition starts, and a [steering experiment](#a-run-against-its-control) is
+where it ends.
 
 ## Python API
 
@@ -260,9 +272,9 @@ from xaig.daig.latent import (
 moments = accumulate_moments(source, layer=8)  # area-weighted, over every time
 save_basis("pca8.npz", pca_from_moments(moments, 32), provenance=source.info().provenance())
 
-basis = load_basis("pca8.npz")
+basis = load_basis("sae8.npz")
 result = analyse_region(source, time=0, layer=8, region=region, n_components=3, basis=basis)
-series = region_series(source, layer=8, region=region, basis=basis, features=[0])
+series = region_series(source, layer=8, region=region, basis=basis, features=[676])
 series.elapsed_seconds  # under the archive's calendar; None when it cannot say
 
 control, steered = open_source("latents/control"), open_source("latents/steered")
@@ -348,7 +360,7 @@ A directory per model component. Any exporter that writes this layout can be rea
   "extra_steps": [],
   "reference_file": "reference.nc",
   "reference_times": ["0425-01-03T12:00:00", "..."],
-  "experiment": {"seed": 0, "steer": {"layer": 4, "basis": "pca4.npz", "feature": 12, "by": 3.0}}
+  "experiment": {"seed": 0, "steer": {"layer": 4, "basis": "sae4.npz", "feature": 12, "by": 3.0}}
 }
 ```
 

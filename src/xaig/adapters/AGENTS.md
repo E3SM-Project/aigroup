@@ -26,7 +26,7 @@ with `isinstance`, so everything one framework can supply travels under one name
 
 | Protocol | Method | Consumer |
 |---|---|---|
-| `daig.latent.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `daig` |
+| `daig.latent.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `daig`, `taig` |
 | `daig.latent.ReferenceFields` | `field_names()`, `field(name, time)` → per-node values | `daig` |
 
 An adapter may also *write* what it reads: a `write(path, **contents)` on the class the

@@ -30,12 +30,16 @@ jobs:
       matrix:
         python-version: ["3.11", "3.13"]
         # base: Click only, where `xaig --help` must still work; numpy-backed
-        # tests skip. full: every extra the suite can exercise.
+        # tests skip. full: every extra but torch, so the taig tests skip. taig: torch as
+        # well, once -- the CPU build, since the default one brings CUDA along.
         tier: ["base", "full"]
         include:
           - tier: base
             sync: "--no-default-groups --group dev"
           - tier: full
+            sync: ""
+          - tier: taig
+            python-version: "3.13"
             sync: ""
     steps:
       - uses: actions/checkout@v5
@@ -52,6 +56,10 @@ jobs:
       - name: Install
         run: |
           uv sync --python ${{ matrix.python-version }} ${{ matrix.sync }}
+      - name: Install torch (CPU)
+        if: matrix.tier == 'taig'
+        run: |
+          uv pip install --python .venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
       - name: Show interpreter
         run: .venv/bin/python -VV
       - name: Lint
@@ -60,6 +68,10 @@ jobs:
           .venv/bin/ruff format --check
       - name: Test
         run: .venv/bin/pytest
+      # The taig tests skip without torch, so a failed install would pass quietly.
+      - name: Assert the taig tier has torch
+        if: matrix.tier == 'taig'
+        run: .venv/bin/python -c "import torch, xaig.taig.sae; print('torch', torch.__version__)"
       # That the base tier stays light, and that core stays pure, are tests now
       # (tests/test_purity.py), so they run locally as well as here. What only CI
       # can show is that the base tier really has no scientific stack installed.

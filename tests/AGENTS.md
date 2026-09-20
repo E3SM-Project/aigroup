@@ -9,8 +9,11 @@
   consumer and that `import xaig` / `xaig --help` stay light. A new subpackage must be
   added to the tables or the suite fails. These are cheap and unglamorous; without them
   the boundary erodes in a month.
-- Two tiers. Tests needing numpy start with `pytest.importorskip("numpy")`, so the suite
-  passes on a base install; CI runs both.
+- Three tiers. Tests needing numpy start with `pytest.importorskip("numpy")` and those
+  needing torch with `pytest.importorskip("torch")`, so the suite passes on a base
+  install and on a full one without torch; CI runs all three.
+- What torch computes and numpy applies is tested for agreement: a block against the
+  `Dictionary` exported from it, the torch spline against the numpy one.
 - Give a fixture a known right answer. The synthetic latent archive plants a bump in one
   channel and a constant offset in another, so ranking and centring can be asserted, not
   just exercised. Its noise is seeded, so two archives are twins node for node, and

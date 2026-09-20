@@ -22,11 +22,14 @@ dependencies = ["click>=8.1"]
 # xarray reads what the adapters read, and needs a backend to open NetCDF with;
 # netCDF4 is the one the rest of the E3SM/ACE stack already uses.
 daig = ["numpy>=1.24", "xarray>=2023.1", "netCDF4>=1.6"]
+# It trains on daig's latents, so it brings daig's extra.
+taig = ["torch>=2.0", "xaig[daig]"]
 
 # What a checkout gets and a wheel does not. uv installs the `dev` and `full` groups by
 # default, so `uv run xaig ...`, `uv run pytest` and `uv run ruff check` work with no
 # flags, while an installed xaig stays on the base tier until an extra is asked for.
-# `full` is every extra. The base tier alone:
+# `full` is every extra but torch, which is large and whose build (CPU, CUDA) is the
+# machine's business: ask for it with `uv sync --extra taig`. The base tier alone:
 #   uv sync --no-default-groups --group dev
 # and the guide site: `uv run --group docs mkdocs build --strict`.
 [dependency-groups]
