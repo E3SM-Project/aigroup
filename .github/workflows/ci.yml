@@ -1,0 +1,54 @@
+name: aigci
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - .github/workflows/ci.yml
+      - pyproject.toml
+      - src/**
+      - tests/**
+  # Whatever a PR's base is: one of a stack targets the branch below it, not main,
+  # and would otherwise be reviewed with no checks at all.
+  pull_request:
+    paths:
+      - .github/workflows/ci.yml
+      - pyproject.toml
+      - src/**
+      - tests/**
+  workflow_dispatch:
+
+concurrency:
+  group: aigci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          show-progress: false
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml  # no uv.lock is committed
+      # uv provides the interpreter, so the matrix version is the one actually
+      # tested. Installing into a venv also avoids the runner's /usr, which is
+      # externally managed and refuses --system.
+      - name: Install
+        run: |
+          uv sync --python ${{ matrix.python-version }}
+      - name: Show interpreter
+        run: .venv/bin/python -VV
+      - name: Lint
+        run: |
+          .venv/bin/ruff check
+          .venv/bin/ruff format --check
+      - name: Test
+        run: .venv/bin/pytest
