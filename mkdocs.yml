@@ -141,4 +141,5 @@ nav:
       - E3SM branch runs: e3sm-branch-runs.md
   - Package:
       - Overview: package/index.md
+      - Latent diagnostics: package/latents.md
 

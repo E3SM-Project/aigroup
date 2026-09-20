@@ -9,6 +9,8 @@ What an emulator holds inside.
 | `latent/toy.py` | a toy emulator in numpy, so an archive can be made with no model and no data |
 | `latent/basis.py` | `Decomposition`: `PCA`, a sparse `Dictionary`, and the basis file |
 | `latent/analysis.py` | one region at one time: ranking, similarity, a decomposition |
+| `latent/samples.py` | many times at once: moments, a global PCA, batches to train on |
+| `latent/through.py` | through time and between runs: series, differences, field correlation |
 
 ## Rules that must not be lost
 
@@ -27,10 +29,11 @@ What an emulator holds inside.
   including from the model's environment, with numpy alone.
 - **An index is not an identity.** Channel 42 of one trained network is not channel 42
   of another, and every layer of a model is as wide as the next. Whatever lines two
-  things up by index checks who they are first: `check_basis_fits` for a basis against
-  a layer (the network and layer its file says it was fitted on). Widths matching is
-  never the check. Region-fitted bases record their source and layer automatically.
-  Missing identity requires `allow_unverified_basis=True` (CLI:
+  things up by index checks who they are first: `check_comparable` for a run against its
+  control (one network, one grid, nodes valid in both), `check_basis_fits` for a basis
+  against a layer (the network and layer its file says it was fitted on). Widths
+  matching is never the check. Region-fitted bases record their source and layer
+  automatically. Missing identity requires `allow_unverified_basis=True` (CLI:
   `--allow-unverified-basis`); known mismatches are always refused.
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
@@ -39,11 +42,18 @@ What an emulator holds inside.
   `Decomposition`; routines take one as `basis=` rather than growing an argument per
   method. A basis is handed *raw* latents: its standardisation is its own and travels
   with it, so centring an analysis must not centre its input twice.
+- **Area and mask hold for training data too.** `iter_batches` draws nodes by area and
+  never where the grid is invalid, so a plain mean over a batch is the area-weighted
+  loss. Do not train on `source.load()` directly.
 - **Refuse before reading.** Whatever can be wrong with a request is checked before the
   first 100 MB is loaded, and raised as `RequestError`.
+- **Positions are not lead times.** An exporter keeps the forward calls it was asked to.
+  Anything plotted through time uses `LatentInfo.elapsed_seconds()`, and falls back to
+  positions knowingly when that is None.
 - **Mind the memory.** One layer of a 1-degree, 384-channel model is 100 MB; nine layers
   at one time is 0.9 GB. Ask a source for the nodes and channels you need, keep a layer
   in its own precision, and never make a second copy of one. `xaig daig latent region`
   on the real atmosphere archive peaks near 275 MB resident (`/usr/bin/time -l`), a
   quarter of it the archive's own mapped pages; the first draft took 650.
-- **Deterministic results.** No dependence on node order; PCA signs are fixed.
+- **Deterministic results.** No dependence on node order; PCA signs are fixed; batches
+  are a function of their seed.
