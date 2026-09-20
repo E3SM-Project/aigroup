@@ -31,6 +31,7 @@ ALLOWED: dict[str, set[str]] = {
     "core": set(),
     "adapters": {"core", "daig"},  # an adapter imports the contract it implements
     "daig": {"core", "_render"},
+    "faig": {"core", "daig"},
     "taig": {"core", "daig"},  # trains on daig's batches, returns a daig Dictionary
 }
 
@@ -42,6 +43,7 @@ THIRD_PARTY: dict[str, set[str]] = {
     "_render": set(),
     "core": set(),
     "daig": {"click", "numpy"},  # the science stays free of any UI or file format
+    "faig": {"cartopy", "matplotlib", "numpy"},  # figures, with no web framework in them
     "taig": {"click", "numpy", "torch"},  # blocks over tensors; no training harness
 }
 

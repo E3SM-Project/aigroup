@@ -4,6 +4,7 @@ Domains, and the presentation downstream of them:
 
 - ``xaig.daig``  diagnostics of emulators' internals: the latent space, on a grid
 - ``xaig.taig``  neural blocks trained on ``daig``'s latents: a sparse autoencoder
+- ``xaig.faig``  figures of what ``daig`` computes, with no web framework in them
 
 Everything framework-specific lives in ``xaig.adapters``. See ``AGENTS.md``.
 """

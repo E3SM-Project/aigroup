@@ -57,4 +57,5 @@ What an emulator holds inside.
   quarter of it the archive's own mapped pages; the first draft took 650.
 - **Deterministic results.** No dependence on node order; PCA signs are fixed; batches
   are a function of their seed.
+- Plotting requires the `faig` extra. Do not import matplotlib at package import time.
 - May not import `taig` (`taig` imports this, never the reverse).

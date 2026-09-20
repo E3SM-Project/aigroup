@@ -6,8 +6,8 @@ This repo hosts two peers:
 
 - **`docs/`** — the guide site, published at <https://e3sm-project.github.io/aigroup>
 - **`src/xaig/`** — `xaig`, a light Python package for working with AI campaigns: so far,
-  emulator diagnostics, latent space included (`daig`), and sparse autoencoders trained on
-  it (`taig`)
+  emulator diagnostics, latent space included (`daig`), sparse autoencoders trained on it
+  (`taig`), and figures (`faig`)
 
 ## Install
 
@@ -25,7 +25,7 @@ $ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
 ```
 
 The base install pulls only Click. Anything heavier sits behind an extra named
-after the subpackage that needs it (`daig`, `taig`), so the core stays nimble.
+after the subpackage that needs it (`daig`, `faig`, `taig`), so the core stays nimble.
 
 ## Use
 

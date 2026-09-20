@@ -250,6 +250,8 @@ grid = source.grid()
 first_pc = grid.to_map(result.scores[:, 0])  # (n_lat, n_lon), NaN where invalid
 ```
 
+To draw any of it, `xaig.faig.map_figure(grid, values, region=...)` returns a matplotlib
+figure.
 
 The pieces are plain functions over `(n_nodes, n_channels)` arrays — `rank_channels`,
 `cosine_similarity`, `fit_pca`, `correlate_field` — for when the routine above is not the
@@ -403,3 +405,4 @@ Meshes need no special handling: without a `grid_shape` everything works except
       `experiment` block (the SamudrACE exporter takes `--seed` and does not record it)
 - [ ] Ensemble members and per-layer grids in `LatentSource`
 - [ ] Differences and series in a basis's features between two runs
+- [ ] A time–longitude figure beside the line plot

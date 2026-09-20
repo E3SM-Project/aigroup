@@ -7,6 +7,7 @@ this repo alongside the guides, as a peer rather than an appendix.
 | --- | --- |
 | `daig` | diagnostics of emulators: [what they hold inside](latents.md) |
 | `taig` | neural blocks trained on `daig`'s latents: [sparse autoencoders](taig.md) |
+| `faig` | figures, with no web framework in them |
 
 !!! warning "research tool"
 
@@ -40,6 +41,7 @@ Error: numpy is not installed; it comes with the 'daig' extra: uv pip install -e
 | Extra | Pulls | Gets you |
 | --- | --- | --- |
 | `daig` | numpy, xarray, netCDF4 | `xaig.daig` |
+| `faig` | matplotlib, cartopy | `xaig.faig`: maps and figures (brings `daig`) |
 | `taig` | torch | [`xaig.taig`](taig.md) and `xaig taig` (not part of a plain `uv sync`) |
 
 !!! tip "uv cache"
