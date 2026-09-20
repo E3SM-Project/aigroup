@@ -117,6 +117,26 @@ def test_cli_info(latent_archive):
     assert "1 more layer(s) on coarser grids" in result.output
 
 
+def test_cli_region_as_a_table_and_as_json(latent_archive):
+    args = ["daig", "latent", "region", str(latent_archive), "--lat", "7.5", "--lon", "45"]
+    args += ["--radius-km", "2500", "--centred", "--top", "3", "--pcs", "2"]
+    table = CliRunner().invoke(cli, args)
+    assert table.exit_code == 0, table.output
+    assert table.output.splitlines()[2].split()[:2] == ["RANK", "CHANNEL"]
+    assert table.output.splitlines()[3].split()[:2] == ["1", "4"]
+    assert "PC0" in table.output
+    summary = json.loads(CliRunner().invoke(cli, [*args, "--json"]).output)
+    assert summary["settings"]["centred"] is True and summary["settings"]["layer"] == 2
+    assert summary["ranking"][0]["channel"] == 4
+
+
+def test_cli_explains_a_bad_request_in_one_line(latent_archive):
+    args = ["daig", "latent", "region", str(latent_archive), "--lat", "0", "--lon", "0"]
+    result = CliRunner().invoke(cli, [*args, "--layer", "9"])
+    assert result.exit_code != 0 and "layers are 0, 1, 2" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_a_loaded_array_is_the_callers_to_modify(tmp_path):
     """Analyses centre in place, so load() must never hand out a read-only view of
     the file -- which is what a float32 archive would otherwise give."""

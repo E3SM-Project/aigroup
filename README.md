@@ -32,6 +32,7 @@ after the subpackage that needs it, so the core stays nimble.
 $ xaig daig latent toy scratch/toy/control        # no model to hand? make an archive with numpy
 $ xaig daig latent info scratch/toy/control --mask-variable sst
 $ xaig daig latent info /path/to/latents/atmosphere
+$ xaig daig latent region /path/to/latents/atmosphere --lat 5 --lon -140 --centred --pcs 3
 ```
 
 ## Develop
