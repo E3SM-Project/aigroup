@@ -235,3 +235,37 @@ def open_source(source: str | Path, adapter: str = DEFAULT_ADAPTER, **options: A
     if not isinstance(built, LatentSource):
         raise AdapterError(f"adapter {adapter!r} does not implement LatentSource")
     return built
+
+
+def differing_identity(ours: Mapping[str, Any], theirs: Mapping[str, Any]) -> list[str]:
+    """What two declared identities disagree about, as text; undeclared is not
+    disagreement."""
+    return [
+        f"{key} {ours[key]!r} against {theirs[key]!r}"
+        for key in ("model", "component", "checkpoint")
+        if ours.get(key) and theirs.get(key) and str(ours[key]) != str(theirs[key])
+    ]
+
+
+def check_basis_fits(basis: Any, info: LatentInfo, layer: int) -> None:
+    """Refuse a basis that says it was fitted on another network or another layer.
+
+    Its width matching is not enough: every layer of a model is equally wide, and
+    so is every seed of a campaign. What a basis's file records under
+    ``fitted_on`` is compared with where it is being used. A basis that records
+    nothing is taken at its word, which is also the way to insist
+    (``dataclasses.replace(basis, meta={})``): along a residual stream, a
+    dictionary from one layer can be a fair question to put to the next.
+    """
+    width = info.layer(layer).n_channels
+    if basis.n_channels != width:
+        raise RequestError(
+            f"the basis reads {basis.n_channels} channel(s), and layer {layer} has {width}"
+        )
+    fitted = basis.meta.get("fitted_on") or {}
+    apart = differing_identity(info.identity(), fitted.get("provenance") or {})
+    if fitted.get("layer") is not None and int(fitted["layer"]) != layer:
+        apart.append(f"layer {layer} against the layer {fitted['layer']} it was fitted on")
+    if apart:
+        where = basis.meta.get("path") or "given"
+        raise RequestError(f"the basis ({where}) was not fitted here: {'; '.join(apart)}")

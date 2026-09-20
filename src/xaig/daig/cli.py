@@ -8,6 +8,8 @@ prints as one line.
 
 from __future__ import annotations
 
+import json
+
 import click
 
 from xaig import _render
@@ -19,6 +21,15 @@ _mask_option = click.option(
     "--mask-variable",
     help="Reference-file variable that is missing where nodes mean nothing (e.g. sst).",
 )
+_basis_option = click.option(
+    "--basis",
+    "basis_path",
+    type=click.Path(dir_okay=False),
+    help="A basis file whose features to use.",
+)
+_json_option = click.option(
+    "--json", "as_json", is_flag=True, help="Emit settings, provenance and results."
+)
 
 
 def _open(source: str, adapter: str, mask_variable: str | None):
@@ -26,6 +37,30 @@ def _open(source: str, adapter: str, mask_variable: str | None):
 
     options = {"mask_variable": mask_variable} if mask_variable else {}
     return open_source(source, adapter=adapter, **options)
+
+
+def _basis(path: str | None):
+    if path is None:
+        return None
+    from xaig.daig.latent import load_basis
+
+    return load_basis(path)
+
+
+def _time(text: str) -> str | int:
+    from xaig.daig.latent import parse_time
+
+    return parse_time(text)
+
+
+def _region_options(command):
+    for option in (
+        click.option("--radius-km", type=float, default=1000.0, show_default=True),
+        click.option("--lon", type=float, required=True),
+        click.option("--lat", type=float, required=True),
+    ):
+        command = option(command)
+    return command
 
 
 @click.group(name="daig")
@@ -111,6 +146,66 @@ def toy_cmd(out, steps, keep, seed, steer, overwrite, adapter) -> None:
         steer=pushed,
     )
     click.echo(f"wrote {path}; try `xaig daig latent info {path} --mask-variable sst`")
+
+
+@latent.command("region")
+@click.argument("source", type=click.Path())
+@_adapter_option
+@_mask_option
+@click.option("--time", "time", default="0", show_default=True, help="Time label, or position.")
+@click.option("--layer", type=int, help="Layer to analyse.  [default: the last]")
+@click.option("--rank-layer", type=int, help="Layer to rank channels at.  [default: the last]")
+@_region_options
+@click.option("--top", type=int, default=15, show_default=True, help="Channels to rank.")
+@click.option("--pin", "pinned", type=int, multiple=True, help="Channel to list first; repeatable.")
+@click.option("--centred", is_flag=True, help="Remove each channel's global mean first.")
+@click.option("--reference", type=click.Choice(["nearest", "mean"]), default="nearest")
+@click.option(
+    "--pcs",
+    "--features",
+    "n_components",
+    type=int,
+    default=0,
+    help="Features to map: principal components fitted in the region, or with --basis "
+    "the features of it that respond most there.",
+)
+@_basis_option
+@_json_option
+def region_cmd(
+    source, adapter, mask_variable, time, layer, as_json, lat, lon, radius_km, basis_path, **kw
+):
+    """Rank the channels that respond in a region; optionally map a decomposition."""
+    from xaig.daig.latent import Region, analyse_region
+
+    opened = _open(source, adapter, mask_variable)
+    result = analyse_region(
+        opened,
+        time=_time(time),
+        layer=opened.info().last_layer if layer is None else layer,
+        region=Region(lat, lon, radius_km),
+        basis=_basis(basis_path),
+        **kw,
+    )
+    summary = result.summary()
+    if as_json:
+        click.echo(json.dumps(summary, indent=2))
+        return
+    s = summary["settings"]
+    click.echo(f"{summary['n_region_nodes']} node(s) at layer {s['layer']}, time {s['time']}\n")
+    rows = [
+        {"rank": i, "channel": r["channel"], "peak_abs": f"{r['peak_abs']:.4g}"}
+        for i, r in enumerate(summary["ranking"], start=1)
+    ]
+    click.echo(_render.table(rows))
+    for feature in summary.get("features", []):
+        loadings = "  ".join(
+            f"{x['channel']}({x['loading']:+.2f})" for x in feature["top_loadings"]
+        )
+        if "peak_abs" in feature:  # a given basis: how strongly it responds here
+            size = f"peak {feature['peak_abs']:.3g}"
+        else:
+            size = f"{100 * feature['explained_variance_ratio']:5.1f}%"
+        click.echo(f"\n{feature['label']}  {size}  {loadings}")
 
 
 __all__ = ["daig"]

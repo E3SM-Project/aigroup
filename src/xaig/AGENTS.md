@@ -43,8 +43,9 @@ suite, so the decision is always made on purpose.
 ## Contracts
 
 Keep shared contracts few and small. A contract whose consumers all sit on one subpackage
-lives in it — `daig.latent.LatentSource`, `ReferenceFields` — and is promoted to core when
-something that does not import that subpackage needs it, not before.
+lives in it — `daig.latent.LatentSource`, `ReferenceFields`, `Decomposition` — and is
+promoted to core when something that does not import that subpackage needs it, not
+before.
 
 ## Errors
 
@@ -70,6 +71,7 @@ so heavy imports happen inside the command that needs them.
 |---|---|
 | support for a framework | a module in `adapters/` + an entry point in `pyproject.toml` |
 | a diagnostic | a module in `daig/`, on `daig.grid` |
+| a way of finding features | something satisfying `daig.latent.Decomposition` |
 | a command | a `cli.py`, named in `_cli._COMMANDS` (or the `xaig.commands` entry-point group, from another distribution) |
 | a subpackage | the directory, an extra, its row in `tests/test_purity.py`, an `AGENTS.md` |
 
