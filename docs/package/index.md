@@ -6,6 +6,7 @@ this repo alongside the guides, as a peer rather than an appendix.
 | Subpackage | Scope |
 | --- | --- |
 | `daig` | diagnostics of emulators: [what they hold inside](latents.md) |
+| `taig` | neural blocks trained on `daig`'s latents: [sparse autoencoders](taig.md) |
 
 !!! warning "research tool"
 
@@ -18,9 +19,10 @@ $ uv sync
 $ uv run xaig --help
 ```
 
-In a checkout, `uv sync` (or the first `uv run`) installs every extra below, plus
-pytest and ruff. `xaig` is not on PyPI; to use it from another project, install it from
-this repository, asking for the extras you need:
+In a checkout, `uv sync` (or the first `uv run`) installs every extra below but `taig`,
+plus pytest and ruff. Torch is large, and whether it should be a CPU or a CUDA build is the
+machine's business: ask for it with `uv sync --extra taig`. `xaig` is not on PyPI; to use
+it from another project, install it from this repository, asking for the extras you need:
 
 ```console
 $ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
@@ -38,6 +40,7 @@ Error: numpy is not installed; it comes with the 'daig' extra: uv pip install -e
 | Extra | Pulls | Gets you |
 | --- | --- | --- |
 | `daig` | numpy, xarray, netCDF4 | `xaig.daig` |
+| `taig` | torch | [`xaig.taig`](taig.md) and `xaig taig` (not part of a plain `uv sync`) |
 
 !!! tip "uv cache"
 
@@ -146,3 +149,4 @@ $ xaig daig latent info /path/to/export --adapter myframework
       `LatentSource`, on the same `daig.grid`)
 - [ ] `daig.latent`: a GraphCast mesh adapter; the activation exporter as an adapter,
       with a steering hook
+- [ ] `taig`: a cross-layer transcoder; a better training loop

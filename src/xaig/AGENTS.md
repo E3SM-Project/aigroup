@@ -7,6 +7,7 @@ adding subpackages and adapters rather than by widening what exists.
 |---|---|---|
 | `core` | errors, adapter registry, the hint for a missing extra | stdlib |
 | `daig` | diagnostics of emulators' internals: the latent space, on a grid | `xaig[daig]` (numpy, xarray) |
+| `taig` | neural blocks trained on `daig`'s latents: a sparse autoencoder | `xaig[taig]` (torch, and `daig`'s) |
 | `adapters` | everything that knows a framework or a file layout | per adapter |
 
 ## Three concerns, kept apart
@@ -32,9 +33,13 @@ answer.
 core        <-  everything; imports nothing of xaig, and no third party
 adapters    ->  core, and the domain contract each one implements
 daig        ->  core (and _render, for its cli)
+taig        ->  core, daig
 ```
 
-Domains never import `adapters` — they ask `core.registry` for one by name.
+Domains never import `adapters` — they ask `core.registry` for one by name. `taig` reads
+`daig` and is read by nothing: it trains on `daig.latent`'s batches and hands back a
+`daig.latent.Dictionary`, so what it learns is used wherever a PCA is, by code that has
+never heard of torch.
 
 The authoritative version is the `ALLOWED` and `THIRD_PARTY` tables in
 `tests/test_purity.py`. Adding a subpackage without declaring its edges there fails the
@@ -71,7 +76,7 @@ so heavy imports happen inside the command that needs them.
 |---|---|
 | support for a framework | a module in `adapters/` + an entry point in `pyproject.toml` |
 | a diagnostic | a module in `daig/`, on `daig.grid` |
-| a way of finding features | something satisfying `daig.latent.Decomposition` |
+| a way of finding features | something satisfying `daig.latent.Decomposition`; if torch finds it, the block and its loop in `taig/` |
 | a command | a `cli.py`, named in `_cli._COMMANDS` (or the `xaig.commands` entry-point group, from another distribution) |
 | a subpackage | the directory, an extra, its row in `tests/test_purity.py`, an `AGENTS.md` |
 

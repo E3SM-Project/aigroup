@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 # imported inside the command that needs it (tests/test_purity.py holds them to it).
 _COMMANDS = {
     "daig": "xaig.daig.cli:daig",
+    "taig": "xaig.taig.cli:taig",
 }
 
 # A separate distribution adds a command by registering a ``click.Command``

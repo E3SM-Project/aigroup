@@ -6,9 +6,9 @@ them afterwards: project a layer onto them, map a feature, ask which channels it
 is made of, push a model along it. ``Decomposition`` is that shared part, so an
 analysis and the CLI take "the method" as a value.
 
-A basis is fitted once, often somewhere else (a dictionary is trained with
-torch), and used many times, so it has a file of its own: one ``.npz`` holding
-plain arrays and a JSON record of how it was made. It is xaig's own
+A basis is fitted once, often somewhere else (a dictionary is trained with torch,
+in ``xaig.taig``), and used many times, so it has a file of its own: one ``.npz``
+holding plain arrays and a JSON record of how it was made. It is xaig's own
 interchange format, written and read here and nowhere else. It is also the
 hand-off *back* to the model's environment, which needs nothing but numpy to read
 a row of ``directions`` and steer along it.
@@ -217,7 +217,8 @@ def bspline_activation(z: np.ndarray, coefficients: np.ndarray, upper: float) ->
     keeps the code sparse whatever the spline learns; with coefficients at
     ``spline_knots`` it is a ReLU, and training bends it from there (a threshold,
     a saturation). Only four basis functions are non-zero anywhere, so they are
-    evaluated in closed form rather than by recursion.
+    evaluated in closed form rather than by recursion. The torch twin in
+    ``xaig.taig`` is tested to agree with this to float precision.
     """
     n_intervals = coefficients.shape[1] - 3
     step = upper / n_intervals
@@ -241,9 +242,9 @@ def topk_mask(z: np.ndarray, k: int) -> np.ndarray:
     Everything above the ``k``-th largest value is kept, and the places left over
     go to the entries *equal* to it in order of index. "At least the k-th value"
     keeps every tie instead, so four equal activations would all survive a top-1.
-    The rule is spelt with comparisons and a running count so that it reads the
-    same over torch tensors: where a dictionary is trained and where it is used
-    must never disagree about which feature of a tie fired.
+    The rule is spelt with comparisons and a running count so that the torch twin
+    in ``xaig.taig`` can spell it identically: the two must never disagree about
+    which feature of a tie fired.
     """
     cut = np.partition(z, -k, axis=1)[:, -k][:, None]
     above, tied = z > cut, z == cut
