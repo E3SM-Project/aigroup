@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 _COMMANDS = {
     "daig": "xaig.daig.cli:daig",
     "taig": "xaig.taig.cli:taig",
+    "waig": "xaig.waig.cli:waig",
 }
 
 # A separate distribution adds a command by registering a ``click.Command``

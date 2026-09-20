@@ -14,3 +14,13 @@ __pycache__/
 
 # throwaway output: toy archives, fitted bases, whatever is made while trying things
 scratch/
+
+# lock files and tool environments: nothing is pinned here, and CI resolves from
+# pyproject.toml, so a lock is one machine's answer and not the repo's
+uv.lock
+pixi.lock
+.pixi/
+poetry.lock
+pdm.lock
+Pipfile.lock
+conda-lock.yml

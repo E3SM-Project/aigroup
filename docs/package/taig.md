@@ -5,7 +5,7 @@ wide and mostly-zero vector of *features* comes out, and the input is rebuilt fr
 Channels are entangled; features, being few at a time, are easier to name.
 
 What it produces is a [basis file](latents.md#methods-a-basis-is-a-value), used wherever a
-PCA is — `xaig daig latent region`, `series`, `fields` — and
+PCA is — `xaig daig latent region`, `series`, `fields`, and the [web app](waig.md) — and
 readable with nothing but numpy from the environment that runs the model.
 
 ## Install

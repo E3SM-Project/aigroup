@@ -9,6 +9,7 @@ adding subpackages and adapters rather than by widening what exists.
 | `daig` | diagnostics of emulators' internals: the latent space, on a grid | `xaig[daig]` (numpy, xarray) |
 | `taig` | neural blocks trained on `daig`'s latents: a sparse autoencoder | `xaig[taig]` (torch, and `daig`'s) |
 | `faig` | figures, with no web framework in them | `xaig[faig]` (matplotlib, cartopy) |
+| `waig` | a local web app: presentation only | `xaig[waig]` (streamlit, and `faig`'s) |
 | `adapters` | everything that knows a framework or a file layout | per adapter |
 
 ## Three concerns, kept apart
@@ -36,13 +37,14 @@ adapters    ->  core, and the domain contract each one implements
 daig        ->  core (and _render, for its cli)
 taig        ->  core, daig
 faig        ->  core, daig
+waig        ->  core, daig, faig;  nothing imports waig
 ```
 
 Domains never import `adapters` — they ask `core.registry` for one by name. `taig` reads
 `daig` and is read by nothing: it trains on `daig.latent`'s batches and hands back a
 `daig.latent.Dictionary`, so what it learns is used wherever a PCA is, by code that has
 never heard of torch. Presentation sits downstream of the science: `faig` draws what
-`daig` computes.
+`daig` computes, and `waig` puts widgets on both.
 
 The authoritative version is the `ALLOWED` and `THIRD_PARTY` tables in
 `tests/test_purity.py`. Adding a subpackage without declaring its edges there fails the
@@ -67,8 +69,9 @@ every subcommand (`xaig --debug` does not).
 ## API first; everything else is a client
 
 Each subpackage has plain modules that return objects and print nothing, and a `cli.py`
-that parses, calls them and formats. A notebook and a batch job are clients in exactly the
-same way. If it is worth testing without a terminal, it belongs in the API.
+that parses, calls them and formats. A notebook, a batch job and the web app are clients
+in exactly the same way. If it is worth testing without a terminal, it belongs in the
+API.
 
 `cli.py` modules must import on the base tier — `xaig --help` imports every one of them —
 so heavy imports happen inside the command that needs them.
@@ -81,6 +84,7 @@ so heavy imports happen inside the command that needs them.
 | a diagnostic | a module in `daig/`, on `daig.grid` |
 | a way of finding features | something satisfying `daig.latent.Decomposition`; if torch finds it, the block and its loop in `taig/` |
 | a figure | a function in `faig/` that returns a `Figure` |
+| a view in the app | a module with a `page()` in `waig/`, and a line in `waig/app.py` |
 | a command | a `cli.py`, named in `_cli._COMMANDS` (or the `xaig.commands` entry-point group, from another distribution) |
 | a subpackage | the directory, an extra, its row in `tests/test_purity.py`, an `AGENTS.md` |
 
