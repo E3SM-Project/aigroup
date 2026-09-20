@@ -143,4 +143,5 @@ nav:
       - Overview: package/index.md
       - Latent diagnostics: package/latents.md
       - Sparse autoencoders: package/taig.md
+      - Web app: package/waig.md
 

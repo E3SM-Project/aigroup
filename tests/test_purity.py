@@ -33,6 +33,7 @@ ALLOWED: dict[str, set[str]] = {
     "daig": {"core", "_render"},
     "faig": {"core", "daig"},
     "taig": {"core", "daig"},  # trains on daig's batches, returns a daig Dictionary
+    "waig": {"core", "daig", "faig"},  # downstream of everything; nothing imports it
 }
 
 # unit -> third-party roots it may import. Units absent from this table are not
@@ -45,6 +46,7 @@ THIRD_PARTY: dict[str, set[str]] = {
     "daig": {"click", "numpy"},  # the science stays free of any UI or file format
     "faig": {"cartopy", "matplotlib", "numpy"},  # figures, with no web framework in them
     "taig": {"click", "numpy", "torch"},  # blocks over tensors; no training harness
+    "waig": {"click", "numpy", "streamlit"},  # widgets; figures come from faig
 }
 
 # The name of the adapter entry-point group; it is an identifier, not an import path.

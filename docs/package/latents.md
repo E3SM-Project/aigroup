@@ -93,7 +93,7 @@ A PCA fitted in the region is one way to turn channels into features. A PCA fitt
 the whole globe and every time is another, and a [sparse autoencoder](taig.md) a third.
 They differ in how they are found and agree in what is done with them afterwards, so all
 of them are a `Decomposition` — `transform`, `directions`, `describe` — and every analysis,
-and the CLI take one wherever they take another.
+the CLI and the [web app](waig.md) take one wherever they take another.
 
 A basis is fitted once and used many times, so it has a file: one `.npz` of plain arrays
 and a JSON record of how it was made.
@@ -251,7 +251,7 @@ first_pc = grid.to_map(result.scores[:, 0])  # (n_lat, n_lon), NaN where invalid
 ```
 
 To draw any of it, `xaig.faig.map_figure(grid, values, region=...)` returns a matplotlib
-figure.
+figure, and [`xaig waig`](waig.md) puts the whole routine behind widgets.
 
 The pieces are plain functions over `(n_nodes, n_channels)` arrays — `rank_channels`,
 `cosine_similarity`, `fit_pca`, `correlate_field` — for when the routine above is not the

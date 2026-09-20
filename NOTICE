@@ -6,8 +6,8 @@ This product is licensed under the BSD 3-Clause License; see LICENSE.
 Third-party notices
 -------------------
 
-xaig.daig.latent and xaig.faig grew out of the latent space visualiser for
-weather models,
+xaig.daig.latent, xaig.faig and xaig.waig grew out of the latent space
+visualiser for weather models,
 
     https://github.com/ktempestuous/latent_space_visualiser_weather_models
     Tempest, Beylich & Craig (2026), doi:10.1007/978-3-032-29915-4_10

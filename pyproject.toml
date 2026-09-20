@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "xaig"
 dynamic = ["version"]
-description = "Light, framework-agnostic tooling for E3SM AI campaigns"
+description = "Light, framework-agnostic tooling for E3SM AI campaigns: latent diagnostics, sparse autoencoders, figures, a local app"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "BSD-3-Clause"
@@ -24,6 +24,7 @@ dependencies = ["click>=8.1"]
 daig = ["numpy>=1.24", "xarray>=2023.1", "netCDF4>=1.6"]
 # cartopy is for coastlines; without its data (no network) maps are still drawn.
 faig = ["matplotlib>=3.7", "cartopy>=0.23", "xaig[daig]"]
+waig = ["streamlit>=1.50", "xaig[faig]"]
 # It trains on daig's latents, so it brings daig's extra as faig does.
 taig = ["torch>=2.0", "xaig[daig]"]
 
@@ -36,7 +37,7 @@ taig = ["torch>=2.0", "xaig[daig]"]
 # and the guide site: `uv run --group docs mkdocs build --strict`.
 [dependency-groups]
 dev = ["pytest>=7.4", "ruff>=0.5"]
-full = ["xaig[faig]"]
+full = ["xaig[waig]"]
 # mkdocs 2 drops the plugin system this site is built on.
 docs = ["mkdocs>=1.6,<2", "mkdocs-material[imaging]>=9.5"]
 
