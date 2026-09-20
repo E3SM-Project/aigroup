@@ -64,4 +64,4 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 
 - `latent_archive.py` — activations recorded from a model, as a directory of
   memory-mapped arrays, with the physical fields kept beside them; `write_archive` writes
-  one (`xaig[daig]`).
+  one (`xaig[daig]`; format in `docs/package/latents.md`).

@@ -1,7 +1,7 @@
 """Read a latent archive: a directory of activations recorded from one model.
 
 The layout is the interchange format between the environment that can run a
-model and the one that studies it::
+model and the one that studies it (``docs/package/latents.md`` is the reference)::
 
     manifest.json   times, layers, provenance, and what was done to the run
     grid.npz        lat, lon per node; optionally grid_shape, mask, area

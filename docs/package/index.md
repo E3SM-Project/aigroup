@@ -5,7 +5,7 @@ this repo alongside the guides, as a peer rather than an appendix.
 
 | Subpackage | Scope |
 | --- | --- |
-| `daig` | diagnostics of emulators: what they hold inside |
+| `daig` | diagnostics of emulators: [what they hold inside](latents.md) |
 
 !!! warning "research tool"
 
@@ -71,7 +71,8 @@ else is a bug and keeps its traceback, as does everything under `xaig --debug`.
 
 ## Looking inside a model
 
-`daig.latent` reads activations recorded from inside a model, through an adapter:
+`daig.latent` reads activations recorded from inside a model, through an adapter, and
+analyses them; [latent diagnostics](latents.md) is the guide to it.
 
 ```console
 $ xaig daig latent info /path/to/latents/atmosphere

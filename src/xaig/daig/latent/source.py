@@ -247,6 +247,62 @@ def differing_identity(ours: Mapping[str, Any], theirs: Mapping[str, Any]) -> li
     ]
 
 
+def check_comparable(
+    a: LatentSource, b: LatentSource, *, layer: int, across_models: bool = False
+) -> None:
+    """Refuse to set two sources against each other unless node ``i`` of one is
+    node ``i`` of the other and channel ``c`` of ``layer`` is the same channel.
+
+    A perturbed run is compared with its control node for node and channel for
+    channel, so a differing grid or width is not a detail: the difference would
+    be computed, and would mean nothing. Nor is a differing network: two
+    checkpoints trained apart agree on a channel's index and on nothing about it,
+    so sources that declare different identities are refused too. ``across_models``
+    lifts that one check, for the cases where the index does carry over (a
+    fine-tune of the same weights), and it is the caller's to justify.
+    """
+    info_a, info_b = a.info(), b.info()
+    apart = differing_identity(info_a.identity(), info_b.identity())
+    if apart and not across_models:
+        raise RequestError(
+            f"{info_a.source} and {info_b.source} are different networks ({'; '.join(apart)}), "
+            "and a channel's index means nothing between two; pass across_models=True "
+            "only if it does here"
+        )
+    width_a, width_b = info_a.layer(layer).n_channels, info_b.layer(layer).n_channels
+    if width_a != width_b:
+        raise RequestError(
+            f"layer {layer} has {width_a} channel(s) in {info_a.source} "
+            f"and {width_b} in {info_b.source}"
+        )
+    grid_a, grid_b = a.grid(), b.grid()
+    if grid_a.n_nodes != grid_b.n_nodes or grid_a.shape != grid_b.shape:
+        raise RequestError(
+            f"{info_a.source} and {info_b.source} are on different grids "
+            f"({grid_a.n_nodes} and {grid_b.n_nodes} nodes)"
+        )
+    same_lat = np.allclose(grid_a.lat, grid_b.lat)
+    if not (same_lat and np.allclose(grid_a.lon % 360.0, grid_b.lon % 360.0)):
+        raise RequestError(
+            f"{info_a.source} and {info_b.source} have the same number of nodes in different places"
+        )
+
+
+def shared_grid(a: LatentSource, b: LatentSource) -> Grid:
+    """The first source's grid, valid only where both are: what a comparison of
+    the two may weigh and map. A node one run marks invalid holds whatever it
+    holds there -- NaN, or a number that means nothing -- and one such node would
+    otherwise decide the whole difference."""
+    grid_a, grid_b = a.grid(), b.grid()
+    return Grid(
+        lat=grid_a.lat,
+        lon=grid_a.lon,
+        shape=grid_a.shape,
+        mask=grid_a.valid & grid_b.valid,
+        area=grid_a.area,
+    )
+
+
 def check_basis_fits(
     basis: Any, info: LatentInfo, layer: int, *, allow_unverified: bool = False
 ) -> None:

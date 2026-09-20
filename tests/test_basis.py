@@ -15,12 +15,14 @@ from xaig.daig.latent import (  # noqa: E402
     Decomposition,
     Dictionary,
     Region,
+    accumulate_moments,
     analyse_region,
     bspline_activation,
     cosine_similarity,
     fit_pca,
     load_basis,
     open_source,
+    pca_from_moments,
     rank_channels,
     save_basis,
     spline_knots,
@@ -145,6 +147,43 @@ def test_half_precision_is_widened_before_it_can_overflow():
     assert cosine_similarity(latents, latents[0]) == pytest.approx([1.0, 1.0])
     pca = fit_pca(np.random.default_rng(0).normal(size=(10, 384)), 2)
     assert np.isfinite(pca.transform(latents)).all()
+
+
+# -- a basis in the routine ---------------------------------------------------
+
+
+@pytest.fixture
+def global_pca(latent_archive):
+    return pca_from_moments(accumulate_moments(open_source(latent_archive), layer=2), 3)
+
+
+def test_a_given_basis_maps_its_features_that_respond_in_the_region(latent_archive, global_pca):
+    source = open_source(latent_archive)
+    result = analyse_region(source, time=0, layer=2, region=HERE, n_components=2, basis=global_pca)
+    first = result.feature_info[0]
+    assert first["label"] == "F0" and first["top_loadings"][0]["channel"] == 4  # the bump
+    assert first["peak_abs"] >= result.feature_info[1]["peak_abs"]
+    assert result.scores.shape == (source.grid().n_nodes, 2) and result.pca is None
+    assert result.summary()["features"] == list(result.feature_info)
+
+
+def test_a_basis_sees_raw_latents_whatever_the_analysis_centres(latent_archive, global_pca):
+    """It carries the standardisation it was fitted with; centring twice is wrong."""
+    source = open_source(latent_archive)
+    kwargs = dict(time=0, layer=2, region=HERE, n_components=2, basis=global_pca)
+    raw, centred = analyse_region(source, **kwargs), analyse_region(source, centred=True, **kwargs)
+    assert np.array_equal(raw.scores, centred.scores)
+    assert raw.ranking.channels[0] == 1 and centred.ranking.channels[0] == 4  # unlike the ranking
+
+
+def test_a_basis_for_another_layer_is_refused_before_anything_is_read(latent_archive):
+    source = open_source(latent_archive)
+    narrow = fit_pca(np.random.default_rng(0).normal(size=(10, 3)), 2)
+    with pytest.raises(RequestError, match="reads 3 channel"):
+        analyse_region(source, time=0, layer=2, region=HERE, n_components=1, basis=narrow)
+    wide = pca_from_moments(accumulate_moments(source, layer=2), 3)
+    with pytest.raises(RequestError, match="at most 3 exist"):
+        analyse_region(source, time=0, layer=2, region=HERE, n_components=4, basis=wide)
 
 
 # -- what a second review found ---------------------------------------------
