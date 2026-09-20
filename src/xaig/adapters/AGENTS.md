@@ -29,6 +29,10 @@ with `isinstance`, so everything one framework can supply travels under one name
 | `daig.latent.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `daig` |
 | `daig.latent.ReferenceFields` | `field_names()`, `field(name, time)` → per-node values | `daig` |
 
+An adapter may also *write* what it reads: a `write(path, **contents)` on the class the
+registry hands out. `daig.latent.toy` reaches the archive writer that way, by name, and a
+writer is always tested against its own reader.
+
 ## Registering
 
 Entry points are the only mechanism, for the adapters shipped here and for one living in
@@ -59,4 +63,5 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 ## Present adapters
 
 - `latent_archive.py` — activations recorded from a model, as a directory of
-  memory-mapped arrays, with the physical fields kept beside them (`xaig[daig]`).
+  memory-mapped arrays, with the physical fields kept beside them; `write_archive` writes
+  one (`xaig[daig]`).

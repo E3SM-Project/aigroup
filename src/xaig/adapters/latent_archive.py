@@ -11,12 +11,18 @@ model and the one that studies it::
 Layer files are memory-mapped, and only the requested time, nodes and channels
 are ever read into memory. The reference file is opened with xarray, and only
 when a mask or a field is asked of it.
+
+``write_archive`` is the other half: whatever can hand over arrays -- a toy model,
+an exporter hooked into a real one -- writes the layout through it, so the writer
+and the reader are tested against each other rather than against a description.
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+import shutil
+import warnings
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +38,7 @@ except ImportError as exc:
 
 MANIFEST = "manifest.json"
 GRID = "grid.npz"
+REFERENCE = "reference.nc"
 
 
 def _layers(entries: Any, where: Path) -> list[dict[str, Any]]:
@@ -102,6 +109,11 @@ class LatentArchive:
             experiment=experiment,
             options={"mask_variable": mask_variable} if mask_variable else {},
         )
+
+    @staticmethod
+    def write(path: str | Path, **contents: Any) -> Path:
+        """``write_archive``, reachable from the class the registry hands out."""
+        return write_archive(path, **contents)
 
     def info(self) -> LatentInfo:
         return self._info
@@ -239,3 +251,128 @@ class LatentArchive:
                 f"layer {layer} holds {shape[0]} nodes x {shape[1]} channels ({exc})"
             ) from exc
         return np.array(block, dtype=np.float32)  # always a copy: the caller may modify it
+
+
+def write_archive(
+    path: str | Path,
+    *,
+    grid: Grid,
+    times: Sequence[str],
+    layers: Sequence[tuple[str, np.ndarray]],
+    fields: Mapping[str, np.ndarray] | None = None,
+    field_times: Sequence[str] | None = None,
+    model: str | None = None,
+    component: str | None = None,
+    checkpoint: str | None = None,
+    calendar: str | None = None,
+    timestep_seconds: int | None = None,
+    experiment: Mapping[str, Any] | None = None,
+    dtype: str = "float16",
+    overwrite: bool = False,
+) -> Path:
+    """Write one archive directory in the layout ``LatentArchive`` reads.
+
+    ``layers`` are ``(label, array)`` pairs, each array ``(n_times, n_nodes,
+    n_channels)``, indexed by their position. ``fields`` are physical fields on
+    the same nodes, each ``(n_field_times, n_nodes)``; ``field_times`` labels their
+    time axis and must hold every latent time -- it usually holds more, the state
+    each step started from among them. The grid's mask and area travel in
+    ``grid.npz`` when the grid has them. Everything is checked before anything is
+    written.
+    """
+    out = Path(path)
+    times = [str(t) for t in times]
+    n_nodes = grid.n_nodes
+    if not times or len(set(times)) != len(times):
+        raise RequestError("an archive needs at least one time, and each only once")
+    if not layers:
+        raise RequestError("an archive needs at least one layer")
+    for index, (label, array) in enumerate(layers):
+        if array.ndim != 3 or array.shape[:2] != (len(times), n_nodes):
+            raise RequestError(
+                f"layer {index} ({label!r}) has shape {array.shape}; expected "
+                f"({len(times)} times, {n_nodes} nodes, channels)"
+            )
+    fields = dict(fields or {})
+    labels = [str(t) for t in (field_times if field_times is not None else times)]
+    if fields:
+        absent = [t for t in times if t not in labels]
+        if absent:
+            raise RequestError(f"the fields hold no time {absent[0]!r}, which the latents do")
+        for name, values in fields.items():
+            if values.shape != (len(labels), n_nodes):
+                raise RequestError(
+                    f"field {name!r} has shape {values.shape}; expected "
+                    f"({len(labels)} times, {n_nodes} nodes)"
+                )
+    if out.exists() and any(out.iterdir()):
+        if not overwrite:
+            raise RequestError(f"{out} is not empty; pass overwrite=True to replace it")
+        shutil.rmtree(out)
+    out.mkdir(parents=True, exist_ok=True)
+
+    stored: dict[str, np.ndarray] = {"lat": grid.lat, "lon": grid.lon}
+    if grid.shape is not None:
+        stored["grid_shape"] = np.array(grid.shape)
+        stored["lat_1d"] = grid.lat.reshape(grid.shape)[:, 0]
+        stored["lon_1d"] = grid.lon.reshape(grid.shape)[0, :]
+    if grid.mask is not None:
+        stored["mask"] = grid.mask
+    if grid.area is not None:
+        stored["area"] = grid.area
+    np.savez(out / GRID, **stored)
+
+    steps = []
+    for index, (label, array) in enumerate(layers):
+        file = f"step_{index:02d}.npy"
+        np.save(out / file, np.asarray(array, dtype=dtype))
+        steps.append(
+            {"index": index, "label": str(label), "file": file, "n_channels": int(array.shape[2])}
+        )
+    manifest: dict[str, Any] = {
+        "model": model,
+        "component": component,
+        "checkpoint": checkpoint,
+        "calendar": calendar,
+        "timestep_seconds": timestep_seconds,
+        "n_nodes": n_nodes,
+        "latent_times": times,
+        "steps": steps,
+        "extra_steps": [],
+    }
+    if grid.shape is not None:
+        manifest["grid_shape"] = list(grid.shape)
+    if fields:
+        _write_reference(out / REFERENCE, grid, fields)
+        manifest["reference_file"] = REFERENCE
+        manifest["reference_times"] = labels
+    if experiment:
+        manifest["experiment"] = dict(experiment)
+    manifest = {key: value for key, value in manifest.items() if value is not None}
+    (out / MANIFEST).write_text(json.dumps(manifest, indent=2))
+    return out
+
+
+def _write_reference(file: Path, grid: Grid, fields: Mapping[str, np.ndarray]) -> None:
+    xarray = require("xarray", "daig")
+    n_times = next(iter(fields.values())).shape[0]
+    if grid.shape is not None:
+        dims: tuple[str, ...] = ("time", "lat", "lon")
+        shape: tuple[int, ...] = (n_times, *grid.shape)
+        coords = {
+            "lat": grid.lat.reshape(grid.shape)[:, 0],
+            "lon": grid.lon.reshape(grid.shape)[0, :],
+        }
+    else:
+        dims, shape, coords = ("time", "node"), (n_times, grid.n_nodes), {}
+    # Times are labelled by the manifest; the file's own axis is positions, so no
+    # calendar has to be encoded only to be ignored on the way back in.
+    variables = {
+        name: (dims, np.asarray(values, dtype=np.float32).reshape(shape))
+        for name, values in fields.items()
+    }
+    dataset = xarray.Dataset(variables, coords={"time": np.arange(n_times), **coords})
+    with warnings.catch_warnings():
+        # netCDF4 1.7's write path trips a NumPy 2.5 deprecation of its own.
+        warnings.simplefilter("ignore", DeprecationWarning)
+        dataset.to_netcdf(file)
