@@ -29,6 +29,14 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.13"]
+        # base: Click only, where `xaig --help` must still work; numpy-backed
+        # tests skip. full: every extra the suite can exercise.
+        tier: ["base", "full"]
+        include:
+          - tier: base
+            sync: "--no-default-groups --group dev"
+          - tier: full
+            sync: ""
     steps:
       - uses: actions/checkout@v5
         with:
@@ -43,7 +51,7 @@ jobs:
       # externally managed and refuses --system.
       - name: Install
         run: |
-          uv sync --python ${{ matrix.python-version }}
+          uv sync --python ${{ matrix.python-version }} ${{ matrix.sync }}
       - name: Show interpreter
         run: .venv/bin/python -VV
       - name: Lint
@@ -52,3 +60,15 @@ jobs:
           .venv/bin/ruff format --check
       - name: Test
         run: .venv/bin/pytest
+      # That the base tier stays light, and that core stays pure, are tests now
+      # (tests/test_purity.py), so they run locally as well as here. What only CI
+      # can show is that the base tier really has no scientific stack installed.
+      - name: Assert the base tier has no scientific stack
+        if: matrix.tier == 'base'
+        run: |
+          .venv/bin/python - <<'PY'
+          from importlib.util import find_spec
+          present = [m for m in ("numpy", "xarray", "netCDF4", "torch", "matplotlib") if find_spec(m)]
+          assert not present, f"base tier unexpectedly has {present}"
+          print("base tier is light")
+          PY

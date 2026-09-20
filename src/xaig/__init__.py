@@ -1,4 +1,11 @@
-"""xaig -- light, framework-agnostic tooling for E3SM AI campaigns. See ``AGENTS.md``."""
+"""xaig -- light, framework-agnostic tooling for E3SM AI campaigns.
+
+Domains, and the presentation downstream of them:
+
+- ``xaig.daig``  diagnostics of emulators' internals: the latent space, on a grid
+
+Everything framework-specific lives in ``xaig.adapters``. See ``AGENTS.md``.
+"""
 
 from __future__ import annotations
 

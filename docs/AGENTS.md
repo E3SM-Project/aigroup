@@ -18,4 +18,5 @@ the `docs` group cannot install for you; without it, build with `MKDOCS_SOCIAL=f
 ## Adding a page
 
 Add the file, then add it to `nav` in `mkdocs.yml` by hand — nav is explicit, not
-inferred.
+inferred. Package pages under `docs/package/` are written by hand, and quote real
+output: rerun the commands they show when the code behind them changes.

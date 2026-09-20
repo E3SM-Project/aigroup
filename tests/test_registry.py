@@ -77,3 +77,12 @@ def test_a_source_nobody_would_read_is_an_error():
 def test_naming_the_source_as_an_option_is_explained():
     with pytest.raises(AdapterError, match="pass it as the source"):
         registry.create("reader", options={"url": "x"})
+
+
+def test_shipped_adapters_are_found_through_entry_points_alone():
+    assert "latent-archive" in registry.available()
+
+
+def test_unknown_adapter_names_the_alternatives():
+    with pytest.raises(AdapterError, match="available: .*latent-archive"):
+        registry.get("no-such-adapter")

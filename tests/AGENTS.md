@@ -9,5 +9,11 @@
   consumer and that `import xaig` / `xaig --help` stay light. A new subpackage must be
   added to the tables or the suite fails. These are cheap and unglamorous; without them
   the boundary erodes in a month.
+- Two tiers. Tests needing numpy start with `pytest.importorskip("numpy")`, so the suite
+  passes on a base install; CI runs both.
+- Give a fixture a known right answer. The synthetic latent archive plants a bump in one
+  channel and a constant offset in another, so ranking and centring can be asserted, not
+  just exercised. Its noise is seeded, so two archives are twins node for node, and
+  `shift=` makes a perturbed one whose difference from its control is known exactly.
 - Test the behaviour that would actually bite: a misspelt adapter option that is refused
   rather than ignored, an install hint that keeps the commit it was installed from.

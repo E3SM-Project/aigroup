@@ -6,7 +6,7 @@ This repo hosts two peers:
 
 - **`docs/`** — the guide site, published at <https://e3sm-project.github.io/aigroup>
 - **`src/xaig/`** — `xaig`, a light Python package for working with AI campaigns: so far,
-  its core and the `xaig` command
+  emulator diagnostics, latent space included (`daig`)
 
 ## Install
 
@@ -15,15 +15,22 @@ $ uv sync
 $ uv run xaig --help
 ```
 
-In a checkout, `uv sync` (or the first `uv run`) installs the package with pytest and
+In a checkout, `uv sync` (or the first `uv run`) installs every extra, plus pytest and
 ruff. `xaig` is not on PyPI; to use it from another project, install it from this
-repository:
+repository, asking for the extras you need:
 
 ```console
-$ uv pip install 'xaig @ git+https://github.com/E3SM-Project/aigroup'
+$ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
 ```
 
-The install pulls only Click.
+The base install pulls only Click. Anything heavier sits behind an extra named
+after the subpackage that needs it, so the core stays nimble.
+
+## Use
+
+```console
+$ xaig daig latent info /path/to/latents/atmosphere
+```
 
 ## Develop
 
