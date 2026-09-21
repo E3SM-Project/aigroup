@@ -668,6 +668,8 @@
       
         
       
+        
+      
     
     
     
@@ -958,6 +960,34 @@
     
   
     Sparse autoencoders
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../waig/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web app
   
 
     
@@ -1292,7 +1322,7 @@ agrees.</p>
 the whole globe and every time is another, and a <a href="../taig/">sparse autoencoder</a> a third.
 They differ in how they are found and agree in what is done with them afterwards, so all
 of them are a <code>Decomposition</code> — <code>transform</code>, <code>directions</code>, <code>describe</code> — and every analysis,
-and the CLI take one wherever they take another.</p>
+the CLI and the <a href="../waig/">web app</a> take one wherever they take another.</p>
 <p>A basis is fitted once and used many times, so it has a file: one <code>.npz</code> of plain arrays
 and a JSON record of how it was made.</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>pca<span class="w"> </span>latents/atmosphere<span class="w"> </span>--components<span class="w"> </span><span class="m">32</span><span class="w"> </span>--out<span class="w"> </span>pca8.npz
@@ -1420,7 +1450,7 @@ where it ends.</p>
 </span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="n">first_pc</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">to_map</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">scores</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (n_lat, n_lon), NaN where invalid</span>
 </span></code></pre></div>
 <p>To draw any of it, <code>xaig.faig.map_figure(grid, values, region=...)</code> returns a matplotlib
-figure.</p>
+figure, and <a href="../waig/"><code>xaig waig</code></a> puts the whole routine behind widgets.</p>
 <p>The pieces are plain functions over <code>(n_nodes, n_channels)</code> arrays — <code>rank_channels</code>,
 <code>cosine_similarity</code>, <code>fit_pca</code>, <code>correlate_field</code> — for when the routine above is not the
 question being asked. <code>source.load(time, layer, channels=..., nodes=...)</code> reads only what
