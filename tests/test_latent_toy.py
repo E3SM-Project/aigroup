@@ -220,3 +220,93 @@ def test_cli_toy_then_info(tmp_path):
     assert "experiment.steer" in shown.output and "3 reference field(s)" in shown.output
     bad = CliRunner().invoke(cli, ["daig", "latent", "toy", str(tmp_path / "x"), "--steer", "2:7"])
     assert bad.exit_code == 1 and "LAYER:CHANNEL:AMOUNT" in bad.output
+
+
+@pytest.mark.parametrize("existing", [False, True])
+@pytest.mark.parametrize("failure", ["metadata", "reference", "publish", "overflow"])
+def test_failed_write_preserves_destination(tmp_path, monkeypatch, existing, failure):
+    from pathlib import Path
+
+    from xaig.adapters import latent_archive
+
+    out = tmp_path / "archive"
+    grid = toy_grid(2, 2)
+    contents = dict(grid=grid, times=["t"], layers=[("L", np.ones((1, 4, 1)))])
+    if existing:
+        write_archive(out, **contents)
+    before = {p.name: p.read_bytes() for p in out.iterdir()} if existing else None
+
+    def fail_reference(file, grid, fields):
+        file.write_bytes(b"partial reference")
+        raise OSError("simulated reference write failure")
+
+    rename = Path.rename
+
+    def fail_publish(self, target):
+        if self.name == "archive" and self.parent != tmp_path:
+            raise OSError("simulated publication failure")
+        return rename(self, target)
+
+    expected = OSError
+    if failure == "metadata":
+        contents["experiment"] = {"seed": np.int64(3)}
+        expected = RequestError
+    elif failure == "reference":
+        contents["fields"] = {"temperature": np.ones((1, 4))}
+        monkeypatch.setattr(latent_archive, "_write_reference", fail_reference)
+    elif failure == "publish":
+        monkeypatch.setattr(Path, "rename", fail_publish)
+    else:
+        contents["layers"] = [("L", np.full((1, 4, 1), 100000.0))]
+        expected = RequestError
+    with pytest.raises(expected):
+        write_archive(out, **contents, overwrite=True)
+    if existing:
+        assert {p.name: p.read_bytes() for p in out.iterdir()} == before
+        assert np.array_equal(open_source(out).load(0, 0), np.ones((4, 1)))
+    else:
+        assert not out.exists()
+    assert sorted(p.name for p in tmp_path.iterdir()) == (["archive"] if existing else [])
+
+
+def test_writer_refuses_duplicate_field_labels(tmp_path):
+    out = tmp_path / "duplicate"
+    with pytest.raises(RequestError, match="field times must each appear only once"):
+        write_archive(
+            out,
+            grid=toy_grid(2, 2),
+            times=["t"],
+            layers=[("L", np.ones((1, 4, 1)))],
+            fields={"temperature": np.array([[1] * 4, [9] * 4])},
+            field_times=["t", "t"],
+        )
+    assert not out.exists()
+
+
+def test_wider_dtype_preserves_large_values_and_missing_values(tmp_path):
+    values = np.array([100000.0, -100000.0, np.nan, 0.0]).reshape(1, 4, 1)
+    out = write_archive(
+        tmp_path / "wide",
+        grid=toy_grid(2, 2),
+        times=["t"],
+        layers=[("L", values)],
+        dtype="float32",
+    )
+    np.testing.assert_equal(open_source(out).load(0, 0), values[0])
+    small = values.copy()
+    small[0, :2, 0] = [1, -1]
+    write_archive(out, grid=toy_grid(2, 2), times=["t"], layers=[("L", small)], overwrite=True)
+    np.testing.assert_equal(open_source(out).load(0, 0), small[0])
+
+
+@pytest.mark.parametrize("dtype", ["not-a-dtype", "int16", "object", "complex64"])
+def test_writer_refuses_invalid_storage_dtype(tmp_path, dtype):
+    with pytest.raises(RequestError, match="dtype"):
+        write_archive(
+            tmp_path / "bad",
+            grid=toy_grid(2, 2),
+            times=["t"],
+            layers=[("L", np.ones((1, 4, 1)))],
+            dtype=dtype,
+        )
+    assert not (tmp_path / "bad").exists()

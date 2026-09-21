@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import tempfile
 import warnings
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -277,12 +278,23 @@ def write_archive(
     the same nodes, each ``(n_field_times, n_nodes)``; ``field_times`` labels their
     time axis and must hold every latent time -- it usually holds more, the state
     each step started from among them. The grid's mask and area travel in
-    ``grid.npz`` when the grid has them. Everything is checked before anything is
-    written.
+    ``grid.npz`` when the grid has them. Field time labels must be unique.
+
+    Metadata and shapes are checked up front; files are written in a sibling
+    staging directory before replacing the destination. Failed writes leave an
+    existing archive intact. Float conversion may round values, but overflow is
+    refused; choose a wider ``dtype`` when necessary. Existing NaNs are preserved.
+    Replacement is not crash-atomic and concurrent writers are not supported.
     """
     out = Path(path)
     times = [str(t) for t in times]
     n_nodes = grid.n_nodes
+    try:
+        storage_dtype = np.dtype(dtype)
+    except (TypeError, ValueError) as exc:
+        raise RequestError(f"invalid archive dtype {dtype!r}") from exc
+    if storage_dtype.kind != "f":
+        raise RequestError(f"archive dtype must be floating point, got {dtype!r}")
     if not times or len(set(times)) != len(times):
         raise RequestError("an archive needs at least one time, and each only once")
     if not layers:
@@ -296,6 +308,8 @@ def write_archive(
     fields = dict(fields or {})
     labels = [str(t) for t in (field_times if field_times is not None else times)]
     if fields:
+        if len(set(labels)) != len(labels):
+            raise RequestError("field times must each appear only once")
         absent = [t for t in times if t not in labels]
         if absent:
             raise RequestError(f"the fields hold no time {absent[0]!r}, which the latents do")
@@ -305,11 +319,10 @@ def write_archive(
                     f"field {name!r} has shape {values.shape}; expected "
                     f"({len(labels)} times, {n_nodes} nodes)"
                 )
-    if out.exists() and any(out.iterdir()):
-        if not overwrite:
-            raise RequestError(f"{out} is not empty; pass overwrite=True to replace it")
-        shutil.rmtree(out)
-    out.mkdir(parents=True, exist_ok=True)
+    if out.is_symlink() or (out.exists() and not out.is_dir()):
+        raise RequestError(f"{out} must be a directory, not a file or symlink")
+    if out.exists() and any(out.iterdir()) and not overwrite:
+        raise RequestError(f"{out} is not empty; pass overwrite=True to replace it")
 
     stored: dict[str, np.ndarray] = {"lat": grid.lat, "lon": grid.lon}
     if grid.shape is not None:
@@ -320,12 +333,10 @@ def write_archive(
         stored["mask"] = grid.mask
     if grid.area is not None:
         stored["area"] = grid.area
-    np.savez(out / GRID, **stored)
 
     steps = []
     for index, (label, array) in enumerate(layers):
         file = f"step_{index:02d}.npy"
-        np.save(out / file, np.asarray(array, dtype=dtype))
         steps.append(
             {"index": index, "label": str(label), "file": file, "n_channels": int(array.shape[2])}
         )
@@ -343,13 +354,51 @@ def write_archive(
     if grid.shape is not None:
         manifest["grid_shape"] = list(grid.shape)
     if fields:
-        _write_reference(out / REFERENCE, grid, fields)
         manifest["reference_file"] = REFERENCE
         manifest["reference_times"] = labels
     if experiment:
         manifest["experiment"] = dict(experiment)
     manifest = {key: value for key, value in manifest.items() if value is not None}
-    (out / MANIFEST).write_text(json.dumps(manifest, indent=2))
+    try:
+        metadata = json.dumps(manifest, indent=2)
+    except (TypeError, ValueError) as exc:
+        raise RequestError(f"archive metadata must be JSON serializable: {exc}") from exc
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
+    staged, previous = work / "archive", work / "previous"
+    try:
+        staged.mkdir()
+        np.savez(staged / GRID, **stored)
+        for entry, (_, array) in zip(steps, layers, strict=True):
+            if array.dtype.kind not in "biuf":
+                raise RequestError(f"layer {entry['index']} must hold real numeric values")
+            try:
+                with np.errstate(over="raise", invalid="raise"):
+                    converted = np.asarray(array, dtype=storage_dtype)
+            except FloatingPointError as exc:
+                raise RequestError(
+                    f"layer {entry['index']} overflows {storage_dtype}; choose a wider dtype"
+                ) from exc
+            np.save(staged / entry["file"], converted)
+            del converted
+        if fields:
+            _write_reference(staged / REFERENCE, grid, fields)
+        (staged / MANIFEST).write_text(metadata)
+        if out.exists():
+            out.rename(previous)
+        try:
+            staged.rename(out)
+        except BaseException:
+            if previous.exists():
+                previous.rename(out)
+            raise
+        if previous.exists():
+            shutil.rmtree(previous)
+    finally:
+        # If rollback itself failed, retain the backup for manual recovery.
+        if not previous.exists():
+            shutil.rmtree(work)
     return out
 
 
