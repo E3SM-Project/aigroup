@@ -15,7 +15,7 @@ is the machine's business.
 
 ```console
 $ uv sync --extra taig
-$ uv pip install 'xaig[taig] @ git+https://github.com/E3SM-Project/aigroup'   # elsewhere
+$ uv pip install 'xaig[taig]'   # elsewhere, from PyPI
 ```
 
 ## Fit one
