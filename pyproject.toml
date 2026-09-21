@@ -6,12 +6,23 @@ build-backend = "hatchling.build"
 name = "xaig"
 dynamic = ["version"]
 description = "Light, framework-agnostic tooling for E3SM AI campaigns: latent diagnostics, sparse autoencoders, figures, a local app"
-readme = "README.md"
+# The repository's README is about the repository; this one is about the package, and is
+# the page PyPI shows.
+readme = "src/xaig/README.md"
 requires-python = ">=3.11"
 license = "BSD-3-Clause"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "E3SM AI Group" }]
 keywords = ["e3sm", "emulator", "climate", "machine-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
 
 # Base tier stays deliberately tiny: see src/xaig/AGENTS.md
 dependencies = ["click>=8.1"]
@@ -55,13 +66,22 @@ latent-archive = "xaig.adapters.latent_archive:LatentArchive"
 
 [project.urls]
 Homepage = "https://e3sm-project.github.io/aigroup"
+Documentation = "https://e3sm-project.github.io/aigroup/package/"
 Source = "https://github.com/E3SM-Project/aigroup"
+Issues = "https://github.com/E3SM-Project/aigroup/issues"
 
 [tool.hatch.version]
 path = "src/xaig/__init__.py"
 
+# A release holds the package, its tests and its licences: not the guide site, the run
+# configs or the notes for contributors that share this repository with it.
+[tool.hatch.build.targets.sdist]
+include = ["src/xaig", "tests", "LICENSE", "NOTICE", "pyproject.toml"]
+exclude = ["AGENTS.md"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/xaig"]
+exclude = ["AGENTS.md", "src/xaig/README.md"]
 
 [tool.ruff]
 line-length = 100

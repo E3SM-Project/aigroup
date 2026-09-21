@@ -46,6 +46,8 @@ def install_hint(extra: str) -> str:
         path = unquote(urlparse(url).path)
         editable = "-e " if origin.get("dir_info", {}).get("editable") else ""
         command = f"uv pip install {editable}'{path}[{extra}]'"
+        if "dir_info" not in origin:  # a wheel or an sdist on disk, not a checkout
+            return command
         return f"{command}  (in that checkout: `uv sync --extra {extra}`)"
     if url and ("vcs_info" in origin or "archive_info" in origin):
         target = url

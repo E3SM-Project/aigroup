@@ -1,0 +1,94 @@
+name: release
+
+# A tag `vX.Y.Z` on main publishes xaig X.Y.Z to PyPI. "Run workflow" publishes
+# whatever ref it is given to TestPyPI instead: the dress rehearsal.
+#
+# Neither needs a token. Both indexes trust this workflow by name (PyPI's "trusted
+# publishing"), so the project's publisher settings there must name this repository,
+# `release.yml`, and the environment of the job that uploads.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          show-progress: false
+      - uses: astral-sh/setup-uv@v5
+      - name: Build
+        run: uv build
+      # A tag that disagrees with `__version__` would publish one number under the
+      # name of another, and an index never lets a version be replaced.
+      - name: The tag is the version
+        if: github.ref_type == 'tag'
+        run: |
+          wheel="dist/xaig-${GITHUB_REF_NAME#v}-py3-none-any.whl"
+          test -f "$wheel" || { echo "::error::tag $GITHUB_REF_NAME, but built: $(ls dist)"; exit 1; }
+      - name: Check the metadata
+        run: uvx twine check --strict dist/*
+      # What is uploaded is the wheel, so that is what is tried: installed alone,
+      # it must start, and must not have brought the scientific stack with it.
+      - name: Try the wheel on its own
+        run: |
+          uv venv /tmp/wheel
+          uv pip install --python /tmp/wheel/bin/python dist/*.whl
+          /tmp/wheel/bin/xaig --version
+          /tmp/wheel/bin/xaig --help
+          /tmp/wheel/bin/python - <<'PY'
+          from importlib.util import find_spec
+          present = [m for m in ("numpy", "xarray", "torch", "matplotlib", "streamlit") if find_spec(m)]
+          assert not present, f"the base install unexpectedly has {present}"
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  testpypi:
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/xaig/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true  # a rehearsal of a version already rehearsed is not a failure
+
+  pypi:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/xaig/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

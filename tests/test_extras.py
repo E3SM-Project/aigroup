@@ -54,6 +54,11 @@ class _Distribution:
             "uv pip install 'xaig[heavy] @ https://example.org/xaig-0.1.0.tar.gz'",
         ),
         (None, "uv pip install 'xaig[heavy]'"),  # from an index
+        (
+            # a wheel on disk is not a checkout: no `uv sync` to offer
+            {"url": "file:///tmp/xaig-0.1.0-py3-none-any.whl", "archive_info": {}},
+            "uv pip install '/tmp/xaig-0.1.0-py3-none-any.whl[heavy]'",
+        ),
     ],
 )
 def test_the_hint_follows_where_xaig_came_from(monkeypatch, direct_url, expected):
@@ -64,6 +69,12 @@ def test_the_hint_follows_where_xaig_came_from(monkeypatch, direct_url, expected
 def test_require_names_the_module_the_extra_and_the_command():
     with pytest.raises(MissingExtraError, match="no_such_module .* 'heavy' extra: uv pip install"):
         extras.require("no_such_module", "heavy")
+
+
+def test_a_wheel_on_disk_is_not_called_a_checkout(monkeypatch):
+    origin = {"url": "file:///tmp/xaig-0.1.0-py3-none-any.whl", "archive_info": {}}
+    monkeypatch.setattr(extras, "distribution", lambda name: _Distribution(origin))
+    assert "uv sync" not in extras.install_hint("heavy")
 
 
 def test_a_missing_extra_is_still_an_import_error():
