@@ -12,7 +12,7 @@ job and the CLI all call the same functions.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any
 
 from xaig import __version__
@@ -177,6 +177,7 @@ def analyse_region(
     reference: str = "nearest",
     n_components: int = 0,
     basis: Decomposition | None = None,
+    allow_unverified_basis: bool = False,
 ) -> RegionAnalysis:
     """Rank channels in a region, then map similarity and a decomposition.
 
@@ -202,7 +203,9 @@ def analyse_region(
     dictionary is free to trade one for the other and an activation alone would
     rank by that accident. The basis must have been fitted on this network and
     layer (``check_basis_fits``), and sees the raw latents whatever ``centred``
-    says, since it carries the standardisation it was fitted with.
+    says, since it carries the standardisation it was fitted with. Missing
+    identity requires ``allow_unverified_basis=True``; known mismatches are
+    always refused. This choice is recorded in the result settings.
 
     One layer is in memory at a time, and nothing else of its size: on a 1-degree,
     384-channel model that is about 100 MB however many layers and times exist.
@@ -219,7 +222,7 @@ def analyse_region(
             f"ranked, has {rank_width}; rank at a layer as wide as the one analysed"
         )
     if basis is not None:
-        check_basis_fits(basis, info, layer)
+        check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
     time_label = info.times[info.time_index(time)]
 
     nodes = grid.within(region.lat, region.lon, region.radius_km)
@@ -265,6 +268,22 @@ def analyse_region(
         feature_info = _feature_info(
             basis, features, "F", peak_abs=local[features], peak_contribution=peak[features]
         )
+    if n_components and basis is None:
+        # A fitted basis always consumes raw latents, independently of how the
+        # ranking and similarity are centred below.
+        pca = replace(
+            fit_pca(latents[nodes], n_components, weights=weights[nodes]),
+            meta={
+                "fitted_on": {
+                    "layer": layer,
+                    "time": time_label,
+                    "region": asdict(region),
+                    "provenance": info.provenance(),
+                }
+            },
+        )
+        scores = pca.transform(latents)
+        feature_info = _feature_info(pca, range(n_components), "PC")
     if centred:
         centre(latents)
     if ranking is None:
@@ -279,10 +298,6 @@ def analyse_region(
     chosen = ranking.channels
     similarity_top = np.where(valid, cosine_similarity(latents[:, chosen], vector[chosen]), np.nan)
 
-    if n_components and basis is None:
-        pca = fit_pca(latents[nodes], n_components, weights=weights[nodes])
-        scores = pca.transform(latents)
-        feature_info = _feature_info(pca, range(n_components), "PC")
     if scores is not None:
         scores = np.where(valid[:, None], scores, np.nan)
 
@@ -297,6 +312,7 @@ def analyse_region(
         "reference": reference,
         "n_components": n_components,
         "basis": None if basis is None else basis.meta.get("path"),
+        "allow_unverified_basis": allow_unverified_basis,
     }
     return RegionAnalysis(
         settings=settings,

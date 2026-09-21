@@ -124,15 +124,21 @@ class PCA:
     def transform(self, latents: np.ndarray, features: Sequence[int] | None = None) -> np.ndarray:
         """Project ``(n_nodes, n_channels)`` onto the components: ``(n_nodes, k)``.
 
-        Computed as ``X @ C.T - mean @ C.T`` in the latents' own precision, so
-        projecting a whole layer allocates the ``(n_nodes, k)`` result and nothing
-        the size of the layer.
+        Centre and project in float64, a bounded block of nodes at a time.
+        Subtracting the mean before projection preserves small variations around
+        large offsets without allocating a float64 copy of the whole layer.
         """
-        latents = _floating(latents)
+        latents = np.asarray(latents)
         chosen = _chosen(features, self.n_features)
         components = self.components if chosen is None else self.components[chosen]
-        projected = (latents @ components.T.astype(latents.dtype)).astype(np.float64)
-        return projected - self.mean @ components.T
+        if latents.ndim != 2 or latents.shape[1] != self.n_channels:
+            raise RequestError(f"this PCA reads {self.n_channels} channel(s); got {latents.shape}")
+        components = components.astype(np.float64)
+        out = np.empty((latents.shape[0], components.shape[0]), dtype=np.float64)
+        for start in range(0, latents.shape[0], _BLOCK):
+            block = latents[start : start + _BLOCK].astype(np.float64) - self.mean
+            out[start : start + _BLOCK] = block @ components.T
+        return out
 
     def directions(self) -> np.ndarray:
         return self.components
@@ -153,13 +159,19 @@ def fit_pca(latents: np.ndarray, n_components: int, weights: np.ndarray | None =
     fixed so each component's largest loading is positive.
 
     Removing the mean costs a degree of freedom: ``n`` nodes carry at most
-    ``n - 1`` directions of variance, and nodes of zero weight carry none.
+    ``n - 1`` directions of variance. Zero-weight nodes are excluded, even if
+    their values are missing; positive-weight nodes must hold finite values.
     """
     x = np.asarray(latents, dtype=np.float64)
     if x.ndim != 2:
         raise ValueError(f"expected (n_nodes, n_channels), got {x.shape}")
     w = np.ones(x.shape[0]) if weights is None else np.asarray(weights, dtype=np.float64)
-    if w.shape != (x.shape[0],) or not np.all(w >= 0.0) or w.sum() <= 0.0:
+    if (
+        w.shape != (x.shape[0],)
+        or not np.isfinite(w).all()
+        or not np.all(w >= 0.0)
+        or not np.any(w > 0.0)
+    ):
         raise ValueError("weights must be non-negative, one per node, and not all zero")
     counted = int(np.count_nonzero(w))
     limit = max(min(counted - 1, x.shape[1]), 0)
@@ -168,6 +180,11 @@ def fit_pca(latents: np.ndarray, n_components: int, weights: np.ndarray | None =
             f"{n_components} component(s) asked of {counted} node(s) x {x.shape[1]} "
             f"channel(s); at most {limit} exist -- widen the region or ask for fewer"
         )
+    positive = w > 0.0
+    x, w = x[positive], w[positive]
+    if not np.isfinite(x).all():
+        raise RequestError("PCA needs finite latents at every positive-weight node")
+    w = w / w.max()
     w = w / w.sum()
     mean = w @ x
     _, singular, vt = np.linalg.svd((x - mean) * np.sqrt(w)[:, None], full_matrices=False)

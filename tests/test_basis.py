@@ -183,9 +183,16 @@ def test_a_basis_is_refused_where_it_was_not_fitted(latent_archive):
     elsewhere = open_source(latent_archive)
     with pytest.raises(RequestError, match="checkpoint 'another-seed.ckpt' against 'toy.ckpt'"):
         analyse_region(elsewhere, layer=2, **kwargs)
-    # A basis that records nothing is taken at its word -- which is how to insist.
     unsigned = replace(signed, meta={})
-    assert analyse_region(elsewhere, layer=2, **{**kwargs, "basis": unsigned}).scores is not None
+    with pytest.raises(RequestError, match="compatibility is unverified"):
+        analyse_region(elsewhere, layer=2, **{**kwargs, "basis": unsigned})
+    overridden = analyse_region(
+        elsewhere, layer=2, **{**kwargs, "basis": unsigned}, allow_unverified_basis=True
+    )
+    assert overridden.scores is not None
+    assert overridden.settings["allow_unverified_basis"] is True
+    with pytest.raises(RequestError, match="checkpoint"):
+        analyse_region(elsewhere, layer=2, **kwargs, allow_unverified_basis=True)
 
 
 def test_features_rank_by_what_they_contribute_not_by_a_dictionarys_bookkeeping(latent_archive):
@@ -199,9 +206,131 @@ def test_features_rank_by_what_they_contribute_not_by_a_dictionarys_bookkeeping(
         input_mean=np.zeros(6),
     )  # fmt: skip
     result = analyse_region(
-        open_source(latent_archive), time=0, layer=2, region=HERE, n_components=2, basis=basis
+        open_source(latent_archive),
+        time=0,
+        layer=2,
+        region=HERE,
+        n_components=2,
+        basis=basis,
+        allow_unverified_basis=True,
     )
     first, second = result.feature_info
     assert (first["feature"], second["feature"]) == (1, 0)
     assert second["peak_abs"] == pytest.approx(10 * first["peak_abs"], rel=1e-5)
     assert first["peak_contribution"] == pytest.approx(10 * second["peak_contribution"], rel=1e-5)
+
+
+@pytest.mark.parametrize("centred", [False, True])
+def test_region_basis_round_trips_raw_inputs_with_identity(latent_archive, tmp_path, centred):
+    source = open_source(latent_archive)
+    kwargs = dict(time=0, layer=2, region=HERE, n_components=2)
+    result = analyse_region(source, **kwargs, centred=centred)
+    raw = source.load(0, 2)
+    valid = source.grid().valid
+    restored = load_basis(save_basis(tmp_path / "region.npz", result.pca))
+    np.testing.assert_allclose(restored.transform(raw)[valid], result.scores[valid], atol=1e-12)
+    raw_result = analyse_region(source, **kwargs, centred=False)
+    np.testing.assert_allclose(result.scores, raw_result.scores, atol=1e-12)
+    fitted = restored.meta["fitted_on"]
+    assert fitted["layer"] == 2
+    assert fitted["time"] == source.info().times[0]
+    assert fitted["region"] == result.settings["region"]
+    assert fitted["provenance"] == source.info().provenance()
+    reused = analyse_region(source, **kwargs, basis=restored, centred=centred)
+    order = [feature["feature"] for feature in reused.feature_info]
+    np.testing.assert_allclose(reused.scores, result.scores[:, order], atol=1e-12)
+    with pytest.raises(RequestError, match="layer 0"):
+        analyse_region(source, **{**kwargs, "layer": 0}, basis=restored)
+
+
+def test_pca_projection_retains_small_float32_variation_across_blocks():
+    from xaig.daig.latent.basis import PCA
+
+    direction = np.array([[1.0, 1.0]]) / np.sqrt(2.0)
+    basis = PCA(np.array([1e8, 1e8]), direction, np.ones(1))
+    x = np.tile(np.array([[1e8, 1e8], [1e8 + 8, 1e8]], dtype=np.float32), (2050, 1))
+    before = x.copy()
+    expected = (x.astype(np.float64) - basis.mean) @ direction.T
+    np.testing.assert_allclose(basis.transform(x), expected, atol=1e-12)
+    np.testing.assert_allclose(basis.transform(x, features=[0]), expected, atol=1e-12)
+    np.testing.assert_array_equal(x, before)
+
+
+def test_pca_ignores_nonfinite_zero_weight_nodes():
+    x = np.array([[0.0, 1.0], [1.0, 0.0], [2.0, 1.0]])
+    expected = fit_pca(x, 2)
+    padded = np.vstack([x, [np.nan, np.inf]])
+    actual = fit_pca(padded, 2, weights=np.array([1.0, 1.0, 1.0, 0.0]))
+    np.testing.assert_allclose(actual.mean, expected.mean)
+    np.testing.assert_allclose(actual.components, expected.components)
+    np.testing.assert_allclose(actual.explained_variance_ratio, expected.explained_variance_ratio)
+    with pytest.raises(RequestError, match="positive-weight"):
+        fit_pca(padded, 2)
+
+
+@pytest.mark.parametrize("missing", ["layer", "model", "component", "checkpoint"])
+def test_incomplete_basis_identity_refused_before_loading(latent_archive, missing):
+    from dataclasses import replace
+
+    source = open_source(latent_archive)
+    fitted = {"layer": 2, "provenance": source.info().provenance()}
+    if missing == "layer":
+        del fitted[missing]
+    else:
+        del fitted["provenance"][missing]
+    basis = replace(fit_pca(np.arange(24.0).reshape(4, 6), 1), meta={"fitted_on": fitted})
+
+    class Unreadable:
+        info, grid = source.info, source.grid
+
+        def load(self, *args, **kwargs):
+            pytest.fail("invalid request loaded latents")
+
+    with pytest.raises(RequestError, match=f"missing {missing}"):
+        analyse_region(Unreadable(), time=0, layer=2, region=HERE, basis=basis)
+
+
+def test_missing_source_identity_needs_override(latent_archive):
+    from dataclasses import replace
+
+    from xaig.daig.latent.source import check_basis_fits
+
+    source = open_source(latent_archive)
+    result = analyse_region(source, time=0, layer=2, region=HERE, n_components=1)
+    info = replace(source.info(), checkpoint=None)
+    with pytest.raises(RequestError, match="missing checkpoint"):
+        check_basis_fits(result.pca, info, 2)
+    check_basis_fits(result.pca, info, 2, allow_unverified=True)
+    with pytest.raises(RequestError, match="layer 0"):
+        check_basis_fits(result.pca, info, 0, allow_unverified=True)
+
+
+def test_cli_requires_explicit_unverified_basis_override(latent_archive, tmp_path):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    basis = fit_pca(np.random.default_rng(0).normal(size=(20, 6)), 2)
+    path = save_basis(tmp_path / "anonymous.npz", basis)
+    args = [
+        "daig",
+        "latent",
+        "region",
+        str(latent_archive),
+        "--basis",
+        str(path),
+        "--lat",
+        str(BUMP[0]),
+        "--lon",
+        str(BUMP[1]),
+        "--radius-km",
+        "2500",
+        "--pcs",
+        "1",
+        "--json",
+    ]
+    rejected = CliRunner().invoke(cli, args)
+    assert rejected.exit_code == 1 and "--allow-unverified-basis" in rejected.output
+    allowed = CliRunner().invoke(cli, [*args, "--allow-unverified-basis"])
+    assert allowed.exit_code == 0, allowed.output
+    assert json.loads(allowed.output)["settings"]["allow_unverified_basis"] is True
