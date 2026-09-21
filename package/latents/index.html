@@ -16,6 +16,8 @@
         <link rel="prev" href="../">
       
       
+        <link rel="next" href="../taig/">
+      
       
         
       
@@ -664,6 +666,8 @@
       
         
       
+        
+      
     
     
     
@@ -934,6 +938,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../taig/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse autoencoders
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1251,13 +1283,13 @@ agrees.</p>
 </tr>
 <tr>
 <td><code>--basis</code></td>
-<td>a <a href="#methods-a-basis-is-a-value">basis file</a>: a global PCA</td>
+<td>a <a href="#methods-a-basis-is-a-value">basis file</a>: a global PCA, a sparse autoencoder</td>
 </tr>
 </tbody>
 </table>
 <h2 id="methods-a-basis-is-a-value">Methods: a basis is a value</h2>
 <p>A PCA fitted in the region is one way to turn channels into features. A PCA fitted over
-the whole globe and every time is another.
+the whole globe and every time is another, and a <a href="../taig/">sparse autoencoder</a> a third.
 They differ in how they are found and agree in what is done with them afterwards, so all
 of them are a <code>Decomposition</code> — <code>transform</code>, <code>directions</code>, <code>describe</code> — and every analysis,
 and the CLI take one wherever they take another.</p>
@@ -1269,17 +1301,17 @@ and a JSON record of how it was made.</p>
 <p>That is an area-weighted PCA over all 1.1 million node-times of the layer, from moments
 accumulated a block at a time: 2.9 s, and the sums are 384 × 384 however many times there
 are. It is the baseline a learned dictionary has to beat — on this layer, 32 components
-hold 69.1% of the variance.</p>
+hold 69.1% of the variance, and <a href="../taig/">a top-32 sparse autoencoder</a> 82.1%.</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--centred<span class="w"> </span>--top<span class="w"> </span><span class="m">6</span><span class="w"> </span>--features<span class="w"> </span><span class="m">3</span><span class="w"> </span>--basis<span class="w"> </span>pca8.npz
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--centred<span class="w"> </span>--top<span class="w"> </span><span class="m">6</span><span class="w"> </span>--features<span class="w"> </span><span class="m">3</span><span class="w"> </span>--basis<span class="w"> </span>sae8.npz
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">...</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">F1  peak 5.23  321(+0.40)  212(+0.20)  124(-0.20)  190(+0.20)  217(+0.20)  167(+0.17)</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go">F7  peak 3.32  107(+0.16)  351(-0.15)  288(+0.15)  326(+0.15)  61(+0.14)  179(+0.14)</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">F3  peak 2.74  108(+0.28)  190(+0.16)  107(+0.16)  342(+0.15)  96(-0.14)  212(+0.14)</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">F676  peak 27.5  45(-0.18)  107(+0.14)  351(-0.13)  124(+0.13)  129(+0.13)  326(+0.13)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go">F48   peak 12.3  124(+0.16)  326(-0.15)  108(+0.14)  104(+0.14)  380(+0.13)  196(+0.13)</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">F500  peak 11.5  280(+0.17)  351(-0.16)  332(+0.16)  211(+0.15)  22(+0.14)  114(-0.14)</span>
 </span></code></pre></div>
 <p>A basis is given the raw latents whatever <code>--centred</code> says: it carries the standardisation
 it was fitted with, and centring twice is simply wrong. Only the features asked for are
-computed, so a map of three features out of 32 does not cost the other 29. They are
+computed, so a map of three features out of 1,024 does not cost the other 1,021. They are
 ranked by what each <em>contributes</em> in the region — its activation times the length of its
 direction — because a dictionary is free to trade one for the other.</p>
 <div class="admonition warning">
@@ -1288,8 +1320,8 @@ direction — because a dictionary is free to trade one for the other.</p>
 a basis <em>fits</em> anywhere and means something in one place. Its file records the
 network and layer it was fitted on, and it is refused anywhere else:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--rank-layer<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--features<span class="w"> </span><span class="m">3</span><span class="w"> </span>--basis<span class="w"> </span>pca8.npz
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">Error: the basis (pca8.npz) was not fitted here: layer 4 against the layer 8 it was fitted on</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--features<span class="w"> </span><span class="m">3</span><span class="w"> </span>--basis<span class="w"> </span>sae8.npz
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">Error: the basis (sae8.npz) was not fitted here: layer 4 against the layer 8 it was fitted on</span>
 </span></code></pre></div>
 <p>A basis that does not say where it was fitted — one made with <code>fit_pca</code> from plain
 arrays, say — is refused too, until you pass <code>--allow-unverified-basis</code>
@@ -1302,9 +1334,9 @@ dictionary from one layer can be a fair question to put to the next.</p>
 <div class="admonition tip">
 <p class="admonition-title">the way back to the model</p>
 <p>The same file is the hand-off to a steering experiment. The model's environment
-needs nothing but numpy to read it — <code>np.load("pca8.npz")["components"][0]</code> is the
-first principal component — and the file's <code>record</code> says which archive, layer and
-times it was fitted on.</p>
+needs nothing but numpy to read it — <code>np.load("sae8.npz")["decoder"][676]</code> is the
+direction feature 676 writes, and <code>["components"][0]</code> the first principal component —
+and the file's <code>record</code> says which archive, layer and times it was fitted on.</p>
 </div>
 <h2 id="through-time">Through time</h2>
 <p><code>analyse_region</code> is a snapshot. To follow a region from one physics step to the next:</p>
@@ -1350,10 +1382,22 @@ channels, or which features of a basis, track one of them:</p>
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="go">1     45       -0.588</span>
 </span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="go">2     248      -0.540</span>
 </span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go">3     224      +0.509</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span>--basis<span class="w"> </span>sae8.npz
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="go">features of layer 8 against surface_precipitation_rate at 0425-01-03T18:00:00</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="go">RANK  FEATURE  CORRELATION</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="go">1     676      +0.966</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="go">2     48       +0.490</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="go">3     360      +0.469</span>
 </span></code></pre></div>
-<p>Correlation is area-weighted over valid nodes, leaves out nodes where the field is
-missing, is taken at one time, and says nothing about cause: it is where an expedition
-starts, and a <a href="#a-run-against-its-control">steering experiment</a> is where it ends.</p>
+<p>No single channel of this layer follows precipitation better than |r| = 0.59; one feature
+of a <a href="../taig/">sparse autoencoder trained in eleven seconds</a> follows it at 0.97 — the
+same feature 676 that answered most strongly in the equatorial Pacific above, built mostly
+from the same channel 45. Correlation is area-weighted over valid nodes, leaves out nodes
+where the field is missing, is taken at one time, and says nothing about cause: it is
+where an expedition starts, and a <a href="#a-run-against-its-control">steering experiment</a> is
+where it ends.</p>
 <h2 id="python-api">Python API</h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.daig.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyse_region</span><span class="p">,</span> <span class="n">open_source</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
@@ -1394,9 +1438,9 @@ it is asked for. The rest of what this page shows:</p>
 </span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="n">moments</span> <span class="o">=</span> <span class="n">accumulate_moments</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>  <span class="c1"># area-weighted, over every time</span>
 </span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="n">save_basis</span><span class="p">(</span><span class="s2">"pca8.npz"</span><span class="p">,</span> <span class="n">pca_from_moments</span><span class="p">(</span><span class="n">moments</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="n">provenance</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">info</span><span class="p">()</span><span class="o">.</span><span class="n">provenance</span><span class="p">())</span>
 </span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
-</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="n">basis</span> <span class="o">=</span> <span class="n">load_basis</span><span class="p">(</span><span class="s2">"pca8.npz"</span><span class="p">)</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="n">basis</span> <span class="o">=</span> <span class="n">load_basis</span><span class="p">(</span><span class="s2">"sae8.npz"</span><span class="p">)</span>
 </span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyse_region</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">)</span>
-</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="n">series</span> <span class="o">=</span> <span class="n">region_series</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="n">series</span> <span class="o">=</span> <span class="n">region_series</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="mi">676</span><span class="p">])</span>
 </span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="n">series</span><span class="o">.</span><span class="n">elapsed_seconds</span>  <span class="c1"># under the archive's calendar; None when it cannot say</span>
 </span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>
 </span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="n">control</span><span class="p">,</span> <span class="n">steered</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/control"</span><span class="p">),</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/steered"</span><span class="p">)</span>
@@ -1489,7 +1533,7 @@ nothing — <code>sst</code> for the ocean:</p>
 </span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">  </span><span class="nt">"extra_steps"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 </span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="w">  </span><span class="nt">"reference_file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"reference.nc"</span><span class="p">,</span>
 </span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">  </span><span class="nt">"reference_times"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"0425-01-03T12:00:00"</span><span class="p">,</span><span class="w"> </span><span class="s2">"..."</span><span class="p">],</span>
-</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">  </span><span class="nt">"experiment"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"seed"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"steer"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"layer"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="nt">"basis"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pca4.npz"</span><span class="p">,</span><span class="w"> </span><span class="nt">"feature"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="nt">"by"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.0</span><span class="p">}}</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">  </span><span class="nt">"experiment"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"seed"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"steer"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"layer"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="nt">"basis"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sae4.npz"</span><span class="p">,</span><span class="w"> </span><span class="nt">"feature"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="nt">"by"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.0</span><span class="p">}}</span>
 </span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><code>n_nodes</code>, <code>latent_times</code> and <code>steps</code> (each with <code>index</code>, <code>file</code>, <code>n_channels</code>) are
@@ -1576,6 +1620,22 @@ like any other:</p>
             </div>
           </a>
         
+        
+          
+          <a href="../taig/" class="md-footer__link md-footer__link--next" aria-label="Next: Sparse autoencoders">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Sparse autoencoders
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
         
       </nav>
     

@@ -666,6 +666,8 @@
       
         
       
+        
+      
     
     
     
@@ -738,6 +740,34 @@
     
   
     Latent diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="taig/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sparse autoencoders
   
 
     
@@ -898,6 +928,10 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 <td><code>daig</code></td>
 <td>diagnostics of emulators: <a href="latents/">what they hold inside</a></td>
 </tr>
+<tr>
+<td><code>taig</code></td>
+<td>neural blocks trained on <code>daig</code>'s latents: <a href="taig/">sparse autoencoders</a></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition warning">
@@ -908,9 +942,10 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>xaig<span class="w"> </span>--help
 </span></code></pre></div>
-<p>In a checkout, <code>uv sync</code> (or the first <code>uv run</code>) installs every extra below, plus
-pytest and ruff. <code>xaig</code> is not on PyPI; to use it from another project, install it from
-this repository, asking for the extras you need:</p>
+<p>In a checkout, <code>uv sync</code> (or the first <code>uv run</code>) installs every extra below but <code>taig</code>,
+plus pytest and ruff. Torch is large, and whether it should be a CPU or a CUDA build is the
+machine's business: ask for it with <code>uv sync --extra taig</code>. <code>xaig</code> is not on PyPI; to use
+it from another project, install it from this repository, asking for the extras you need:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'</span>
 </span></code></pre></div>
 <p>The base install pulls only Click. Anything heavier sits behind an extra named after the
@@ -932,6 +967,11 @@ subpackage that needs it. A missing one says so, with the command that fits how 
 <td><code>daig</code></td>
 <td>numpy, xarray, netCDF4</td>
 <td><code>xaig.daig</code></td>
+</tr>
+<tr>
+<td><code>taig</code></td>
+<td>torch</td>
+<td><a href="taig/"><code>xaig.taig</code></a> and <code>xaig taig</code> (not part of a plain <code>uv sync</code>)</td>
 </tr>
 </tbody>
 </table>
@@ -1017,6 +1057,7 @@ Register it, from this repo or any other package:</p>
       <code>LatentSource</code>, on the same <code>daig.grid</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig.latent</code>: a GraphCast mesh adapter; the activation exporter as an adapter,
       with a steering hook</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>taig</code>: a cross-layer transcoder; a better training loop</li>
 </ul>
 
 
