@@ -865,8 +865,9 @@ pytest and ruff. <code>xaig</code> is not on PyPI; to use it from another projec
 this repository, asking for the extras you need:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'</span>
 </span></code></pre></div>
-<p>The base install pulls only Click. Anything heavier an extra named after the subpackage that needs it. A missing one says so, with the
-command that fits how this <code>xaig</code> was installed:</p>
+<p>The base install pulls only Click. Anything heavier sits behind an extra named after the
+subpackage that needs it. A missing one says so, with the command that fits how this
+<code>xaig</code> was installed:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">Error: numpy is not installed; it comes with the 'daig' extra: uv pip install -e '/path/to/aigroup[daig]'  (in that checkout: `uv sync --extra daig`)</span>
 </span></code></pre></div>
@@ -915,23 +916,39 @@ else is a bug and keeps its traceback, as does everything under <code>xaig --deb
 <p><code>daig.latent</code> reads activations recorded from inside a model, through an adapter:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>/path/to/latents/atmosphere
 </span></code></pre></div>
+<p>With no model and no data to hand, make an archive with the toy emulator — an MLP with a
+residual stream on a small Gaussian grid, in numpy, in a few seconds — and read it back:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>toy<span class="w"> </span>scratch/toy/control
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>toy<span class="w"> </span>scratch/toy/steered<span class="w"> </span>--steer<span class="w"> </span><span class="m">2</span>:7:3<span class="w">     </span><span class="c1"># +3 on channel 7 of layer 2, every step</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>scratch/toy/steered<span class="w"> </span>--mask-variable<span class="w"> </span>sst
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">model                  xaig-toy</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">calendar               noleap</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">grid                   24x48, 1152 nodes, 1062 valid</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">times                  8: 0424-02-27T06:00:00 .. 0424-03-02T00:00:00</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">experiment.steer       {'layer': 2, 'channel': 7, 'by': 3.0}</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go">...</span>
+</span></code></pre></div>
+<p>The toy is shaped like a real archive where that matters to a reader: kept steps with a
+gap between them, fields that begin one step before the latents, a continent the mask has
+to come from, a calendar without leap days. One channel is planted to follow its storm, so
+an analysis has a right answer to find.</p>
 <p>The CLI is a thin client of the API; anything it can do, a notebook can.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.daig.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_source</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">source</span><span class="o">.</span><span class="n">info</span><span class="p">()</span><span class="o">.</span><span class="n">layers</span>  <span class="c1"># what was recorded, without loading any of it</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">nodes</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span><span class="o">.</span><span class="n">within</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">140</span><span class="p">,</span> <span class="mi">1500</span><span class="p">)</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">source</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">)</span>  <span class="c1"># one region of one layer, and nothing else</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.daig.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_source</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">source</span><span class="o">.</span><span class="n">info</span><span class="p">()</span><span class="o">.</span><span class="n">layers</span>  <span class="c1"># what was recorded, without loading any of it</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">nodes</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span><span class="o">.</span><span class="n">within</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">140</span><span class="p">,</span> <span class="mi">1500</span><span class="p">)</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">source</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">)</span>  <span class="c1"># one region of one layer, and nothing else</span>
 </span></code></pre></div>
 <h2 id="adding-an-adapter">Adding an adapter</h2>
 <p>An adapter is one class implementing one or more protocols — for latents, <code>info()</code>,
 <code>grid()</code> and <code>load(time, layer, …)</code> — constructed as <code>Adapter(source, **options)</code>.
 Register it, from this repo or any other package:</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[project.entry-points.</span><span class="s2">"xaig.adapters"</span><span class="k">]</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">myframework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"mypkg.adapter:MyAdapter"</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[project.entry-points.</span><span class="s2">"xaig.adapters"</span><span class="k">]</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">myframework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"mypkg.adapter:MyAdapter"</span>
 </span></code></pre></div>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">   </span><span class="c1"># entry points are read from installed metadata</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>/path/to/export<span class="w"> </span>--adapter<span class="w"> </span>myframework
+<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">   </span><span class="c1"># entry points are read from installed metadata</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>/path/to/export<span class="w"> </span>--adapter<span class="w"> </span>myframework
 </span></code></pre></div>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
