@@ -2,7 +2,9 @@
 
 `xaig.taig` holds a sparse autoencoder over a model's [latents](latents.md): one node's vector of channels goes in, a
 wide and mostly-zero vector of *features* comes out, and the input is rebuilt from it.
-Channels are entangled; features, being few at a time, are easier to name.
+Channels are entangled; features, being few at a time, are easier to name. It is the tool
+[MacMillan & Ouellette (2025)](https://arxiv.org/abs/2512.24440) turned on GraphCast, where it found tropical cyclones,
+atmospheric rivers and sea ice among the features, and let them steer a hurricane.
 
 What it produces is a [basis file](latents.md#methods-a-basis-is-a-value), used wherever a
 PCA is — `xaig daig latent region`, `series`, `fields`, and the [web app](waig.md) — and
@@ -47,10 +49,11 @@ against the [global PCA](latents.md#methods-a-basis-is-a-value) of the same laye
 ### Three ways of being sparse
 
 - **`topk`** keeps each node's `k` largest features and needs no penalty, so the sparsity
-  is exactly what was asked for from the first step. It is the default for that reason.
+  is exactly what was asked for from the first step. It is the default for that reason, and
+  the form MacMillan & Ouellette (2025) use: TopK, with decoder directions of unit length.
   Exactly `k`: a tie at the cut goes to the lowest index, in torch and in numpy alike.
 - **`relu`** gets its sparsity from an L1 penalty on the features, weighted by their decoder
-  norms. The penalty takes more steps than the two-epoch default to settle: at two epochs
+  norms: the standard form, and the baseline Cheon (2026) calls LIN-SAE. The penalty takes more steps than the two-epoch default to settle: at two epochs
   this layer is rebuilt to 53.2% with 55 features active per node; with `--epochs 10`,
   64.5% with 40, in 28 s. At equal sparsity `topk` rebuilds better.
 - **`bspline`** replaces the ReLU with a learnable activation per feature: zero for
@@ -63,6 +66,16 @@ against the [global PCA](latents.md#methods-a-basis-is-a-value) of the same laye
   a curve down near zero instead of switching the feature off, and a small positive
   activation still counts as active. It is a starting point for the experiment, not a
   result; the design is one class, `BSplineActivation`, and meant to be changed.
+
+!!! warning "`bspline` is not KAN-SAE"
+
+    [Cheon (2026)](https://arxiv.org/abs/2605.17493) replaces the ReLU with a
+    learnable cubic B-spline per feature and nothing else: no hard zero, nine control
+    points that start at zero, one knot vector over the 1st–99th percentile of the
+    pre-activations measured on a calibration sample, sparsity from the L1 penalty alone
+    (annealed), decoder directions renormalised every step, and a feature counted alive by
+    the size of its control points. The activation above was written before we read that
+    paper and differs on every one of those points. Do not report it as KAN-SAE.
 
 !!! warning "a toy loop, on purpose"
 
@@ -124,7 +137,21 @@ Step 3's hook is the exporter's to grow; see [remaining tasks](#remaining-tasks)
 
 ## Remaining tasks
 
-- [ ] A steering hook in the activation exporter: add `by × direction` at a layer
-- [ ] Dead-feature resampling, a learning-rate schedule, held-out times
-- [ ] A cross-layer transcoder block (several decoders on one encoder)
+In the order we mean to take them, and after whom:
+
+- [ ] The B-spline autoencoder as Cheon (2026) has it, replacing `bspline`, beside the
+      `relu` baseline it is measured against, with that paper's table: explained variance,
+      features alive and dead, mean L1 norm, redundancy between features. Two things its
+      text leaves open need an answer first: what a spline does outside its knots, and
+      whether the knot vector is extended past the measured range
+- [ ] Held-out times: fit on some, report on others. Every number on this page is in-sample
+- [ ] An auxiliary loss that revives dead features (MacMillan & Ouellette 2025, after
+      [Gao et al. 2024](https://arxiv.org/abs/2406.04093)): what has not fired in a long while is made to rebuild the residual
+- [ ] Steering a feature as MacMillan & Ouellette do it: keep the autoencoder's
+      reconstruction error, scale one feature's activation, add the error back and let the
+      model run on. The [toy emulator](latents.md) can do this in numpy today; a real model
+      needs a hook in its exporter
+- [ ] A sweep over `k` and the number of features, for the trade between sparsity and fidelity
+- [ ] A cross-layer transcoder block (several decoders on one encoder), and tracing a
+      feature to its antecedents in an earlier layer, as Cheon (2026) does by correlation
 - [ ] Features compared across seeds of the ablation campaign

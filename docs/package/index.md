@@ -148,10 +148,32 @@ $ uv sync   # entry points are read from installed metadata
 $ xaig daig latent info /path/to/export --adapter myframework
 ```
 
+## Where this comes from
+
+Three papers are behind what is here, and behind what comes next. Cite them if you use it.
+
+- [Tempest, Beylich & Craig (2026)](https://arxiv.org/abs/2604.20467), *Mechanistic Interpretability Tool for AI Weather Models*
+  ([doi:10.1007/978-3-032-29915-4_10](https://doi.org/10.1007/978-3-032-29915-4_10);
+  [code](https://github.com/ktempestuous/latent_space_visualiser_weather_models)). Its
+  workflow — a region, the channels that respond there, cosine similarity, a PCA fitted
+  in the region and mapped everywhere — is what [`daig.latent`](latents.md) reimplements
+  as a library, and what [the app](waig.md) puts widgets on.
+- [MacMillan & Ouellette (2025)](https://arxiv.org/abs/2512.24440), *Towards mechanistic understanding in a data-driven weather model:
+  internal activations reveal interpretable physical features*
+  ([code](https://github.com/theodoremacmillan/graphcast-interpretability)). Sparse
+  autoencoders on GraphCast's node embeddings, and interventions on the features they
+  find. The TopK autoencoder in [`taig`](taig.md) is theirs in form; their auxiliary
+  loss for dead features, their held-out evaluation and their steering are not here yet.
+- [Cheon (2026)](https://arxiv.org/abs/2605.17493), *Beyond Linear Superposition: Discovering Climate Features in AI Weather
+  Models with KAN-SAE*. A sparse autoencoder whose ReLU is replaced by a learnable
+  B-spline per feature. **Not implemented here yet**: `taig`'s `bspline` activation
+  predates our reading of it and is a different thing ([see there](taig.md)).
+
 ## Remaining tasks
 
 - [ ] `daig`: bias and time-mean maps, spectra, zonal means (a `FieldSource` beside
       `LatentSource`, on the same `daig.grid`)
 - [ ] `daig.latent`: a GraphCast mesh adapter; the activation exporter as an adapter,
       with a steering hook
-- [ ] `taig`: a cross-layer transcoder; a better training loop
+- [ ] `taig`: the B-spline autoencoder as its paper has it, held-out evaluation and an
+      auxiliary loss for dead features, steering — in that order ([the list](taig.md#remaining-tasks))

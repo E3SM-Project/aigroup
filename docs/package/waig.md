@@ -1,7 +1,8 @@
 # The web app
 
 `xaig waig` is a local web app over the rest of the package: an explorer for
-[latent archives](latents.md) — pick a model, a region and a method.
+[latent archives](latents.md) — pick a model, a region and a method — after the tool of
+[Tempest, Beylich & Craig (2026)](https://arxiv.org/abs/2604.20467).
 It is presentation only — every number on screen comes from `xaig.daig` and every figure
 from `xaig.faig` — so anything you see there can be redone in a notebook or a batch job,
 and the app tells you how.
