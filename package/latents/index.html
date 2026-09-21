@@ -1215,10 +1215,12 @@
 over a region, where else the model looks the same, what the main patterns are, how they
 evolve from one physics step to the next, and what a perturbation did to them. It
 grew out of the <a href="https://github.com/ktempestuous/latent_space_visualiser_weather_models">latent space visualiser</a>
-(Tempest, Beylich &amp; Craig 2026,
+(Tempest, Beylich &amp; Craig 2026, <a href="https://arxiv.org/abs/2604.20467">arXiv:2604.20467</a>,
 <a href="https://doi.org/10.1007/978-3-032-29915-4_10">doi:10.1007/978-3-032-29915-4_10</a>; cite it
 if you use this), with the science lifted out of the app so that a notebook, a batch job
-and the CLI all run the same code.</p>
+and the CLI all run the same code. Finding features with a learned dictionary, and testing
+one by setting a steered run against its control, follows
+<a href="https://arxiv.org/abs/2512.24440">MacMillan &amp; Ouellette (2025)</a>.</p>
 <div class="admonition tip">
 <p class="admonition-title">two environments, one directory between them</p>
 <p>Recording activations needs the model's own environment — torch, the framework, a
@@ -1228,7 +1230,7 @@ other's stack.</p>
 </div>
 <h2 id="install">Install</h2>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">                      </span><span class="c1"># in a checkout: everything</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'</span><span class="w">   </span><span class="c1"># elsewhere</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig]'</span><span class="w">   </span><span class="c1"># elsewhere, from PyPI</span>
 </span></code></pre></div>
 <h2 id="what-is-in-an-archive">What is in an archive</h2>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
@@ -1593,12 +1595,17 @@ like any other:</p>
 <code>to_map</code>, and weights are uniform unless the adapter supplies <code>area</code>.</p>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A GraphCast mesh adapter, including the app's translator</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A GraphCast mesh adapter, including the <em>translator</em> of Tempest et al. (2026), which
+      puts an intermediate processor step in the basis of the last one</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> The activation exporter as an adapter of its own, behind a framework extra — with
       the hooks that <em>write</em> a layer, for steering along a basis file's direction, and an
       <code>experiment</code> block (the SamudrACE exporter takes <code>--seed</code> and does not record it)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Ensemble members and per-layer grids in <code>LatentSource</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Differences and series in a basis's features between two runs</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> How redundant a basis is: the pairwise correlation of its features' activations over
+      time, the measure Cheon (2026) reports beside explained variance</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A probe for a labelled phenomenon on features against one on channels (MacMillan &amp;
+      Ouellette 2025 find a tropical-cyclone feature a probe on neurons cannot)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A time–longitude figure beside the line plot</li>
 </ul>
 

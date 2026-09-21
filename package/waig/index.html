@@ -1034,7 +1034,8 @@
 
 <h1 id="the-web-app">The web app</h1>
 <p><code>xaig waig</code> is a local web app over the rest of the package: an explorer for
-<a href="../latents/">latent archives</a> — pick a model, a region and a method.
+<a href="../latents/">latent archives</a> — pick a model, a region and a method — after the tool of
+<a href="https://arxiv.org/abs/2604.20467">Tempest, Beylich &amp; Craig (2026)</a>.
 It is presentation only — every number on screen comes from <code>xaig.daig</code> and every figure
 from <code>xaig.faig</code> — so anything you see there can be redone in a notebook or a batch job,
 and the app tells you how.</p>
@@ -1045,7 +1046,7 @@ are no accounts, and no tracking service is involved.</p>
 </div>
 <h2 id="install">Install</h2>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">                      </span><span class="c1"># in a checkout: everything</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[waig] @ git+https://github.com/E3SM-Project/aigroup'</span><span class="w">   </span><span class="c1"># elsewhere</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[waig]'</span><span class="w">   </span><span class="c1"># elsewhere, from PyPI</span>
 </span></code></pre></div>
 <p>The <code>waig</code> extra brings Streamlit and everything <code>faig</code> and <code>daig</code> need.</p>
 <div class="admonition tip">

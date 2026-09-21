@@ -397,3 +397,18 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* ===========================================
+   Task lists
+   =========================================== */
+
+/* Material draws an open task as a pale, filled circle with a tick in it, which reads as
+   "done, faintly". Here an open task is an empty circle, dark enough to see in either
+   scheme; a done one keeps Material's green tick. */
+:root {
+  --md-tasklist-icon: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2Z"/></svg>');
+}
+
+.md-typeset .task-list-indicator::before {
+  background-color: var(--md-default-fg-color--light);
+}

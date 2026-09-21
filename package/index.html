@@ -900,6 +900,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#where-this-comes-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where this comes from
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#remaining-tasks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -982,9 +993,10 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 </span></code></pre></div>
 <p>In a checkout, <code>uv sync</code> (or the first <code>uv run</code>) installs every extra below but <code>taig</code>,
 plus pytest and ruff. Torch is large, and whether it should be a CPU or a CUDA build is the
-machine's business: ask for it with <code>uv sync --extra taig</code>. <code>xaig</code> is not on PyPI; to use
-it from another project, install it from this repository, asking for the extras you need:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'</span>
+machine's business: ask for it with <code>uv sync --extra taig</code>. To use it from another project,
+install it from <a href="https://pypi.org/project/xaig/">PyPI</a>, asking for the extras you need:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig]'</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'</span><span class="w">   </span><span class="c1"># what main holds and no release does yet</span>
 </span></code></pre></div>
 <p>The base install pulls only Click. Anything heavier sits behind an extra named after the
 subpackage that needs it. A missing one says so, with the command that fits how this
@@ -1099,13 +1111,34 @@ Register it, from this repo or any other package:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">   </span><span class="c1"># entry points are read from installed metadata</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>/path/to/export<span class="w"> </span>--adapter<span class="w"> </span>myframework
 </span></code></pre></div>
+<h2 id="where-this-comes-from">Where this comes from</h2>
+<p>Three papers are behind what is here, and behind what comes next. Cite them if you use it.</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.20467">Tempest, Beylich &amp; Craig (2026)</a>, <em>Mechanistic Interpretability Tool for AI Weather Models</em>
+  (<a href="https://doi.org/10.1007/978-3-032-29915-4_10">doi:10.1007/978-3-032-29915-4_10</a>;
+  <a href="https://github.com/ktempestuous/latent_space_visualiser_weather_models">code</a>). Its
+  workflow — a region, the channels that respond there, cosine similarity, a PCA fitted
+  in the region and mapped everywhere — is what <a href="latents/"><code>daig.latent</code></a> reimplements
+  as a library, and what <a href="waig/">the app</a> puts widgets on.</li>
+<li><a href="https://arxiv.org/abs/2512.24440">MacMillan &amp; Ouellette (2025)</a>, <em>Towards mechanistic understanding in a data-driven weather model:
+  internal activations reveal interpretable physical features</em>
+  (<a href="https://github.com/theodoremacmillan/graphcast-interpretability">code</a>). Sparse
+  autoencoders on GraphCast's node embeddings, and interventions on the features they
+  find. The TopK autoencoder in <a href="taig/"><code>taig</code></a> is theirs in form; their auxiliary
+  loss for dead features, their held-out evaluation and their steering are not here yet.</li>
+<li><a href="https://arxiv.org/abs/2605.17493">Cheon (2026)</a>, <em>Beyond Linear Superposition: Discovering Climate Features in AI Weather
+  Models with KAN-SAE</em>. A sparse autoencoder whose ReLU is replaced by a learnable
+  B-spline per feature. <strong>Not implemented here yet</strong>: <code>taig</code>'s <code>bspline</code> activation
+  predates our reading of it and is a different thing (<a href="taig/">see there</a>).</li>
+</ul>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig</code>: bias and time-mean maps, spectra, zonal means (a <code>FieldSource</code> beside
       <code>LatentSource</code>, on the same <code>daig.grid</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>daig.latent</code>: a GraphCast mesh adapter; the activation exporter as an adapter,
       with a steering hook</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>taig</code>: a cross-layer transcoder; a better training loop</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>taig</code>: the B-spline autoencoder as its paper has it, held-out evaluation and an
+      auxiliary loss for dead features, steering — in that order (<a href="taig/#remaining-tasks">the list</a>)</li>
 </ul>
 
 
