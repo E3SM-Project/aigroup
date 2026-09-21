@@ -16,6 +16,8 @@
         <link rel="prev" href="../e3sm-branch-runs/">
       
       
+        <link rel="next" href="latents/">
+      
       
         
       
@@ -662,6 +664,8 @@
           
         
       
+        
+      
     
     
     
@@ -699,6 +703,11 @@
 
             </a>
             
+              
+              <label class="md-nav__link md-nav__link--active" for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
           </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
@@ -712,6 +721,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="latents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latent diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
           </ul>
@@ -859,7 +896,7 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 <tbody>
 <tr>
 <td><code>daig</code></td>
-<td>diagnostics of emulators: what they hold inside</td>
+<td>diagnostics of emulators: <a href="latents/">what they hold inside</a></td>
 </tr>
 </tbody>
 </table>
@@ -924,7 +961,8 @@ another. These rules are enforced by <code>tests/test_purity.py</code>, not by c
 <p>Errors xaig raises on purpose are <code>XaigError</code>s and reach a terminal as one line; anything
 else is a bug and keeps its traceback, as does everything under <code>xaig --debug</code>.</p>
 <h2 id="looking-inside-a-model">Looking inside a model</h2>
-<p><code>daig.latent</code> reads activations recorded from inside a model, through an adapter:</p>
+<p><code>daig.latent</code> reads activations recorded from inside a model, through an adapter, and
+analyses them; <a href="latents/">latent diagnostics</a> is the guide to it.</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>daig<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>/path/to/latents/atmosphere
 </span></code></pre></div>
 <p>With no model and no data to hand, make an archive with the toy emulator — an MLP with a
@@ -1032,6 +1070,22 @@ Register it, from this repo or any other package:</p>
             </div>
           </a>
         
+        
+          
+          <a href="latents/" class="md-footer__link md-footer__link--next" aria-label="Next: Latent diagnostics">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Latent diagnostics
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
         
       </nav>
     
