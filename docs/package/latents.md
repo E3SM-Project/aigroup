@@ -20,7 +20,7 @@ and the CLI all run the same code.
 
 ```console
 $ uv sync                      # in a checkout: everything
-$ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'   # elsewhere
+$ uv pip install 'xaig[daig]'   # elsewhere, from PyPI
 ```
 
 ## What is in an archive

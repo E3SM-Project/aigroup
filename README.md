@@ -17,11 +17,12 @@ $ uv run xaig --help
 ```
 
 In a checkout, `uv sync` (or the first `uv run`) installs every extra but torch, plus
-pytest and ruff; `uv sync --extra taig` adds torch. `xaig` is not on PyPI; to use it from
-another project, install it from this repository, asking for the extras you need:
+pytest and ruff; `uv sync --extra taig` adds torch. To use it from another project, install
+it from [PyPI](https://pypi.org/project/xaig/), asking for the extras you need:
 
 ```console
-$ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'
+$ uv pip install 'xaig[daig]'
+$ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'   # what main holds and no release does yet
 ```
 
 The base install pulls only Click. Anything heavier sits behind an extra named

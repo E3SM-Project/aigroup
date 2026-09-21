@@ -15,7 +15,7 @@ and the app tells you how.
 
 ```console
 $ uv sync                      # in a checkout: everything
-$ uv pip install 'xaig[waig] @ git+https://github.com/E3SM-Project/aigroup'   # elsewhere
+$ uv pip install 'xaig[waig]'   # elsewhere, from PyPI
 ```
 
 The `waig` extra brings Streamlit and everything `faig` and `daig` need.
