@@ -89,3 +89,18 @@ so heavy imports happen inside the command that needs them.
 | a subpackage | the directory, an extra, its row in `tests/test_purity.py`, an `AGENTS.md` |
 
 Entry points are read from installed metadata: after editing them, rerun `uv sync`.
+
+## Releasing
+
+`xaig` is published to PyPI by `.github/workflows/release.yml`, through trusted
+publishing: no token exists, the indexes trust that workflow by name.
+
+1. Bump `__version__` in `src/xaig/__init__.py` in a PR, and merge it.
+2. Rehearse: run the *release* workflow by hand ("Run workflow") on `main`. It builds,
+   checks the metadata, installs the wheel alone and publishes to TestPyPI.
+3. Tag the merged commit `vX.Y.Z` and push the tag. The same job runs, refuses a tag
+   that is not the version, and publishes to PyPI.
+
+An index never lets a version be replaced: a bad release is fixed by the next number.
+`src/xaig/README.md` is the page PyPI shows. A release holds the package, its tests and
+its licences; the guide site, the run configs and these notes stay out of it.
