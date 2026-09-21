@@ -56,4 +56,7 @@ result.ranking.channels  # the channels that respond most strongly there
 
 BSD-3-Clause. `xaig.daig.latent`, `xaig.faig` and `xaig.waig` grew out of the
 [latent space visualiser for weather models](https://github.com/ktempestuous/latent_space_visualiser_weather_models)
-(Tempest, Beylich & Craig 2026, doi:10.1007/978-3-032-29915-4_10); see `NOTICE`.
+(Tempest, Beylich & Craig 2026, arXiv:2604.20467, doi:10.1007/978-3-032-29915-4_10); see
+`NOTICE`. The sparse autoencoders follow MacMillan & Ouellette (2025, arXiv:2512.24440);
+the B-spline autoencoder of Cheon (2026, arXiv:2605.17493) is what `xaig.taig` is heading
+for and does not implement yet.

@@ -4,6 +4,10 @@ One node's vector of channels goes in; a wide, mostly-zero vector of *features*
 comes out, from which the input is rebuilt. The hope is the usual one: channels
 are entangled, and features, being few at a time, are easier to name.
 
+With ``topk`` this is the k-sparse autoencoder MacMillan & Ouellette (2025,
+arXiv:2512.24440) trained on GraphCast's node embeddings; with ``relu`` and an L1
+penalty, the standard one.
+
 Blocks take and return tensors and know nothing of archives, grids or training
 loops (``xaig.taig.train`` has those), so they can be lifted into any harness.
 Inputs are expected standardised; that is the caller's business.
@@ -30,6 +34,11 @@ from xaig.daig.latent.basis import ACTIVATIONS, Dictionary, spline_knots
 class BSplineActivation(nn.Module):
     """A learnable activation per feature: zero for ``z <= 0``, a uniform cubic
     B-spline on ``(0, upper]``, a line of slope one beyond.
+
+    Not the KAN-SAE of Cheon (2026, arXiv:2605.17493), which has no hard zero,
+    starts its control points at zero and places its knots over the measured range
+    of pre-activations: this was written before that paper was read, and is to be
+    replaced by it. Do not report results from it under that name.
 
     It starts as a ReLU exactly -- a B-spline whose coefficients sit at its
     Greville abscissae is the identity -- and training bends each feature's own
