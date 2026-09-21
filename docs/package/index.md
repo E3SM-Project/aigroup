@@ -108,6 +108,21 @@ nodes = source.grid().within(5, -140, 1500)
 source.load(0, 8, nodes=nodes)  # one region of one layer, and nothing else
 ```
 
+## Reusing a fitted basis
+
+A PCA fitted by `analyse_region(..., n_components=2)` accepts raw latents, even
+when the analysis uses `centred=True`. Centring changes channel ranking and similarity;
+the basis carries its own mean. Save `result.pca` with `save_basis` and reload it with
+`load_basis` to reuse it through `basis=` or the region command's `--basis` option.
+The file retains the fitting layer, time, region and source provenance automatically.
+
+Reusing a basis checks its layer, model, component and checkpoint against the source.
+Incomplete identity on either side requires `allow_unverified_basis=True` in the API
+or `--allow-unverified-basis` in the CLI. This choice appears in the result settings;
+known identity mismatches and channel-width mismatches still fail. A PCA fitted directly
+from arrays with `fit_pca` has no source identity unless the caller supplies fitting
+metadata when saving it.
+
 ## Adding an adapter
 
 An adapter is one class implementing one or more protocols — for latents, `info()`,

@@ -170,6 +170,11 @@ def toy_cmd(out, steps, keep, seed, steer, overwrite, adapter) -> None:
     "the features of it that respond most there.",
 )
 @_basis_option
+@click.option(
+    "--allow-unverified-basis",
+    is_flag=True,
+    help="Allow a basis with incomplete model/layer identity; known mismatches still fail.",
+)
 @_json_option
 def region_cmd(
     source, adapter, mask_variable, time, layer, as_json, lat, lon, radius_km, basis_path, **kw

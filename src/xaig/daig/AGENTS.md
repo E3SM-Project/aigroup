@@ -29,7 +29,9 @@ What an emulator holds inside.
   of another, and every layer of a model is as wide as the next. Whatever lines two
   things up by index checks who they are first: `check_basis_fits` for a basis against
   a layer (the network and layer its file says it was fitted on). Widths matching is
-  never the check.
+  never the check. Region-fitted bases record their source and layer automatically.
+  Missing identity requires `allow_unverified_basis=True` (CLI:
+  `--allow-unverified-basis`); known mismatches are always refused.
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
   product.

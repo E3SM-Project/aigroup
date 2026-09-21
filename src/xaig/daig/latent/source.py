@@ -118,8 +118,8 @@ class LatentInfo:
         """Which network this is, as far as the source says: the model, component
         and checkpoint it declares. Channel 42 of one trained network is not
         channel 42 of another, so anything that lines two things up by channel
-        index compares these first. What is undeclared is left out, and is not held
-        against it."""
+        index compares these first. Undeclared fields are left out; callers
+        decide whether incomplete identity requires an explicit override."""
         declared = {"model": self.model, "component": self.component, "checkpoint": self.checkpoint}
         return {key: str(value) for key, value in declared.items() if value}
 
@@ -247,15 +247,16 @@ def differing_identity(ours: Mapping[str, Any], theirs: Mapping[str, Any]) -> li
     ]
 
 
-def check_basis_fits(basis: Any, info: LatentInfo, layer: int) -> None:
+def check_basis_fits(
+    basis: Any, info: LatentInfo, layer: int, *, allow_unverified: bool = False
+) -> None:
     """Refuse a basis that says it was fitted on another network or another layer.
 
     Its width matching is not enough: every layer of a model is equally wide, and
     so is every seed of a campaign. What a basis's file records under
-    ``fitted_on`` is compared with where it is being used. A basis that records
-    nothing is taken at its word, which is also the way to insist
-    (``dataclasses.replace(basis, meta={})``): along a residual stream, a
-    dictionary from one layer can be a fair question to put to the next.
+    ``fitted_on`` is compared with where it is being used. Missing layer,
+    model, component or checkpoint identity on either side requires an explicit
+    ``allow_unverified=True``. Known mismatches are refused even with the override.
     """
     width = info.layer(layer).n_channels
     if basis.n_channels != width:
@@ -269,3 +270,18 @@ def check_basis_fits(basis: Any, info: LatentInfo, layer: int) -> None:
     if apart:
         where = basis.meta.get("path") or "given"
         raise RequestError(f"the basis ({where}) was not fitted here: {'; '.join(apart)}")
+
+    provenance = fitted.get("provenance") or {}
+    identity = info.identity()
+    missing = [
+        key
+        for key in ("model", "component", "checkpoint")
+        if not provenance.get(key) or not identity.get(key)
+    ]
+    if fitted.get("layer") is None:
+        missing.append("layer")
+    if missing and not allow_unverified:
+        raise RequestError(
+            f"basis compatibility is unverified (missing {', '.join(missing)}); "
+            "pass allow_unverified_basis=True (CLI: --allow-unverified-basis) to proceed"
+        )
