@@ -276,6 +276,7 @@ def analyse_region(
             meta={
                 "fitted_on": {
                     "layer": layer,
+                    "network_layer": info.layer(layer).position,
                     "time": time_label,
                     "region": asdict(region),
                     "provenance": info.provenance(),

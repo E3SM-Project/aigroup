@@ -107,7 +107,12 @@ def _layers(entries: Any, where: Path) -> list[dict[str, Any]]:
     try:
         return [
             {
-                "info": LayerInfo(int(e["index"]), str(e.get("label", "")), int(e["n_channels"])),
+                "info": LayerInfo(
+                    int(e["index"]),
+                    str(e.get("label", "")),
+                    int(e["n_channels"]),
+                    None if e.get("network_layer") is None else int(e["network_layer"]),
+                ),
                 "file": str(e["file"]),
             }
             for e in entries or []
@@ -360,6 +365,7 @@ def write_archive(
     grid: Grid,
     times: Sequence[str],
     layers: Sequence[tuple[str, np.ndarray]],
+    network_layers: Sequence[int] | None = None,
     fields: Mapping[str, np.ndarray] | None = None,
     field_times: Sequence[str] | None = None,
     model: str | None = None,
@@ -374,7 +380,9 @@ def write_archive(
     """Write one archive directory in the layout ``LatentArchive`` reads.
 
     ``layers`` are ``(label, array)`` pairs, each array ``(n_times, n_nodes,
-    n_channels)``, indexed by their position. ``fields`` are physical fields on
+    n_channels)``, indexed by their position. ``network_layers`` says where each sits
+    in the network, for an archive that keeps some layers and not others: a basis is
+    matched to a layer by it. ``fields`` are physical fields on
     the same nodes, each ``(n_field_times, n_nodes)``; ``field_times`` labels their
     time axis and must hold every latent time -- it usually holds more, the state
     each step started from among them. The grid's mask and area travel in
@@ -399,6 +407,10 @@ def write_archive(
         raise RequestError("an archive needs at least one time, and each only once")
     if not layers:
         raise RequestError("an archive needs at least one layer")
+    if network_layers is not None and len(network_layers) != len(layers):
+        raise RequestError(
+            f"{len(network_layers)} network layer(s) for {len(layers)} layer(s); give one each"
+        )
     for index, (label, array) in enumerate(layers):
         if array.ndim != 3 or array.shape[:2] != (len(times), n_nodes):
             raise RequestError(
@@ -437,9 +449,15 @@ def write_archive(
     steps = []
     for index, (label, array) in enumerate(layers):
         file = f"step_{index:02d}.npy"
-        steps.append(
-            {"index": index, "label": str(label), "file": file, "n_channels": int(array.shape[2])}
-        )
+        step = {
+            "index": index,
+            "label": str(label),
+            "file": file,
+            "n_channels": int(array.shape[2]),
+        }
+        if network_layers is not None:
+            step["network_layer"] = int(network_layers[index])
+        steps.append(step)
     manifest: dict[str, Any] = {
         "model": model,
         "component": component,

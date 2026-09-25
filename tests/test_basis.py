@@ -373,3 +373,35 @@ def test_cli_requires_explicit_unverified_basis_override(latent_archive, tmp_pat
     allowed = CliRunner().invoke(cli, [*args, "--allow-unverified-basis"])
     assert allowed.exit_code == 0, allowed.output
     assert json.loads(allowed.output)["settings"]["allow_unverified_basis"] is True
+
+
+def test_a_basis_is_matched_to_a_layer_by_its_place_in_the_network(latent_archive, tmp_path):
+    """A run that keeps every second layer stores network layer 4 at index 2: a basis
+    fitted on layer 2 of a run that kept them all belongs at its index 1, not 2."""
+    import shutil
+
+    from xaig.daig.latent import accumulate_moments, pca_from_moments
+    from xaig.daig.latent.source import check_basis_fits
+
+    full = open_source(latent_archive)
+    basis = pca_from_moments(accumulate_moments(full, layer=2), 2)
+    assert basis.meta["fitted_on"]["network_layer"] == 2
+    sparse = tmp_path / "every-second"
+    shutil.copytree(latent_archive, sparse)
+    manifest = json.loads((sparse / "manifest.json").read_text())
+    for step, place in zip(manifest["steps"], (0, 2, 4), strict=True):
+        step["network_layer"] = place
+    (sparse / "manifest.json").write_text(json.dumps(manifest))
+    kept = open_source(sparse).info()
+    assert [x.position for x in kept.layers] == [0, 2, 4]
+    check_basis_fits(basis, kept, 1)
+    with pytest.raises(RequestError, match="layer 2 .network layer 4. against the network layer 2"):
+        check_basis_fits(basis, kept, 2)
+    # A basis from before network layers were recorded is read by its layer, as before.
+    from dataclasses import replace
+
+    before = {k: v for k, v in basis.meta["fitted_on"].items() if k != "network_layer"}
+    older = replace(basis, meta={"fitted_on": before})
+    check_basis_fits(older, kept, 1)
+    with pytest.raises(RequestError, match="against the layer 2 it was fitted on"):
+        check_basis_fits(older, kept, 2)
