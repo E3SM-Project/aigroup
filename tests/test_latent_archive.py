@@ -198,6 +198,21 @@ def test_an_archive_filled_by_two_writers_reads_back_exactly(tmp_path):
     assert not (out / "written.npy").exists()
 
 
+def test_an_archive_laid_out_with_network_layers_says_where_each_sits(tmp_path):
+    from xaig.adapters.latent_archive import ArchiveFiller, finish_archive
+
+    out = _start(tmp_path / "a", network_layers=[3, 8])
+    filler = ArchiveFiller(out)
+    for time in range(3):
+        for layer in range(2):
+            filler.put(time, layer, np.ones((12, 5)))
+    filler.flush()
+    finish_archive(out)
+    assert [x.position for x in open_source(out).info().layers] == [3, 8]
+    with pytest.raises(RequestError, match="give one each"):
+        _start(tmp_path / "b", network_layers=[3])
+
+
 def test_an_unfinished_archive_is_refused_and_says_what_is_left(tmp_path):
     from xaig.adapters.latent_archive import ArchiveFiller, finish_archive
 

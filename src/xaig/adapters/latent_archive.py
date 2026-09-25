@@ -12,6 +12,12 @@ Layer files are memory-mapped, and only the requested time, nodes and channels
 are ever read into memory. The reference file is opened with xarray, and only
 when a mask or a field is asked of it.
 
+An archive can also be read straight from a Hugging Face dataset repository,
+``hf://datasets/<owner>/<repo>/<folder>`` (``xaig[hf]``). Each file is downloaded
+the first time something needs it and cached, so a notebook that looks at one
+layer downloads one layer. Every file comes from the one revision the archive was
+opened at.
+
 ``write_archive`` is the other half: whatever can hand over arrays -- a toy model,
 an exporter hooked into a real one -- writes the layout through it, so the writer
 and the reader are tested against each other rather than against a description.
@@ -40,6 +46,7 @@ try:
 except ImportError as exc:
     raise missing_extra("numpy", "daig") from exc
 
+HF_PREFIX = "hf://datasets/"
 MANIFEST = "manifest.json"
 GRID = "grid.npz"
 REFERENCE = "reference.nc"
@@ -48,11 +55,70 @@ PARTIAL = "manifest.partial.json"  # an archive being filled; the reader refuses
 WRITTEN = "written.npy"  # (n_times, n_layers) flags, one per cell filled
 
 
+class _HubFolder:
+    """One folder of a Hugging Face dataset repository, fetched a file at a time."""
+
+    def __init__(self, url: str, revision: str | None) -> None:
+        rest = url[len(HF_PREFIX) :].strip("/")
+        parts = rest.split("/")
+        if len(parts) < 3 or not all(parts):
+            raise AdapterError(f"expected {HF_PREFIX}<owner>/<repo>/<folder>, got {url!r}")
+        self.url = url
+        self.repo_id = "/".join(parts[:2])
+        self.folder = "/".join(parts[2:])
+        hub = require("huggingface_hub", "hf")
+        self._api = hub.HfApi()
+        try:
+            self.revision = revision or self._api.repo_info(self.repo_id, repo_type="dataset").sha
+        except Exception as exc:  # the hub's own errors: no network, no such repo, no access
+            raise AdapterError(f"{url}: cannot reach the dataset repository ({exc})") from exc
+        self._download = hub.hf_hub_download
+
+    def fetch(self, name: str) -> Path | None:
+        """Local path of one file of the folder, or None when the repository lacks it."""
+        from huggingface_hub.utils import EntryNotFoundError
+
+        try:
+            local = self._download(
+                self.repo_id,
+                f"{self.folder}/{name}",
+                repo_type="dataset",
+                revision=self.revision,
+            )
+        except EntryNotFoundError:
+            return None
+        except Exception as exc:
+            raise AdapterError(f"{self.url}: could not download {name} ({exc})") from exc
+        return Path(local)
+
+    def list(self, folder: str) -> list[str]:
+        """Names of the files directly inside ``folder`` of this one, downloading none."""
+        from huggingface_hub.utils import EntryNotFoundError
+
+        where = f"{self.folder}/{folder.strip('/')}"
+        try:
+            entries = list(
+                self._api.list_repo_tree(
+                    self.repo_id, path_in_repo=where, repo_type="dataset", revision=self.revision
+                )
+            )
+        except EntryNotFoundError:
+            return []
+        except Exception as exc:
+            raise AdapterError(f"{self.url}: could not list {folder} ({exc})") from exc
+        return [e.path.rsplit("/", 1)[-1] for e in entries if getattr(e, "size", None) is not None]
+
+
 def _layers(entries: Any, where: Path) -> list[dict[str, Any]]:
     try:
         return [
             {
-                "info": LayerInfo(int(e["index"]), str(e.get("label", "")), int(e["n_channels"])),
+                "info": LayerInfo(
+                    int(e["index"]),
+                    str(e.get("label", "")),
+                    int(e["n_channels"]),
+                    None if e.get("network_layer") is None else int(e["network_layer"]),
+                ),
                 "file": str(e["file"]),
             }
             for e in entries or []
@@ -72,9 +138,22 @@ class LatentArchive:
     ocean model, whose activations over land mean nothing.
     """
 
-    def __init__(self, path: str | Path, mask_variable: str | None = None) -> None:
-        self.path = Path(path)
+    def __init__(
+        self, path: str | Path, mask_variable: str | None = None, revision: str | None = None
+    ) -> None:
         self.mask_variable = mask_variable
+        self._hub: _HubFolder | None = None
+        if str(path).startswith(HF_PREFIX):
+            self._hub = _HubFolder(str(path), revision)
+            fetched = self._hub.fetch(MANIFEST)
+            if fetched is None:
+                raise AdapterError(f"not a latent archive (no {MANIFEST}): {path}")
+            self.path = fetched.parent
+        elif revision is not None:
+            raise AdapterError("'revision' applies to hf:// sources only")
+        else:
+            self.path = Path(path)
+        self._name = str(path) if self._hub is not None else str(self.path)
         manifest_path = self.path / MANIFEST
         if not self.path.is_dir():
             raise AdapterError(f"no such directory: {self.path}")
@@ -103,7 +182,7 @@ class LatentArchive:
             raise AdapterError(f"{manifest_path}: 'experiment' must be a mapping")
         self._fields: tuple[str, ...] | None = None
         self._info = LatentInfo(
-            source=str(self.path),
+            source=self._name,
             times=times,
             layers=tuple(entry["info"] for entry in layers),
             n_nodes=n_nodes,
@@ -127,15 +206,36 @@ class LatentArchive:
     def info(self) -> LatentInfo:
         return self._info
 
+    def file(self, name: str) -> Path | None:
+        """Local path of a file of the archive (``bases/sae_L08.npz``, say), or None
+        when there is no such file. From a hub, this is when it is downloaded."""
+        local = self.path / name
+        if self._hub is not None and not local.is_file():
+            fetched = self._hub.fetch(name)
+            return fetched if fetched is not None and fetched.is_file() else None
+        return local if local.is_file() else None
+
+    def files(self, folder: str) -> tuple[str, ...]:
+        """The files directly inside one folder of the archive, as ``file`` names them
+        (``bases/sae_L08.npz``), sorted; none when there is no such folder. Nothing is
+        downloaded: a hub archive is listed where it is."""
+        folder = folder.strip("/")
+        if self._hub is not None:
+            names = self._hub.list(folder)
+        else:
+            where = self.path / folder
+            names = [p.name for p in where.iterdir() if p.is_file()] if where.is_dir() else []
+        return tuple(sorted(f"{folder}/{name}" for name in names))
+
     def grid(self) -> Grid:
         if self._grid is None:
             self._grid = self._read_grid()
         return self._grid
 
     def _read_grid(self) -> Grid:
-        grid_path = self.path / GRID
-        if not grid_path.is_file():
-            raise AdapterError(f"{self.path}: no {GRID}")
+        grid_path = self.file(GRID)
+        if grid_path is None:
+            raise AdapterError(f"{self._name}: no {GRID}")
         with np.load(grid_path) as stored:
             names = set(stored.files)
             if not {"lat", "lon"} <= names:
@@ -157,7 +257,7 @@ class LatentArchive:
 
     def _reference(self) -> Path | None:
         name = self._manifest.get("reference_file")
-        return self.path / name if name and (self.path / name).is_file() else None
+        return self.file(name) if name else None
 
     def _open_reference(self, wanted_for: str):
         path = self._reference()
@@ -210,7 +310,7 @@ class LatentArchive:
                     )
         return self._fields
 
-    def field(self, name: str, time: str | int) -> np.ndarray:
+    def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray:
         label = self._info.times[self._info.time_index(time)]
         if name not in self.field_names():
             known = ", ".join(self.field_names()) or "none"
@@ -218,16 +318,21 @@ class LatentArchive:
         times = self._reference_times()
         if label not in times:
             raise RequestError(f"{self.path}: the reference file has no time {label!r}")
+        index = times.index(label) + lead
+        if not 0 <= index < len(times):
+            raise RequestError(
+                f"{self.path}: the reference file ends before {lead:+d} time(s) from {label}"
+            )
         _, dataset = self._open_reference("a field")
         with dataset as ds:
             variable = ds[name]
-            values = variable.isel({variable.dims[0]: times.index(label)}).values
+            values = variable.isel({variable.dims[0]: index}).values
         return np.asarray(values, dtype=np.float64).ravel()
 
     def _array(self, layer: int) -> np.ndarray:
         if layer not in self._arrays:
             info = self._info.layer(layer)
-            file = self.path / self._files[layer]
+            file = self.file(self._files[layer]) or self.path / self._files[layer]
             if not file.is_file():
                 raise AdapterError(f"layer {layer}: {file} is missing")
             array = np.load(file, mmap_mode="r")
@@ -275,6 +380,7 @@ def write_archive(
     grid: Grid,
     times: Sequence[str],
     layers: Sequence[tuple[str, np.ndarray]],
+    network_layers: Sequence[int] | None = None,
     fields: Mapping[str, np.ndarray] | None = None,
     field_times: Sequence[str] | None = None,
     model: str | None = None,
@@ -289,7 +395,9 @@ def write_archive(
     """Write one archive directory in the layout ``LatentArchive`` reads.
 
     ``layers`` are ``(label, array)`` pairs, each array ``(n_times, n_nodes,
-    n_channels)``, indexed by their position. ``fields`` are physical fields on
+    n_channels)``, indexed by their position. ``network_layers`` says where each sits
+    in the network, for an archive that keeps some layers and not others: a basis is
+    matched to a layer by it. ``fields`` are physical fields on
     the same nodes, each ``(n_field_times, n_nodes)``; ``field_times`` labels their
     time axis and must hold every latent time -- it usually holds more, the state
     each step started from among them. The grid's mask and area travel in
@@ -331,7 +439,7 @@ def write_archive(
     _check_destination(out, overwrite)
 
     stored = _grid_arrays(grid)
-    steps = _steps([(label, array.shape[2]) for label, array in layers], None)
+    steps = _steps([(label, array.shape[2]) for label, array in layers], None, network_layers)
     manifest = _manifest(
         grid, times, steps, model=model, component=component, checkpoint=checkpoint,
         calendar=calendar, timestep_seconds=timestep_seconds, experiment=experiment,
@@ -443,10 +551,17 @@ def _grid_arrays(grid: Grid) -> dict[str, np.ndarray]:
 
 
 def _steps(
-    layers: Sequence[tuple[str, int]], directories: Sequence[str] | None
+    layers: Sequence[tuple[str, int]],
+    directories: Sequence[str] | None,
+    network_layers: Sequence[int] | None = None,
 ) -> list[dict[str, Any]]:
     """One manifest entry per layer: ``step_XX.npy`` beside the manifest, or
-    ``<directory>/latents.npy`` when each layer is given a directory of its own."""
+    ``<directory>/latents.npy`` when each layer is given a directory of its own;
+    with ``network_layers``, where each sits in the network."""
+    if network_layers is not None and len(network_layers) != len(layers):
+        raise RequestError(
+            f"{len(network_layers)} network layer(s) for {len(layers)} layer(s); give one each"
+        )
     if directories is not None:
         if len(directories) != len(layers) or len(set(directories)) != len(directories):
             raise RequestError("give each layer its own directory, one per layer")
@@ -457,10 +572,14 @@ def _steps(
         f"step_{index:02d}.npy" if directories is None else f"{directories[index]}/latents.npy"
         for index in range(len(layers))
     ]
-    return [
+    steps = [
         {"index": index, "label": str(label), "file": file, "n_channels": int(n_channels)}
         for index, ((label, n_channels), file) in enumerate(zip(layers, files, strict=True))
     ]
+    if network_layers is not None:
+        for step, position in zip(steps, network_layers, strict=True):
+            step["network_layer"] = int(position)
+    return steps
 
 
 def _manifest(
@@ -510,6 +629,7 @@ def start_archive(
     times: Sequence[str],
     layers: Sequence[tuple[str, int]],
     directories: Sequence[str] | None = None,
+    network_layers: Sequence[int] | None = None,
     model: str | None = None,
     component: str | None = None,
     checkpoint: str | None = None,
@@ -525,7 +645,8 @@ def start_archive(
 
     ``layers`` are ``(label, n_channels)`` pairs. With ``directories`` each layer
     lives in a directory of its own (``<directory>/latents.npy``), where whatever
-    is later made from it can sit beside it. Every layer file is allocated at its
+    is later made from it can sit beside it; ``network_layers`` is as for
+    ``write_archive``. Every layer file is allocated at its
     full size, which a file system that supports holes does not spend until it is
     written. Until ``finish_archive`` the manifest is ``manifest.partial.json``,
     and the reader refuses the directory: an unfilled cell would read as zeros.
@@ -539,7 +660,7 @@ def start_archive(
     if any(int(n) < 1 for _, n in layers):
         raise RequestError("every layer needs at least one channel")
     _check_destination(out, overwrite)
-    steps = _steps(layers, directories)
+    steps = _steps(layers, directories, network_layers)
     manifest = _manifest(
         grid, times, steps, model=model, component=component, checkpoint=checkpoint,
         calendar=calendar, timestep_seconds=timestep_seconds, experiment=experiment,

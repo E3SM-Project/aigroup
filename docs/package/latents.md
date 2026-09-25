@@ -191,6 +191,23 @@ The first ranks channels by the area-weighted RMS of `steered − control` at on
 which channels the change reached. `--growth` follows its size through every layer and
 every time the two share, relative to the control's own spread across the globe.
 
+### Against the model's own noise
+
+A stochastic model -- one that draws noise at every step -- makes a node-for-node
+comparison mean something only when both runs drew the *same* noise: give the exporter one
+seed for the control and every experiment. Even then, a perturbation grows as the runs
+drift apart, and some of what `--growth` shows after a few steps is that drift. The
+yardstick is a third run: the control again, with another seed.
+
+```console
+$ xaig daig latent diff latents/control latents/steered --growth --noise latents/control-seed1
+```
+
+The second table it prints is the experiment's difference as a multiple of the one a new
+noise draw makes, layer by layer and time by time: above 1, the intervention moved the
+layer more than chance does. From Python, `difference_growth(control, steered,
+noise=reseeded)` returns the same as `noise_rms` and `signal_to_noise`.
+
 For two archives to be told apart at all, the exporter has to say what it did. Anything
 under `experiment` in the [manifest](#the-latent-archive) — a seed, a perturbed input, a
 steered channel — is shown by `latent info` and carried into the provenance of every
@@ -227,6 +244,113 @@ from the same channel 45. Correlation is area-weighted over valid nodes, leaves 
 where the field is missing, is taken at one time, and says nothing about cause: it is
 where an expedition starts, and a [steering experiment](#a-run-against-its-control) is
 where it ends.
+
+## Browsing features, and what one goes with
+
+A correlation asks about one field you already had in mind, and one number stands for a
+whole map: a feature that is on over sunlit land and off everywhere else correlates only
+modestly with sunlight, although that is exactly what it is. Two commands start from the
+features instead.
+
+A **census** lists every channel of a layer at one time, or every feature of a basis, with
+how much of the area it is active over, its mean, its mean where active (*strength*), and
+where it peaks. It is a catalogue to browse:
+
+```console
+$ xaig daig latent census latents/atmosphere --time 4 --layer 4 --basis bases/sae_L04.npz --top 3
+features of layer 4 at 2015-01-04T12:00:00, by coverage
+
+FEATURE  COVERAGE  MEAN   STRENGTH  PEAK  AT
+982      0.239     2      8.38      24.5  79, 244
+121      0.189     0.456  2.41      6.86  8, 134
+379      0.177     1.31   7.4       24.6  -85, 288
+```
+
+A **profile** takes one of them and sets every physical field the archive keeps where it
+is active against where it is not, as a difference in units of each field's own spread, so
+fields of any unit share one axis. Here is the feature that followed sunlight at layer 4
+with |r| = 0.42 only:
+
+```console
+$ xaig daig latent profile latents/atmosphere --layer 4 --basis bases/sae_L04.npz --feature 883 \
+    --time 1 --time 6 --time 11 --time 16
+feature 883 of layer 4: active over 4.3% of the area and 4 time(s)
+
+FIELD                       EFFECT  ACTIVE     INACTIVE
+SOLIN                       +1.66   994.4      323.3
+LANDFRAC                    +1.17   0.7735     0.272
+OCNFRAC                     -1.06   0.2253     0.6942
+T_1                         -0.68   198.4      205.7
+TS_input                    +0.65   297.4      286.5
+```
+
+Sunlit land: a sharper description than the correlation gave. Pool times that differ in hour
+as well as day. Every fourth time of a 6-hourly run is the same hour each day, and a profile
+of those alone describes the feature at that hour only: over five 18Z times, this one comes
+out as land whose sensible heat flux is high.
+"Active" means above `--threshold`, zero by default: *firing*, for a sparse autoencoder,
+whose activations are mostly exactly zero; *positive*, for a channel or a PCA score, where
+another threshold may say more. Both commands read the whole grid or, with `--lat`,
+`--lon` and `--radius-km`, a region: the day side only, say. A profile says what a feature
+goes with, not what it does.
+
+## Storylines and travelling things
+
+Two views follow something through the network and through time at once.
+
+A **storyline** asks, for one physical field, how closely each layer follows it at each
+time: the best absolute correlation any channel reaches (or any feature, for layers given
+a basis). Bright at the first layer means the field comes in with the inputs; bright only
+deep in the network means the network builds it.
+
+```console
+$ xaig daig latent storyline latents/atmosphere --field surface_precipitation_rate
+$ xaig daig latent storyline latents/atmosphere --field surface_precipitation_rate \
+    --bases 'bases/sae_L{layer:02d}.npz'
+```
+
+A time at which the field has no values -- a diagnostic output, before the model's first
+step -- is left empty rather than refused.
+
+### What a pass reads, and what it writes
+
+Latents at a time belong to the forward pass that *starts* there: it reads the state at that
+time and writes the next. A field at the same time is what the pass read -- right for an
+input such as sunlight -- but for an output it is the *previous* pass's, which this one never
+saw. `--lead 1` (`lead=1` in Python) sets the latents against the field one reference time
+later, what the pass itself produced; `fields`, `storyline` and `profile` all take it.
+Precipitation, the best SAE feature per layer:
+
+```console
+$ xaig daig latent storyline latents/atmosphere --field surface_precipitation_rate \
+    --layer 0 --layer 4 --layer 6 --layer 8 --time 4 --time 7 --time 19 \
+    --bases 'bases/sae_L{layer:02d}.npz' --lead 1
+best |r| of any feature (basis) with surface_precipitation_rate, by layer and time
+
+TIME                 LAYER 0  LAYER 4  LAYER 6  LAYER 8
+2015-01-04T12:00:00  0.51     0.464    0.755    0.86
+2015-01-05T06:00:00  0.47     0.411    0.773    0.86
+2015-01-08T06:00:00  0.492    0.46     0.746    0.842
+```
+
+Without `--lead` the last column reads 0.65, 0.52 and 0.55: the rain the network builds deep
+down is set against rain it did not build. The reference axis keeps every forward step, so a
+lead is exact even where latents were kept for fewer, and the last latent time's output is
+there too. Which fields are inputs a manifest does not say; the exporter that wrote it does.
+
+A **Hovmoller diagram** averages one quantity over a latitude band, per longitude and
+time: anything that travels draws tilted stripes, whose slope is its speed. The quantity
+is a field, one channel of a layer, or one feature of a basis.
+
+```console
+$ xaig daig latent hovmoller latents/atmosphere --lat-min 40 --lat-max 60 --field V_3
+$ xaig daig latent hovmoller latents/atmosphere --lat-min 40 --lat-max 60 --layer 8 --channel 45 \
+    --out hovmoller.npz
+```
+
+The command prints the diagram in coarse longitude bins; `--out` keeps it whole, and
+`xaig.faig.hovmoller_figure` draws it. `xaig.faig.layer_time_figure` draws a storyline,
+or a `--growth` table: anything that is layers against time.
 
 ## Python API
 
@@ -287,6 +411,22 @@ difference_growth(control, steered).relative  # (n_times, n_layers)
 
 for batch in iter_batches(source, layer=8, batch_size=4096):  # to train on
     ...  # float32 (4096, 384): valid nodes only, drawn in proportion to area
+
+from xaig.daig.latent import field_storyline, hovmoller
+
+story = field_storyline(source, field="SOLIN", bases={8: basis})
+story.best  # (n_times, n_layers): the best |r| of any channel, or of layer 8's features
+band = hovmoller(source, lat_min=40, lat_max=60, layer=8, channel=45)
+band.values  # (n_times, n_lon), with band.lon
+growth = difference_growth(control, steered, noise=open_source("latents/control-seed1"))
+growth.signal_to_noise  # (n_times, n_layers)
+
+from xaig.daig.latent import feature_census, feature_profile
+
+census = feature_census(source, time=4, layer=4, basis=basis)
+census.ranked("coverage", top=20)  # or "mean", "strength", "peak"
+profile = feature_profile(source, layer=4, column=883, basis=basis, times=range(1, 20, 5))
+profile.fields, profile.effect  # largest effect first; xaig.faig.profile_figure draws it
 ```
 
 !!! warning "area, again"
@@ -348,6 +488,7 @@ A directory per model component. Any exporter that writes this layout can be rea
 | `grid.npz` | `lat`, `lon` per node, flat. Optional: `grid_shape` `(n_lat, n_lon)` for a structured grid in C order (absent for a mesh), `mask` (true where a node means something), `area` (per-node area, for meshes with uneven cells) |
 | `step_XX.npy` | `(n_times, n_nodes, n_channels)`, any float dtype (float16 halves the disk), one file per layer, read memory-mapped |
 | `reference.nc` | optional: physical fields on the same grid |
+| `bases/` | optional: basis files fitted on this archive (`xaig daig latent pca`, `xaig taig sae`), under any names. `source.files("bases")` lists them and `source.file(name)` reads one; the [app](waig.md) offers every one that fits the layer shown |
 
 ```json
 {
@@ -369,7 +510,11 @@ A directory per model component. Any exporter that writes this layout can be rea
 ```
 
 `n_nodes`, `latent_times` and `steps` (each with `index`, `file`, `n_channels`) are
-required; the rest is provenance, carried into every result. `experiment` is free-form:
+required; the rest is provenance, carried into every result. A step may also say where it
+sits in the network, `"network_layer": 8`, for an archive that keeps some layers and not
+others (a 30-day run of layers 0, 2, 4, 6 and 8 stores layer 8 at index 4): a basis is
+matched to a layer by that place, so one fitted on layer 8 of a run that kept them all fits
+index 4 here, and one fitted on layer 4 does not. Without it, the index is the place. `experiment` is free-form:
 whatever distinguishes this run from a plain one. `reference_times` labels the reference
 file's time axis, which usually holds the state each forward call started from as well;
 without it the file is taken to share the latents' times. Times are labels, kept as text:
@@ -422,6 +567,24 @@ $ python -m xaig.adapters.ace_export finish --out latents
 manifest, and `fill` takes them from there. One step in 29 six-hourly steps moves the kept
 times round the diurnal cycle.
 
+## From a Hugging Face repository
+
+An archive kept in a Hugging Face dataset repository opens in place, with the `hf`
+extra:
+
+```console
+$ uv pip install 'xaig[hf]'
+$ xaig daig latent info hf://datasets/<owner>/<repo>/<folder>
+```
+
+Nothing is downloaded until something needs it, and then one file at a time, into the
+Hugging Face cache: opening an archive fetches its manifest, a map its grid, a layer its
+one `step_XX.npy`. A notebook that looks at one layer of a nine-layer archive downloads
+one layer. Every file comes from the revision the repository was at when the archive was
+opened; `open_source(url, revision="v1")` pins one. `source.file("bases/sae_L08.npz")`
+fetches any other file kept in the folder, and says None when there is none. A private or
+gated repository reads the token `huggingface_hub` finds (`HF_TOKEN`, or `hf auth login`).
+
 ## Another source of latents
 
 `LatentSource` is three methods — `info()`, `grid()` and `load(time, layer, channels,
@@ -454,4 +617,3 @@ Meshes need no special handling: without a `grid_shape` everything works except
       time, the measure Cheon (2026) reports beside explained variance
 - [ ] A probe for a labelled phenomenon on features against one on channels (MacMillan &
       Ouellette 2025 find a tropical-cyclone feature a probe on neurons cannot)
-- [ ] A time–longitude figure beside the line plot

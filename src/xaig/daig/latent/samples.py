@@ -87,6 +87,7 @@ class Moments:
     times: tuple[str, ...]
     layer: int
     provenance: Mapping[str, Any] = field(default_factory=dict)
+    network_layer: int | None = None
 
     @property
     def std(self) -> np.ndarray:
@@ -129,6 +130,7 @@ def accumulate_moments(
         times=tuple(labels),
         layer=layer,
         provenance=info.provenance(),
+        network_layer=info.layer(layer).position,
     )
 
 
@@ -153,6 +155,7 @@ def pca_from_moments(moments: Moments, n_components: int) -> PCA:
             "fitted_on": {
                 "provenance": dict(moments.provenance),
                 "layer": moments.layer,
+                "network_layer": moments.network_layer,
                 "times": list(moments.times),
             }
         },

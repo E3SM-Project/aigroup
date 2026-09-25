@@ -227,6 +227,7 @@ def fit_sae(
         "fitted_on": {
             "provenance": info.provenance(),
             "layer": layer,
+            "network_layer": info.layer(layer).position,
             "target_layer": target_layer,
             "times": list(moments.times),
             "holdout_times": held or None,

@@ -16,7 +16,10 @@ Reading is an adapter's job (see ``LatentSource``); this package computes.
 - ``basis``     ``Decomposition``: PCA, a sparse ``Dictionary``, and their file
 - ``analysis``  one region at one time: ranking, similarity, a decomposition
 - ``samples``   many times at once: moments, a global PCA, batches to train on
-- ``through``   through time and between runs: series, differences, field correlation
+- ``through``   through time and between runs: series, differences, field correlation,
+                storylines, Hovmoller diagrams
+- ``features``  what a feature is, without a field in mind: a census of a layer, and one
+                feature's profile against every field
 """
 
 from __future__ import annotations
@@ -42,6 +45,12 @@ from xaig.daig.latent.basis import (
     spline_knots,
     top_loadings,
 )
+from xaig.daig.latent.features import (
+    FeatureCensus,
+    FeatureProfile,
+    feature_census,
+    feature_profile,
+)
 from xaig.daig.latent.samples import (
     Moments,
     NodeNormalised,
@@ -61,11 +70,15 @@ from xaig.daig.latent.source import (
 from xaig.daig.latent.through import (
     DifferenceGrowth,
     FieldRanking,
+    FieldStoryline,
+    Hovmoller,
     PairedDifference,
     RegionSeries,
     correlate_field,
     difference,
     difference_growth,
+    field_storyline,
+    hovmoller,
     rank_by_field,
     region_series,
 )
@@ -76,7 +89,11 @@ __all__ = [
     "Decomposition",
     "Dictionary",
     "DifferenceGrowth",
+    "FeatureCensus",
+    "FeatureProfile",
     "FieldRanking",
+    "FieldStoryline",
+    "Hovmoller",
     "LatentInfo",
     "LatentSource",
     "LayerInfo",
@@ -95,6 +112,10 @@ __all__ = [
     "cosine_similarity",
     "difference",
     "difference_growth",
+    "feature_census",
+    "feature_profile",
+    "field_storyline",
+    "hovmoller",
     "fit_pca",
     "iter_batches",
     "load_basis",

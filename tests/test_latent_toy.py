@@ -310,3 +310,17 @@ def test_writer_refuses_invalid_storage_dtype(tmp_path, dtype):
             dtype=dtype,
         )
     assert not (tmp_path / "bad").exists()
+
+
+def test_an_archive_says_where_its_layers_sit_in_the_network(tmp_path, run):
+    kept = run.layers[:2]
+    path = write_archive(
+        tmp_path / "some", grid=toy_grid(), times=run.times, layers=kept, network_layers=[0, 3]
+    )
+    assert [x.position for x in open_source(path).info().layers] == [0, 3]
+    plain = write_archive(tmp_path / "all", grid=toy_grid(), times=run.times, layers=kept)
+    assert [x.network_layer for x in open_source(plain).info().layers] == [None, None]
+    with pytest.raises(RequestError, match="1 network layer.s. for 2 layer"):
+        write_archive(
+            tmp_path / "bad", grid=toy_grid(), times=run.times, layers=kept, network_layers=[0]
+        )

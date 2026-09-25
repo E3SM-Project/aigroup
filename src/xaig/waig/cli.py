@@ -43,7 +43,7 @@ def waig(latents, port, address, headless) -> None:
         raise missing_extra("streamlit", "waig")
     env = dict(os.environ)
     found = [archive for path in latents for archive in discover_archives(path)]
-    env[LATENTS_ENV] = os.pathsep.join(dict.fromkeys(found))
+    env[LATENTS_ENV] = "\n".join(dict.fromkeys(found))
     command = [
         sys.executable, "-m", "streamlit", "run", str(Path(__file__).with_name("app.py")),
         "--server.port", str(port),

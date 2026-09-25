@@ -62,11 +62,21 @@ def _day_number(year: int, month: int, day: int, calendar: str) -> int | None:
 
 @dataclass(frozen=True, slots=True)
 class LayerInfo:
-    """One place in a network where activations were recorded."""
+    """One place in a network where activations were recorded.
+
+    ``index`` is the layer's place in *this source*; ``network_layer`` its place in
+    the network, when the two differ -- a source that keeps every second layer
+    stores layer 8 at index 4. A basis is matched to a layer by the latter."""
 
     index: int
     label: str
     n_channels: int
+    network_layer: int | None = None
+
+    @property
+    def position(self) -> int:
+        """The layer's place in the network: ``network_layer``, else ``index``."""
+        return self.index if self.network_layer is None else self.network_layer
 
 
 @dataclass(frozen=True, slots=True)
@@ -212,7 +222,10 @@ class ReferenceFields(Protocol):
     ``isinstance``: what the model was looking at (or produced) at each latent
     time, so a channel can be set against sea-surface temperature or a steered run
     against its control. ``field`` returns float64 ``(n_nodes,)`` at a *latent*
-    time, NaN where the field is missing.
+    time, NaN where the field is missing; with ``lead``, the field that many times
+    later on the source's own reference axis, which holds every forward step's state
+    even where latents were kept for fewer. A forward pass reads the state at its own
+    time and writes the next: ``lead=1`` is what the pass starting there produced.
 
     This is not a contract for setting an emulator against a reference (levels,
     variables through time, two datasets); it is the few fields an exporter chose
@@ -221,7 +234,7 @@ class ReferenceFields(Protocol):
 
     def field_names(self) -> tuple[str, ...]: ...
 
-    def field(self, name: str, time: str | int) -> np.ndarray: ...
+    def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray: ...
 
 
 def parse_time(text: str) -> str | int:
@@ -321,8 +334,14 @@ def check_basis_fits(
         )
     fitted = basis.meta.get("fitted_on") or {}
     apart = differing_identity(info.identity(), fitted.get("provenance") or {})
-    if fitted.get("layer") is not None and int(fitted["layer"]) != layer:
-        apart.append(f"layer {layer} against the layer {fitted['layer']} it was fitted on")
+    # By place in the network, not in the source: two sources of one network may keep
+    # different layers, and index 4 of one is then not index 4 of the other.
+    position = info.layer(layer).position
+    fitted_at = fitted.get("network_layer", fitted.get("layer"))
+    if fitted_at is not None and int(fitted_at) != position:
+        here = f"layer {layer}" + ("" if position == layer else f" (network layer {position})")
+        there = "layer" if "network_layer" not in fitted else "network layer"
+        apart.append(f"{here} against the {there} {fitted_at} it was fitted on")
     if apart:
         where = basis.meta.get("path") or "given"
         raise RequestError(f"the basis ({where}) was not fitted here: {'; '.join(apart)}")
@@ -334,7 +353,7 @@ def check_basis_fits(
         for key in ("model", "component", "checkpoint")
         if not provenance.get(key) or not identity.get(key)
     ]
-    if fitted.get("layer") is None:
+    if fitted_at is None:
         missing.append("layer")
     if missing and not allow_unverified:
         raise RequestError(
