@@ -401,7 +401,10 @@ def _field_tab(path, mask_variable, settings, field, region) -> None:
     left, right = st.columns([1, 2])
     column = left.selectbox(kind.capitalize(), ranked)
     times = _source_times(path, mask_variable)
-    chosen = tuple(times[:: max(1, len(times) // _PROFILED_TIMES)])
+    # Spread through the run. A fixed stride can land on the same hour every day --
+    # every 4th of a 6-hourly run is always noon somewhere -- and pool one hour only.
+    spread = np.linspace(0, len(times) - 1, min(len(times), _PROFILED_TIMES))
+    chosen = tuple(times[i] for i in np.unique(spread.round().astype(int)))
     if not right.toggle(
         f"Profile it (reads {len(chosen)} times)", value=False, help="Reads the layer at each."
     ):
