@@ -459,6 +459,7 @@ A directory per model component. Any exporter that writes this layout can be rea
 | `grid.npz` | `lat`, `lon` per node, flat. Optional: `grid_shape` `(n_lat, n_lon)` for a structured grid in C order (absent for a mesh), `mask` (true where a node means something), `area` (per-node area, for meshes with uneven cells) |
 | `step_XX.npy` | `(n_times, n_nodes, n_channels)`, any float dtype (float16 halves the disk), one file per layer, read memory-mapped |
 | `reference.nc` | optional: physical fields on the same grid |
+| `bases/` | optional: basis files fitted on this archive (`xaig daig latent pca`, `xaig taig sae`), under any names. `source.files("bases")` lists them and `source.file(name)` reads one; the [app](waig.md) offers every one that fits the layer shown |
 
 ```json
 {

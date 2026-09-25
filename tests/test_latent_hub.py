@@ -29,7 +29,7 @@ def hub(tmp_path, monkeypatch):
     ``owner/latents`` at revision ``abc``, into a cache under ``tmp_path/cache``."""
     remote = tmp_path / "remote"
     write_latent_archive(remote / "control")
-    (remote / "control" / "bases").mkdir()
+    (remote / "control" / "bases" / "old").mkdir(parents=True)
     np.savez(remote / "control" / "bases" / "pca_L02.npz", placeholder=np.zeros(1))
     cache = tmp_path / "cache"
     fetched: list[str] = []
@@ -41,6 +41,17 @@ def hub(tmp_path, monkeypatch):
             if repo_id != "owner/latents":
                 raise RuntimeError("404 Client Error")
             return types.SimpleNamespace(sha="abc")
+
+        def list_repo_tree(self, repo_id, path_in_repo, repo_type, revision):
+            folder = remote / path_in_repo
+            if not folder.is_dir():
+                raise _EntryNotFound(path_in_repo)
+            for entry in sorted(folder.iterdir()):
+                name = f"{path_in_repo}/{entry.name}"
+                if entry.is_file():
+                    yield types.SimpleNamespace(path=name, size=entry.stat().st_size)
+                else:
+                    yield types.SimpleNamespace(path=name, tree_id="t")
 
     def hf_hub_download(repo_id, filename, repo_type, revision):
         assert (repo_id, repo_type) == ("owner/latents", "dataset")
@@ -83,6 +94,14 @@ def test_other_files_of_a_hub_archive(hub):
     source = open_source(URL)
     assert source.file("bases/pca_L02.npz").is_file()
     assert source.file("bases/pca_L07.npz") is None
+
+
+def test_a_hub_folder_is_listed_without_downloading_it(hub):
+    source = open_source(URL)
+    assert source.files("bases") == ("bases/pca_L02.npz",)  # files only, not the folder in it
+    assert source.files("/bases/") == ("bases/pca_L02.npz",)
+    assert source.files("nothing") == ()
+    assert hub.fetched == ["control/manifest.json"]
     assert source.field_names() == ()  # this archive keeps no reference file
 
 
@@ -113,3 +132,6 @@ def test_a_local_archive_is_unchanged(latent_archive):
     assert source.info().source == str(latent_archive)
     assert source.file("grid.npz") == latent_archive / "grid.npz"
     assert source.file("nothing.npz") is None
+    (latent_archive / "bases" / "old").mkdir(parents=True)
+    (latent_archive / "bases" / "sae_L02.npz").write_bytes(b"")
+    assert source.files("bases") == ("bases/sae_L02.npz",) and source.files("nothing") == ()
