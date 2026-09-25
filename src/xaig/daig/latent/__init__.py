@@ -18,6 +18,8 @@ Reading is an adapter's job (see ``LatentSource``); this package computes.
 - ``samples``   many times at once: moments, a global PCA, batches to train on
 - ``through``   through time and between runs: series, differences, field correlation,
                 storylines, Hovmoller diagrams
+- ``features``  what a feature is, without a field in mind: a census of a layer, and one
+                feature's profile against every field
 """
 
 from __future__ import annotations
@@ -41,6 +43,12 @@ from xaig.daig.latent.basis import (
     save_basis,
     spline_knots,
     top_loadings,
+)
+from xaig.daig.latent.features import (
+    FeatureCensus,
+    FeatureProfile,
+    feature_census,
+    feature_profile,
 )
 from xaig.daig.latent.samples import Moments, accumulate_moments, iter_batches, pca_from_moments
 from xaig.daig.latent.source import (
@@ -74,6 +82,8 @@ __all__ = [
     "Decomposition",
     "Dictionary",
     "DifferenceGrowth",
+    "FeatureCensus",
+    "FeatureProfile",
     "FieldRanking",
     "FieldStoryline",
     "Hovmoller",
@@ -94,6 +104,8 @@ __all__ = [
     "cosine_similarity",
     "difference",
     "difference_growth",
+    "feature_census",
+    "feature_profile",
     "field_storyline",
     "hovmoller",
     "fit_pca",

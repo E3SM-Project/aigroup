@@ -524,4 +524,143 @@ def fields_cmd(
     click.echo(_render.table(rows))
 
 
+def _optional_region(lat, lon, radius_km):
+    from xaig.daig.latent import Region
+
+    if (lat is None) != (lon is None):
+        raise click.UsageError("give both --lat and --lon, or neither")
+    return None if lat is None else Region(lat, lon, radius_km)
+
+
+_optional_region_options = [
+    click.option("--lat", type=float, help="With --lon: read only a region around this point."),
+    click.option("--lon", type=float),
+    click.option("--radius-km", type=float, default=2000.0, show_default=True),
+]
+_threshold_option = click.option(
+    "--threshold",
+    type=float,
+    default=0.0,
+    show_default=True,
+    help="Active means above this: firing, for a sparse basis; positive, for channels.",
+)
+
+
+def _with(options):
+    def apply(command):
+        for option in reversed(options):
+            command = option(command)
+        return command
+
+    return apply
+
+
+@latent.command("census")
+@click.argument("source", type=click.Path())
+@_adapter_option
+@_mask_option
+@click.option("--time", "time", default="0", show_default=True, help="Time label, or position.")
+@click.option("--layer", type=int, help="Layer to survey.  [default: the last]")
+@_basis_option
+@click.option(
+    "--by",
+    type=click.Choice(["coverage", "mean", "strength", "peak"]),
+    default="coverage",
+    show_default=True,
+    help="Order: share of the area active, mean, mean where active, or largest value.",
+)
+@click.option("--top", type=int, default=20, show_default=True)
+@_with(_optional_region_options)
+@_threshold_option
+@_unverified_option
+@_json_option
+def census_cmd(
+    source, adapter, mask_variable, time, layer, basis_path, by, top, lat, lon, radius_km,
+    threshold, allow_unverified_basis, as_json,
+):  # fmt: skip
+    """Every channel (or feature) of a layer: how much of the world it is active over."""
+    from xaig.daig.latent import feature_census
+
+    opened = _open(source, adapter, mask_variable)
+    result = feature_census(
+        opened,
+        time=_time(time),
+        layer=opened.info().last_layer if layer is None else layer,
+        basis=_basis(basis_path),
+        region=_optional_region(lat, lon, radius_km),
+        threshold=threshold,
+        allow_unverified_basis=allow_unverified_basis,
+    )
+    summary = result.summary(by=by, top=top)
+    if as_json:
+        click.echo(json.dumps(summary, indent=2))
+        return
+    s = summary["settings"]
+    click.echo(f"{s['columns']} of layer {s['layer']} at {s['time']}, by {by}\n")
+    rows = [
+        {
+            s["columns"][:-1]: c["column"],
+            "coverage": f"{c['coverage']:.3f}",
+            "mean": f"{c['mean']:.3g}",
+            "strength": f"{c['strength']:.3g}",
+            "peak": f"{c['peak']:.3g}",
+            "at": f"{c['peak_lat']:.0f}, {c['peak_lon']:.0f}",
+        }
+        for c in summary["columns"]
+    ]
+    click.echo(_render.table(rows))
+
+
+@latent.command("profile")
+@click.argument("source", type=click.Path())
+@_adapter_option
+@_mask_option
+@click.option("--layer", type=int, help="Layer to read.  [default: the last]")
+@click.option("--channel", type=int, help="The channel to profile.")
+@_basis_option
+@click.option("--feature", type=int, help="With --basis: the feature to profile.")
+@click.option("--time", "times", multiple=True, help="Time label or position; repeatable.")
+@click.option("--field", "fields", multiple=True, help="Repeatable.  [default: every field]")
+@_with(_optional_region_options)
+@_threshold_option
+@_unverified_option
+@_json_option
+def profile_cmd(
+    source, adapter, mask_variable, layer, channel, basis_path, feature, times, fields, lat, lon,
+    radius_km, threshold, allow_unverified_basis, as_json,
+):  # fmt: skip
+    """Every physical field where one channel (or feature) is active, against where it is not."""
+    from xaig.daig.latent import feature_profile
+
+    if (channel is None) == (basis_path is None or feature is None):
+        raise click.UsageError("name one: --channel N, or --basis FILE --feature N")
+    opened = _open(source, adapter, mask_variable)
+    result = feature_profile(
+        opened,
+        layer=opened.info().last_layer if layer is None else layer,
+        column=feature if channel is None else channel,
+        basis=_basis(basis_path) if channel is None else None,
+        times=[_time(t) for t in times] or None,
+        fields=fields or None,
+        region=_optional_region(lat, lon, radius_km),
+        threshold=threshold,
+        allow_unverified_basis=allow_unverified_basis,
+    )
+    if as_json:
+        click.echo(json.dumps(result.summary(), indent=2))
+        return
+    s = result.settings
+    click.echo(
+        f"{s['columns'][:-1]} {s['column']} of layer {s['layer']}: active over "
+        f"{result.coverage:.1%} of the area and {len(result.times)} time(s)\n"
+    )
+    rows = [
+        {"field": n, "effect": f"{e:+.2f}", "active": f"{a:.4g}", "inactive": f"{i:.4g}"}
+        for n, e, a, i in zip(
+            result.fields, result.effect, result.active_mean, result.inactive_mean, strict=True
+        )
+    ]
+    click.echo(_render.table(rows))
+
+
 __all__ = ["daig"]
