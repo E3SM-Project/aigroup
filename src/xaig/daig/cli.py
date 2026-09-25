@@ -32,6 +32,14 @@ _unverified_option = click.option(
     is_flag=True,
     help="Allow a basis with incomplete model/layer identity; known mismatches still fail.",
 )
+_lead_option = click.option(
+    "--lead",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Set the latents against the field this many times later: 1 for what that forward "
+    "pass produced (an output), 0 for what it read (an input).",
+)
 _json_option = click.option(
     "--json", "as_json", is_flag=True, help="Emit settings, provenance and results."
 )
@@ -384,11 +392,13 @@ def _layer_table(times, names, values) -> str:
     "Layers without a file are read by their channels.",
 )
 @click.option("--time", "times", multiple=True, help="Time label or position; repeatable.")
+@_lead_option
 @_unverified_option
 @_json_option
 def storyline_cmd(
-    source, adapter, mask_variable, field, layers, bases, times, allow_unverified_basis, as_json
-):
+    source, adapter, mask_variable, field, layers, bases, times, lead, allow_unverified_basis,
+    as_json,
+):  # fmt: skip
     """Where a physical field lives in the network, time by time: the best |r| per layer."""
     from pathlib import Path
 
@@ -411,6 +421,7 @@ def storyline_cmd(
         times=[_time(t) for t in times] or None,
         bases=found,
         allow_unverified_basis=allow_unverified_basis,
+        lead=lead,
     )
     if as_json:
         click.echo(json.dumps(result.summary(), indent=2))
@@ -488,10 +499,11 @@ def hovmoller_cmd(
 @click.option("--layer", type=int, help="Layer to correlate.  [default: the last]")
 @click.option("--top", type=int, default=15, show_default=True)
 @_basis_option
+@_lead_option
 @_unverified_option
 @_json_option
 def fields_cmd(
-    source, adapter, mask_variable, field, time, layer, top, basis_path,
+    source, adapter, mask_variable, field, time, layer, top, basis_path, lead,
     allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Which channels (or features) track a physical field kept beside the latents."""
@@ -510,13 +522,15 @@ def fields_cmd(
         top=top,
         basis=_basis(basis_path),
         allow_unverified_basis=allow_unverified_basis,
+        lead=lead,
     )
     summary = result.summary()
     if as_json:
         click.echo(json.dumps(summary, indent=2))
         return
     s = summary["settings"]
-    click.echo(f"{s['columns']} of layer {s['layer']} against {field} at {s['time']}\n")
+    later = f", {lead:+d} time(s) later" if lead else ""
+    click.echo(f"{s['columns']} of layer {s['layer']} against {field} at {s['time']}{later}\n")
     rows = [
         {"rank": i, s["columns"][:-1]: r["column"], "correlation": f"{r['correlation']:+.3f}"}
         for i, r in enumerate(summary["ranking"], start=1)
@@ -623,11 +637,12 @@ def census_cmd(
 @click.option("--field", "fields", multiple=True, help="Repeatable.  [default: every field]")
 @_with(_optional_region_options)
 @_threshold_option
+@_lead_option
 @_unverified_option
 @_json_option
 def profile_cmd(
     source, adapter, mask_variable, layer, channel, basis_path, feature, times, fields, lat, lon,
-    radius_km, threshold, allow_unverified_basis, as_json,
+    radius_km, threshold, lead, allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Every physical field where one channel (or feature) is active, against where it is not."""
     from xaig.daig.latent import feature_profile
@@ -645,6 +660,7 @@ def profile_cmd(
         region=_optional_region(lat, lon, radius_km),
         threshold=threshold,
         allow_unverified_basis=allow_unverified_basis,
+        lead=lead,
     )
     if as_json:
         click.echo(json.dumps(result.summary(), indent=2))

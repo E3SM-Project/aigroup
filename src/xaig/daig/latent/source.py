@@ -212,7 +212,10 @@ class ReferenceFields(Protocol):
     ``isinstance``: what the model was looking at (or produced) at each latent
     time, so a channel can be set against sea-surface temperature or a steered run
     against its control. ``field`` returns float64 ``(n_nodes,)`` at a *latent*
-    time, NaN where the field is missing.
+    time, NaN where the field is missing; with ``lead``, the field that many times
+    later on the source's own reference axis, which holds every forward step's state
+    even where latents were kept for fewer. A forward pass reads the state at its own
+    time and writes the next: ``lead=1`` is what the pass starting there produced.
 
     This is not a contract for setting an emulator against a reference (levels,
     variables through time, two datasets); it is the few fields an exporter chose
@@ -221,7 +224,7 @@ class ReferenceFields(Protocol):
 
     def field_names(self) -> tuple[str, ...]: ...
 
-    def field(self, name: str, time: str | int) -> np.ndarray: ...
+    def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray: ...
 
 
 def parse_time(text: str) -> str | int:
