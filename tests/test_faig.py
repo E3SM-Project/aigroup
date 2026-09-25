@@ -193,3 +193,33 @@ def test_fetching_coastlines_has_a_deadline_and_gives_the_old_one_back(monkeypat
     before = socket.getdefaulttimeout()
     assert maps.have_coastlines()
     assert seen == [maps._FETCH_TIMEOUT_SECONDS] and socket.getdefaulttimeout() == before
+
+
+def test_a_layer_by_time_panel_puts_layers_up_and_time_across():
+    from xaig.faig import layer_time_figure
+
+    values = np.arange(12.0).reshape(4, 3) / 12  # 4 times, 3 layers
+    fig = layer_time_figure(values, layers=[0, 4, 8], tick_labels=list("abcd"), label="|r|")
+    image = fig.axes[0].images[0]
+    assert image.get_array().shape == (3, 4) and image.get_clim()[0] == 0.0
+    assert [t.get_text() for t in fig.axes[0].get_yticklabels()] == ["0", "4", "8"]
+    assert to_png(fig).startswith(b"\x89PNG")
+    with pytest.raises(ValueError):
+        layer_time_figure(values, layers=[0, 1])
+
+
+def test_a_hovmoller_runs_west_to_east_across_the_prime_meridian():
+    from xaig.faig import hovmoller_figure
+
+    lon = np.array([90.0, 180.0, 270.0, 0.0])  # the archive's order, not the map's
+    values = np.tile(lon, (5, 1))
+    fig = hovmoller_figure(values, lon, symmetric=False)
+    drawn = fig.axes[0].images[0].get_array()
+    assert list(drawn[0]) == [0.0, 90.0, 180.0, 270.0]
+    left, right, _, _ = fig.axes[0].images[0].get_extent()
+    assert left < 0.0 < 270.0 < right
+    signed = hovmoller_figure(values - 135.0, lon)
+    low, high = signed.axes[0].images[0].get_clim()
+    assert low == -high
+    with pytest.raises(ValueError):
+        hovmoller_figure(values, lon[:3])

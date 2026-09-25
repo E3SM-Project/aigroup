@@ -10,7 +10,16 @@ Needs the ``faig`` extra (matplotlib, and cartopy for coastlines).
 
 from __future__ import annotations
 
+from xaig.faig.grids import hovmoller_figure, layer_time_figure
 from xaig.faig.maps import have_coastlines, map_figure, to_png, why_no_coastlines
 from xaig.faig.series import series_figure
 
-__all__ = ["have_coastlines", "map_figure", "series_figure", "to_png", "why_no_coastlines"]
+__all__ = [
+    "have_coastlines",
+    "hovmoller_figure",
+    "layer_time_figure",
+    "map_figure",
+    "series_figure",
+    "to_png",
+    "why_no_coastlines",
+]
