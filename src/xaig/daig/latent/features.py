@@ -251,8 +251,9 @@ def feature_profile(
     weights = grid.weights()[nodes]
 
     # Per field: weight, weighted sum and weighted sum of squares, on each side --
-    # of the field less the first mean seen, so a large offset (surface pressure)
-    # costs no precision and a constant field has exactly no spread.
+    # of the field less one of its own values, so a large offset (surface pressure)
+    # costs no precision and a constant field is exactly zero, with no spread. (Less
+    # a computed mean it would not be: a sum rounds differently on another machine.)
     sums = np.zeros((len(names), 2, 3))
     shift = np.full(len(names), np.nan)
     active_area = total_area = 0.0
@@ -269,7 +270,7 @@ def feature_profile(
             field = _field_at(source, name, label, lead)[nodes]
             ok = np.isfinite(field)
             if np.isnan(shift[k]) and ok.any():
-                shift[k] = float(weights[ok] @ field[ok] / weights[ok].sum())
+                shift[k] = float(field[ok][0])
             field = field - shift[k]
             for side, mask in ((0, on & ok), (1, ~on & ok)):
                 w, f = weights[mask], field[mask]
