@@ -61,8 +61,9 @@ class _HubFolder:
         self.repo_id = "/".join(parts[:2])
         self.folder = "/".join(parts[2:])
         hub = require("huggingface_hub", "hf")
+        self._api = hub.HfApi()
         try:
-            self.revision = revision or hub.HfApi().repo_info(self.repo_id, repo_type="dataset").sha
+            self.revision = revision or self._api.repo_info(self.repo_id, repo_type="dataset").sha
         except Exception as exc:  # the hub's own errors: no network, no such repo, no access
             raise AdapterError(f"{url}: cannot reach the dataset repository ({exc})") from exc
         self._download = hub.hf_hub_download
@@ -83,6 +84,23 @@ class _HubFolder:
         except Exception as exc:
             raise AdapterError(f"{self.url}: could not download {name} ({exc})") from exc
         return Path(local)
+
+    def list(self, folder: str) -> list[str]:
+        """Names of the files directly inside ``folder`` of this one, downloading none."""
+        from huggingface_hub.utils import EntryNotFoundError
+
+        where = f"{self.folder}/{folder.strip('/')}"
+        try:
+            entries = list(
+                self._api.list_repo_tree(
+                    self.repo_id, path_in_repo=where, repo_type="dataset", revision=self.revision
+                )
+            )
+        except EntryNotFoundError:
+            return []
+        except Exception as exc:
+            raise AdapterError(f"{self.url}: could not list {folder} ({exc})") from exc
+        return [e.path.rsplit("/", 1)[-1] for e in entries if getattr(e, "size", None) is not None]
 
 
 def _layers(entries: Any, where: Path) -> list[dict[str, Any]]:
@@ -183,6 +201,18 @@ class LatentArchive:
             fetched = self._hub.fetch(name)
             return fetched if fetched is not None and fetched.is_file() else None
         return local if local.is_file() else None
+
+    def files(self, folder: str) -> tuple[str, ...]:
+        """The files directly inside one folder of the archive, as ``file`` names them
+        (``bases/sae_L08.npz``), sorted; none when there is no such folder. Nothing is
+        downloaded: a hub archive is listed where it is."""
+        folder = folder.strip("/")
+        if self._hub is not None:
+            names = self._hub.list(folder)
+        else:
+            where = self.path / folder
+            names = [p.name for p in where.iterdir() if p.is_file()] if where.is_dir() else []
+        return tuple(sorted(f"{folder}/{name}" for name in names))
 
     def grid(self) -> Grid:
         if self._grid is None:
