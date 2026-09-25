@@ -21,13 +21,14 @@ The two rules of ``daig.grid`` hold here as well, and are as easy to forget:
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.daig.latent.basis import PCA, fix_signs
-from xaig.daig.latent.source import LatentSource
+from xaig.daig.grid import Grid
+from xaig.daig.latent.basis import PCA, fix_signs, node_normalise
+from xaig.daig.latent.source import LatentInfo, LatentSource
 
 try:
     import numpy as np
@@ -35,6 +36,38 @@ except ImportError as exc:
     raise missing_extra("numpy", "daig") from exc
 
 _BLOCK = 8192
+
+
+class NodeNormalised:
+    """A ``LatentSource`` whose every node comes back through ``node_normalise``.
+
+    For fitting on the geometry a block reads rather than on the raw stream:
+    moments, batches and whatever else takes a source see normalised nodes, and a
+    node's size and offset -- which a pre-norm network discards before each block
+    -- no longer dominate. Asked for some channels, it normalises over all of them
+    first; that is what the network does. The provenance says it was done.
+    """
+
+    def __init__(self, source: LatentSource) -> None:
+        self.source = source
+        info = source.info()
+        self._info = replace(info, options={**info.options, "node_norm": True})
+
+    def info(self) -> LatentInfo:
+        return self._info
+
+    def grid(self) -> Grid:
+        return self.source.grid()
+
+    def load(
+        self,
+        time: str | int,
+        layer: int,
+        channels: Sequence[int] | None = None,
+        nodes: Sequence[int] | None = None,
+    ) -> np.ndarray:
+        normalised = node_normalise(self.source.load(time, layer, nodes=nodes))
+        return normalised if channels is None else normalised[:, np.asarray(channels)]
 
 
 def _time_labels(source: LatentSource, times: Sequence[str | int] | None) -> list[str]:

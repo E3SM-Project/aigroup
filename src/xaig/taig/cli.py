@@ -31,6 +31,11 @@ def taig() -> None:
 )
 @click.option("--k", type=int, default=32, show_default=True, help="Active features, for topk.")
 @click.option("--l1", type=float, default=5.0, show_default=True, help="For relu and bspline.")
+@click.option(
+    "--node-norm",
+    is_flag=True,
+    help="Centre each node over its channels and scale it to unit RMS first.",
+)
 @click.option("--epochs", type=int, default=2, show_default=True)
 @click.option("--batch-size", type=int, default=4096, show_default=True)
 @click.option("--lr", type=float, default=1e-3, show_default=True)

@@ -146,3 +146,104 @@ def test_a_loaded_array_is_the_callers_to_modify(tmp_path):
     loaded = open_source(path).load(0, 0)
     loaded -= 1.0
     assert np.array_equal(open_source(path).load(0, 0), stored[0])
+
+
+# -- written a time at a time ----------------------------------------------------
+
+
+def _small_grid():
+    from xaig.daig.grid import Grid
+
+    lat, lon = np.meshgrid(np.linspace(-60.0, 60.0, 3), np.arange(4) * 90.0, indexing="ij")
+    return Grid(lat=lat.ravel(), lon=lon.ravel(), shape=(3, 4))
+
+
+def _start(path, **kw):
+    from xaig.adapters.latent_archive import start_archive
+
+    options = {
+        "grid": _small_grid(),
+        "times": ["1950-01-01T06:00:00", "1950-01-08T12:00:00", "1950-01-15T18:00:00"],
+        "layers": [("block 0 input", 5), ("block 1 input", 5)],
+        "directories": ["block_00_input", "block_01_input"],
+        "model": "toy",
+        "checkpoint": "toy.tar",
+        "calendar": "noleap",
+    }
+    return start_archive(path, **{**options, **kw})
+
+
+def test_an_archive_filled_by_two_writers_reads_back_exactly(tmp_path):
+    from xaig.adapters.latent_archive import ArchiveFiller, finish_archive
+
+    out = _start(tmp_path / "a")
+    rng = np.random.default_rng(0)
+    expected = rng.normal(size=(3, 2, 12, 5)).astype(np.float32)
+    # Two fillers, as two GPUs would be: disjoint times, one archive.
+    first, second = ArchiveFiller(out), ArchiveFiller(out)
+    for time, filler in ((0, first), (2, first), (1, second)):
+        for layer in range(2):
+            filler.put(time, layer, expected[time, layer])
+    first.flush()
+    second.flush()
+    finish_archive(out)
+
+    source = open_source(out)
+    assert [x.label for x in source.info().layers] == ["block 0 input", "block 1 input"]
+    assert (out / "block_01_input" / "latents.npy").is_file()
+    for time in range(3):
+        for layer in range(2):
+            assert np.array_equal(source.load(time, layer), expected[time, layer])
+    assert source.grid().shape == (3, 4)
+    assert not (out / "written.npy").exists()
+
+
+def test_an_unfinished_archive_is_refused_and_says_what_is_left(tmp_path):
+    from xaig.adapters.latent_archive import ArchiveFiller, finish_archive
+
+    out = _start(tmp_path / "a")
+    filler = ArchiveFiller(out)
+    filler.put(0, 0, np.ones((12, 5)))
+    filler.put(0, 1, np.ones((12, 5)))
+    filler.put(1, 0, np.ones((12, 5)))  # one layer of time 1 only
+    assert filler.missing() == [1, 2]
+    with pytest.raises(AdapterError, match="still being written"):
+        open_source(out)
+    with pytest.raises(RequestError, match="2 time"):
+        finish_archive(out)
+    assert ArchiveFiller(out).missing() == [1, 2]  # a new filler resumes, not restarts
+
+
+def test_a_filler_refuses_what_does_not_fit(tmp_path):
+    from xaig.adapters.latent_archive import ArchiveFiller
+
+    filler = ArchiveFiller(_start(tmp_path / "a", dtype="float16"))
+    with pytest.raises(RequestError, match="takes"):
+        filler.put(0, 0, np.ones((12, 4)))
+    with pytest.raises(RequestError, match="overflows float16"):
+        filler.put(0, 0, np.full((12, 5), 1e6))
+    with pytest.raises(RequestError, match="no layer"):
+        filler.put(0, 7, np.ones((12, 5)))
+    with pytest.raises(RequestError, match="out of range"):
+        filler.put(3, 0, np.ones((12, 5)))
+
+
+def test_layer_directories_must_be_plain_and_distinct(tmp_path):
+    with pytest.raises(RequestError, match="its own directory"):
+        _start(tmp_path / "a", directories=["same", "same"])
+    with pytest.raises(RequestError, match="plain relative"):
+        _start(tmp_path / "b", directories=["../escape", "fine"])
+    _start(tmp_path / "c")
+    with pytest.raises(RequestError, match="not empty"):
+        _start(tmp_path / "c")
+
+
+def test_a_read_of_many_nodes_in_any_order_equals_a_slice(latent_archive):
+    source = open_source(latent_archive)
+    full = source.load(1, 0)
+    everywhere = np.random.default_rng(0).integers(0, full.shape[0], size=2 * full.shape[0])
+    assert np.array_equal(source.load(1, 0, nodes=everywhere), full[everywhere])
+    assert np.array_equal(source.load(1, 0, nodes=everywhere, channels=[3, 0]),
+                          full[everywhere][:, [3, 0]])  # fmt: skip
+    with pytest.raises(RequestError, match="nodes x"):
+        source.load(1, 0, nodes=np.append(everywhere, full.shape[0]))

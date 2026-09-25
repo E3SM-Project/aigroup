@@ -193,3 +193,22 @@ def test_fetching_coastlines_has_a_deadline_and_gives_the_old_one_back(monkeypat
     before = socket.getdefaulttimeout()
     assert maps.have_coastlines()
     assert seen == [maps._FETCH_TIMEOUT_SECONDS] and socket.getdefaulttimeout() == before
+
+
+def test_a_loss_curve_is_drawn_on_a_log_scale_with_its_held_out_points():
+    from xaig.faig import loss_figure
+
+    steps = list(range(5, 205, 5))
+    history = {
+        "step": steps,
+        "epoch": [0] * 20 + [1] * 20,
+        "fraction_unexplained": [1.0 / (1 + s / 20) for s in steps],
+        "holdout": {"step": [0, 100, 200], "fraction_unexplained": [1.0, 0.2, 0.12]},
+    }
+    fig = loss_figure(history, title="layer 3")
+    ax = fig.axes[0]
+    assert ax.get_yscale() == "log"
+    assert [t.get_text() for t in ax.get_legend().get_texts()][1] == "held out (fixed sample)"
+    assert len(ax.lines) == 4  # epoch boundary, raw, smoothed, held out
+    with pytest.raises(ValueError, match="no training curve"):
+        loss_figure({"step": []})

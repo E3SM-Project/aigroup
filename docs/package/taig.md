@@ -42,6 +42,7 @@ against the [global PCA](latents.md#methods-a-basis-is-a-value) of the same laye
 | `--activation` | `topk` (the default), `relu` or `bspline` |
 | `--k` | active features per node, for `topk` |
 | `--l1` | the sparsity penalty, for `relu` and `bspline` |
+| `--node-norm` | normalise each node over its channels first ([below](#normalising-each-node)) |
 | `--epochs`, `--batch-size`, `--lr`, `--seed` | the loop |
 | `--time` | fit on some times only; repeatable |
 | `--device` | `cpu`, `cuda` or `mps`; the best there is by default |
@@ -79,9 +80,9 @@ against the [global PCA](latents.md#methods-a-basis-is-a-value) of the same laye
 
 !!! warning "a toy loop, on purpose"
 
-    Adam, a fixed learning rate, no resampling of dead features, no held-out times. It
-    trains a useful dictionary on a laptop in seconds and says how good it is; making it
-    better is what the blocks being separate is for.
+    Adam, a fixed learning rate, no resampling of dead features. It trains a useful
+    dictionary on a laptop in seconds and says how good it is; making it better is what
+    the blocks being separate is for.
 
 Inputs are centred on the layer's area-weighted mean over the times used and divided by
 one number, so a node's vector has unit mean square per channel and the channels keep
@@ -91,6 +92,32 @@ so an activation is in the same units for every feature — how much of the stan
 layer it accounts for at that node — and two features can be compared by it. Batches come from
 [`iter_batches`](latents.md#python-api) — valid nodes only, drawn in proportion to area —
 so the plain mean the loop takes is already the area-weighted loss.
+
+### Normalising each node
+
+`--node-norm` (`node_norm=True`) first centres each node's vector over its channels and
+scales it to unit RMS — a layer norm per node, without the learned scale and offset
+(`daig.latent.node_normalise`) — and takes the standardisation above over the normalised
+nodes. A pre-norm network does this to its residual stream before every block reads it, so
+the dictionary sees the geometry the block sees, and a node's overall size and offset stop
+dominating the loss. It is the normalisation MacMillan & Ouellette (2025) apply to GraphCast's
+residual stream inside their SAE, up to a constant: they scale to unit length, which is this
+divided by √width. The learned affine is left out on purpose: in ACE's SFNO it is
+conditioned on the noise field, so it would teach the dictionary the noise draw.
+
+The dictionary records it, and is still handed raw latents: `transform` normalises each
+node, `reconstruct` puts each node's own mean and size back. Autoencoders only; a
+transcoder writes another layer, whose nodes have sizes of their own.
+
+### The loss curve
+
+Every fit keeps its curve in `meta["history"]`: every `log_every` steps, that batch's
+reconstruction error and the fraction of its variance left unexplained, and the epoch.
+With `holdout_times=`, times left out of training (refused if also trained on), a fixed
+area-drawn sample of their nodes is scored before training, every `eval_every` steps and
+at the end — the curve to believe, because a falling training curve alone cannot show
+overfitting — and `metrics["holdout_explained_variance"]` is its last point.
+`xaig.faig.loss_figure(dictionary.meta["history"])` draws both, on a log scale.
 
 ## Python API
 
@@ -102,6 +129,11 @@ source = open_source("latents/atmosphere")
 dictionary = fit_sae(source, layer=8, n_features=1024, activation="topk", k=32)
 dictionary.meta["metrics"]  # explained_variance, mean_active_features, dead_fraction
 save_basis("sae8.npz", dictionary)
+
+times = source.info().times
+dictionary = fit_sae(source, layer=8, n_features=4096, activation="topk", k=32,
+                     node_norm=True, holdout_times=times[10::20])
+dictionary.meta["history"]  # the loss curve, training and held out
 ```
 
 The blocks are plain `nn.Module`s that take and return tensors and know nothing of
@@ -114,6 +146,7 @@ block = SparseAutoencoder(384, 1024, activation="bspline")
 rebuilt, features = block(x)  # x standardised, (n, 384)
 total, reconstruction, features = block.loss(x, l1=5.0)
 block.to_dictionary(input_mean=mean, input_scale=scale)  # plain arrays, for xaig.daig
+SparseAutoencoder.from_dictionary(dictionary)  # and back, to run or train it in torch
 ```
 
 Trained against another layer (`target_layer=`, or `block.loss(x, target)`), the same block
@@ -128,7 +161,8 @@ of these sharing an encoder.
    (`latent series --basis`).
 2. Read its direction in the model's environment, which needs only numpy:
    `np.load("sae8.npz")["decoder"][676]` is the unit direction feature 676 writes to
-   layer 8; an activation of `a` adds `a × input_scale` of it, in the layer's own units.
+   layer 8; an activation of `a` adds `a × input_scale` of it, in the layer's own units
+   (with `node_norm`, in the node's normalised units: times that node's own RMS as well).
 3. Add a multiple of it to that layer in a forward hook, export the run as a latent
    archive whose manifest says so under `experiment`, and set it against its control:
    `xaig daig latent diff control steered --growth`.

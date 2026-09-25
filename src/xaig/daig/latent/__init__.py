@@ -37,11 +37,18 @@ from xaig.daig.latent.basis import (
     bspline_activation,
     fit_pca,
     load_basis,
+    node_normalise,
     save_basis,
     spline_knots,
     top_loadings,
 )
-from xaig.daig.latent.samples import Moments, accumulate_moments, iter_batches, pca_from_moments
+from xaig.daig.latent.samples import (
+    Moments,
+    NodeNormalised,
+    accumulate_moments,
+    iter_batches,
+    pca_from_moments,
+)
 from xaig.daig.latent.source import (
     LatentInfo,
     LatentSource,
@@ -74,6 +81,7 @@ __all__ = [
     "LatentSource",
     "LayerInfo",
     "Moments",
+    "NodeNormalised",
     "PairedDifference",
     "ReferenceFields",
     "Region",
@@ -91,6 +99,7 @@ __all__ = [
     "iter_batches",
     "load_basis",
     "load_channels",
+    "node_normalise",
     "open_source",
     "parse_time",
     "pca_from_moments",

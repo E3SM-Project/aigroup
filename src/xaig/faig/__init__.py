@@ -12,5 +12,13 @@ from __future__ import annotations
 
 from xaig.faig.maps import have_coastlines, map_figure, to_png, why_no_coastlines
 from xaig.faig.series import series_figure
+from xaig.faig.training import loss_figure
 
-__all__ = ["have_coastlines", "map_figure", "series_figure", "to_png", "why_no_coastlines"]
+__all__ = [
+    "have_coastlines",
+    "loss_figure",
+    "map_figure",
+    "series_figure",
+    "to_png",
+    "why_no_coastlines",
+]

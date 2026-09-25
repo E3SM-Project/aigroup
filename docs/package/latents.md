@@ -380,6 +380,48 @@ and weight wrongly. `extra_steps` are layers recorded on a coarser grid than `gr
 inner levels of a U-Net — and are listed but not loadable. A file whose shape contradicts
 the manifest is refused rather than misread.
 
+### Written a time at a time
+
+An archive too big for memory — one 384-channel layer of a 1° model over two thousand
+times is 200 GB in float32 — is laid out first and filled afterwards, from as many
+processes as there are GPUs:
+
+```python
+from xaig.adapters.latent_archive import ArchiveFiller, finish_archive, start_archive
+
+start_archive(out, grid=grid, times=labels, layers=[("block 0 input", 384), ...],
+              directories=["block_00_input", ...], dtype="float32")
+ArchiveFiller(out).put(time, layer, values)   # (n_nodes, n_channels); any process, own times
+finish_archive(out)                           # refused while any cell is unwritten
+```
+
+With `directories`, each layer is `<directory>/latents.npy`, so whatever is later fitted to
+it can sit beside it. Until `finish_archive` the manifest is `manifest.partial.json` and the
+reader refuses the directory — an unfilled cell would read as zeros — and
+`ArchiveFiller.missing()` says which times are still to do, so an interrupted fill resumes.
+An empty destination directory is kept rather than remade, so a Lustre stripe setting on it
+reaches every layer file.
+
+### From ACE
+
+`python -m xaig.adapters.ace_export` records an ACE SFNO's residual stream — the input to
+every block, before its layer norm, and the last block's output — into such an archive. It
+does not roll the model forward: each kept time is taken from the reference data and
+stepped once, as validation does, so the latents are the network's view of the real state
+and any number of GPUs can share the times. It runs in ACE's environment and is the only
+code in xaig that knows ACE exists.
+
+```console
+$ python -m xaig.adapters.ace_export start --checkpoint best_inference_ckpt.tar \
+    --data data.yaml --out latents --start 1950-01-01T06:00:00 --stop 1990-01-01T06:00:00 --every 29
+$ srun -n 4 python -m xaig.adapters.ace_export fill --out latents
+$ python -m xaig.adapters.ace_export finish --out latents
+```
+
+`--data` is an `XarrayDataConfig` as YAML; it, the checkpoint and the noise seed go into the
+manifest, and `fill` takes them from there. One step in 29 six-hourly steps moves the kept
+times round the diurnal cycle.
+
 ## Another source of latents
 
 `LatentSource` is three methods — `info()`, `grid()` and `load(time, layer, channels,

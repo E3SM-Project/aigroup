@@ -160,16 +160,45 @@ class SparseAutoencoder(nn.Module):
         penalty = (features.abs() * self.decoder.weight.norm(dim=0)).sum(-1).mean()
         return error + l1 * penalty, error, features
 
+    @classmethod
+    def from_dictionary(cls, dictionary: Dictionary) -> SparseAutoencoder:
+        """The block a dictionary was exported from, to go on training it or to
+        run it in torch. The standardisation stays with the dictionary: this block
+        takes standardised inputs, as it did when it was trained -- and, if the
+        dictionary says ``node_norm``, nodes normalised before that."""
+        n_features, n_inputs = dictionary.encoder.shape
+        n_outputs = dictionary.decoder.shape[1]
+        spline = dictionary.spline
+        block = cls(
+            n_inputs,
+            n_features,
+            n_outputs=n_outputs,
+            activation=dictionary.activation,
+            k=dictionary.k,
+            spline_intervals=8 if spline is None else spline.shape[1] - 3,
+            spline_upper=6.0 if spline is None else dictionary.spline_upper,
+        )
+        with torch.no_grad():
+            block.encoder.weight.copy_(torch.as_tensor(dictionary.encoder))
+            block.encoder.bias.copy_(torch.as_tensor(dictionary.encoder_bias))
+            block.decoder.weight.copy_(torch.as_tensor(dictionary.decoder.T))
+            block.decoder.bias.copy_(torch.as_tensor(dictionary.decoder_bias))
+            if block.spline is not None:
+                block.spline.coefficients.copy_(torch.as_tensor(spline))
+        return block
+
     def to_dictionary(
         self,
         input_mean,
         input_scale: float = 1.0,
         output_mean=None,
         output_scale: float | None = None,
+        node_norm: bool = False,
         **meta,
     ) -> Dictionary:
         """The trained block as plain arrays, for ``xaig.daig`` to use without
-        torch. The standardisation the inputs were given travels with it."""
+        torch. The standardisation the inputs were given travels with it, and so
+        does ``node_norm``, if each node was normalised before that."""
 
         def array(tensor: torch.Tensor):
             return tensor.detach().cpu().numpy().astype("float32")
@@ -188,5 +217,6 @@ class SparseAutoencoder(nn.Module):
             k=self.k,
             spline=None if spline is None else array(spline.coefficients),
             spline_upper=1.0 if spline is None else spline.upper,
+            node_norm=node_norm,
             meta=meta,
         )
