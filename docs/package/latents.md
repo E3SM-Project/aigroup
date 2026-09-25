@@ -510,7 +510,11 @@ A directory per model component. Any exporter that writes this layout can be rea
 ```
 
 `n_nodes`, `latent_times` and `steps` (each with `index`, `file`, `n_channels`) are
-required; the rest is provenance, carried into every result. `experiment` is free-form:
+required; the rest is provenance, carried into every result. A step may also say where it
+sits in the network, `"network_layer": 8`, for an archive that keeps some layers and not
+others (a 30-day run of layers 0, 2, 4, 6 and 8 stores layer 8 at index 4): a basis is
+matched to a layer by that place, so one fitted on layer 8 of a run that kept them all fits
+index 4 here, and one fitted on layer 4 does not. Without it, the index is the place. `experiment` is free-form:
 whatever distinguishes this run from a plain one. `reference_times` labels the reference
 file's time axis, which usually holds the state each forward call started from as well;
 without it the file is taken to share the latents' times. Times are labels, kept as text:
