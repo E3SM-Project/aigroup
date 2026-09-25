@@ -223,3 +223,15 @@ def test_a_hovmoller_runs_west_to_east_across_the_prime_meridian():
     assert low == -high
     with pytest.raises(ValueError):
         hovmoller_figure(values, lon[:3])
+
+
+def test_a_profile_draws_the_largest_bars_and_skips_what_says_nothing():
+    from xaig.faig import profile_figure
+
+    figure = profile_figure(["a", "b", "c", "d"], [0.5, -2.0, np.nan, 1.0], top=2)
+    bars = figure.axes[0].patches
+    assert [round(b.get_width(), 2) for b in bars] == [1.0, -2.0]  # largest at the top
+    labels = [t.get_text() for t in figure.axes[0].get_yticklabels()]
+    assert labels == ["d", "b"]
+    with pytest.raises(ValueError, match="expected 4"):
+        profile_figure(["a", "b", "c", "d"], [1.0])
