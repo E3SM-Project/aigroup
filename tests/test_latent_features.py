@@ -159,6 +159,10 @@ def test_cli_profile(fields, tmp_path):
     assert by_feature.exit_code == 0 and json.loads(by_feature.output)["settings"]["column"] == 0
     neither = _invoke("profile", fields, "--layer", 2)
     assert neither.exit_code != 0 and "name one" in neither.output
+    # Half of one way and some of the other is refused, not quietly dropped.
+    for extra in (("--feature", 0), ("--basis", tmp_path / "pca.npz")):
+        mixed = _invoke("profile", fields, "--layer", 2, "--channel", 4, *extra)
+        assert mixed.exit_code != 0 and "name one" in mixed.output
 
 
 def test_a_profile_can_set_a_pass_against_what_it_wrote(fields):
@@ -167,3 +171,20 @@ def test_a_profile_can_set_a_pass_against_what_it_wrote(fields):
     ahead = feature_profile(source, layer=2, column=4, times=[0], threshold=NEAR_THE_BUMP, lead=1)
     rain = [dict(zip(p.fields, p.effect, strict=True))["rain"] for p in (same, ahead)]
     assert np.isnan(rain[0]) and rain[1] > 1.0 and ahead.settings["lead"] == 1
+
+
+def test_a_missing_activation_is_left_out_not_counted(fields):
+    """A NaN at one node of channel 4: the census and the profile read the column
+    over the nodes it has values for, as they would without that node."""
+    step = fields / "step_02.npy"
+    data = np.load(step)
+    data[:, 0, 4] = np.nan
+    np.save(step, data)
+    source = open_source(fields)
+    census = feature_census(source, time=0, layer=2, threshold=NEAR_THE_BUMP)
+    assert np.isfinite(census.mean[4]) and census.mean[4] > 0.0
+    assert (census.peak_lat[4], census.peak_lon[4]) == BUMP and census.peak[4] > 8.0
+    assert 0.0 < census.coverage[4] < 0.1
+    profile = feature_profile(source, layer=2, column=4, threshold=NEAR_THE_BUMP)
+    assert 0.0 < profile.coverage < 0.1
+    assert dict(zip(profile.fields, profile.effect, strict=True))["warmth"] > 1.0

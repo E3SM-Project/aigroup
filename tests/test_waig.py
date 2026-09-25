@@ -397,3 +397,26 @@ def test_a_field_can_be_set_against_what_the_pass_wrote(monkeypatch, with_fields
     rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
     assert rerun.exit_code == 0, rerun.output
     assert json.loads(rerun.output)["settings"]["lead"] == 1
+
+
+def test_a_field_reproduces_with_an_unverified_basis(monkeypatch, with_fields, tmp_path):
+    from xaig.daig.latent import accumulate_moments, open_source, pca_from_moments, save_basis
+
+    pca = pca_from_moments(accumulate_moments(open_source(with_fields), layer=2), 2)
+    from dataclasses import replace
+
+    unsigned = save_basis(tmp_path / "unsigned.npz", replace(pca, meta={}))  # says nothing of where
+    monkeypatch.setenv(LATENTS_ENV, str(with_fields))
+    at = _run()
+    _widget(at.sidebar.selectbox, "Method").set_value("a basis file (global PCA, SAE)…")
+    at.run()
+    _widget(at.sidebar.text_input, "Basis file").set_value(str(unsigned))
+    _widget(at.sidebar.checkbox, "Allow an unverified basis").set_value(True)
+    _widget(at.sidebar.selectbox, "Field").set_value("warmth")
+    at.run()
+    assert not at.exception, at.exception
+    command = next(c.value for c in at.code if "latent fields" in c.value)
+    assert "--allow-unverified-basis" in command
+    argv = shlex.split(command.replace("\\\n", " "))
+    rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
+    assert rerun.exit_code == 0, rerun.output

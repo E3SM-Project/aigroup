@@ -71,7 +71,8 @@ class FeatureCensus:
     valid nodes read. ``coverage`` is the share of the area where it is active;
     ``mean`` its mean over all of that area, ``strength`` its mean where active
     (NaN where it never is); ``peak`` its largest value, found at ``peak_lat``,
-    ``peak_lon``."""
+    ``peak_lon``. A missing activation (NaN) is left out of its column, which is
+    read over the area it has values for; a column with none reads NaN."""
 
     settings: dict[str, Any]
     provenance: dict[str, Any]
@@ -133,7 +134,10 @@ def feature_census(
     weights = weights / weights.sum()
     latents = source.load(label, layer, nodes=nodes)
 
-    area, total = np.zeros(n_columns), np.zeros(n_columns)
+    # A missing activation (NaN) is left out of its column, which is then read over
+    # the area it has values for: not counted inactive, and not allowed to poison
+    # the mean or hide the peak.
+    area, total, finite = np.zeros(n_columns), np.zeros(n_columns), np.zeros(n_columns)
     active_total = np.zeros(n_columns)
     peak = np.full(n_columns, -np.inf)
     where = np.zeros(n_columns, dtype=np.int64)
@@ -141,13 +145,21 @@ def feature_census(
         block = latents[start : start + _BLOCK]
         values = basis.transform(block) if basis is not None else block.astype(np.float64)
         w = weights[start : start + _BLOCK]
-        on = values > threshold
+        ok = np.isfinite(values)
+        on = ok & (values > threshold)
+        values = np.where(ok, values, 0.0)
+        finite += w @ ok
         area += w @ on
         total += w @ values
         active_total += w @ np.where(on, values, 0.0)
-        higher = values.max(axis=0) > peak
-        peak = np.where(higher, values.max(axis=0), peak)
-        where = np.where(higher, start + values.argmax(axis=0), where)
+        ranked = np.where(ok, values, -np.inf)
+        higher = ranked.max(axis=0) > peak
+        peak = np.where(higher, ranked.max(axis=0), peak)
+        where = np.where(higher, start + ranked.argmax(axis=0), where)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        coverage = np.where(finite > 0.0, area / finite, np.nan)
+        total = np.where(finite > 0.0, total / finite, np.nan)
+    peak = np.where(np.isfinite(peak), peak, np.nan)
     strength = np.full(n_columns, np.nan)
     np.divide(active_total, area, out=strength, where=area > 0.0)
     return FeatureCensus(
@@ -161,7 +173,7 @@ def feature_census(
             "allow_unverified_basis": allow_unverified_basis,
         },
         provenance={**info.provenance(), "xaig": __version__},
-        coverage=np.clip(area, 0.0, 1.0),
+        coverage=np.clip(coverage, 0.0, 1.0),
         mean=total,
         strength=strength,
         peak=peak,
@@ -183,7 +195,8 @@ class FeatureProfile:
     that fields of any unit can be read on one axis. ``fields`` is ordered by the
     size of the effect, largest first; a field that does not vary, or that has no
     values on one side, reads NaN and comes last. ``coverage`` is the share of the
-    area and time the column is active over."""
+    area and time the column is active over. Where the column itself is missing
+    (NaN), a node is on neither side."""
 
     settings: dict[str, Any]
     provenance: dict[str, Any]
@@ -258,21 +271,24 @@ def feature_profile(
     shift = np.full(len(names), np.nan)
     active_area = total_area = 0.0
     for label in labels:
-        latents = source.load(label, layer, nodes=nodes)
-        if basis is not None:
+        if basis is not None:  # a feature mixes every channel
+            latents = source.load(label, layer, nodes=nodes)
             values = basis.transform(latents, features=[column])[:, 0]
+            del latents
         else:
-            values = latents[:, column].astype(np.float64)
-        on = values > threshold
+            values = source.load(label, layer, channels=[column], nodes=nodes)[:, 0]
+            values = values.astype(np.float64)
+        read = np.isfinite(values)  # a missing activation is on neither side
+        on = read & (values > threshold)
         active_area += float(weights[on].sum())
-        total_area += float(weights.sum())
+        total_area += float(weights[read].sum())
         for k, name in enumerate(names):
             field = _field_at(source, name, label, lead)[nodes]
             ok = np.isfinite(field)
             if np.isnan(shift[k]) and ok.any():
                 shift[k] = float(field[ok][0])
             field = field - shift[k]
-            for side, mask in ((0, on & ok), (1, ~on & ok)):
+            for side, mask in ((0, on & ok), (1, read & ~on & ok)):
                 w, f = weights[mask], field[mask]
                 sums[k, side] += (w.sum(), w @ f, w @ (f * f))
 
