@@ -205,3 +205,30 @@ def test_cli_diff_with_noise(tmp_path):
     assert "2" in result.output.splitlines()[-1]
     refused = _invoke("diff", control, steered, "--noise", reseeded)
     assert refused.exit_code != 0 and "--growth" in refused.output
+
+
+# -- a pass against what it wrote -----------------------------------------------------
+
+
+def test_lead_sets_a_pass_against_the_field_it_produced(fields):
+    """``rain`` is empty at the first two reference times and bump-shaped at the third:
+    the output of the pass that starts at the first latent time."""
+    source = open_source(fields)
+    with pytest.raises(RequestError, match="try a later time, or lead=1"):
+        rank_by_field(source, time=0, layer=2, field="rain")
+    led = rank_by_field(source, time=0, layer=2, field="rain", lead=1)
+    assert led.ranking.channels[0] == 4 and led.correlation[4] > 0.99
+    assert led.settings["lead"] == 1
+    with pytest.raises(RequestError, match="ends before"):
+        rank_by_field(source, time=1, layer=2, field="rain", lead=1)
+    same = field_storyline(source, field="rain", layers=[2])
+    ahead = field_storyline(source, field="rain", layers=[2], lead=1)
+    assert np.isnan(same.best[0, 0]) and same.best[1, 0] > 0.99
+    assert ahead.best[0, 0] > 0.99 and np.isnan(ahead.best[1, 0])  # past the file's end
+
+
+def test_cli_lead(fields):
+    ranked = _invoke("fields", fields, "--field", "rain", "--time", 0, "--layer", 2, "--lead", 1)
+    assert ranked.exit_code == 0 and "+1 time(s) later" in ranked.output
+    story = _invoke("storyline", fields, "--field", "rain", "--layer", 2, "--lead", 1, "--json")
+    assert story.exit_code == 0 and json.loads(story.output)["settings"]["lead"] == 1

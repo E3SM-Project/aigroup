@@ -382,3 +382,18 @@ def test_a_field_ranks_the_layer_and_profiles_what_follows_it(monkeypatch, with_
     rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
     assert rerun.exit_code == 0, rerun.output
     assert json.loads(rerun.output)["fields"][0]["field"] == "warmth"
+
+
+def test_a_field_can_be_set_against_what_the_pass_wrote(monkeypatch, with_fields):
+    monkeypatch.setenv(LATENTS_ENV, str(with_fields))
+    at = _run()
+    _widget(at.sidebar.selectbox, "Field").set_value("warmth")
+    _widget(at.sidebar.radio, "Set it against").set_value(1)
+    at.run()
+    assert not at.exception, at.exception
+    command = next(c.value for c in at.code if "latent fields" in c.value)
+    assert "--lead 1" in command
+    argv = shlex.split(command.replace("\\\n", " "))
+    rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
+    assert rerun.exit_code == 0, rerun.output
+    assert json.loads(rerun.output)["settings"]["lead"] == 1

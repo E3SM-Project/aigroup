@@ -312,6 +312,32 @@ $ xaig daig latent storyline latents/atmosphere --field surface_precipitation_ra
 A time at which the field has no values -- a diagnostic output, before the model's first
 step -- is left empty rather than refused.
 
+### What a pass reads, and what it writes
+
+Latents at a time belong to the forward pass that *starts* there: it reads the state at that
+time and writes the next. A field at the same time is what the pass read -- right for an
+input such as sunlight -- but for an output it is the *previous* pass's, which this one never
+saw. `--lead 1` (`lead=1` in Python) sets the latents against the field one reference time
+later, what the pass itself produced; `fields`, `storyline` and `profile` all take it.
+Precipitation, the best SAE feature per layer:
+
+```console
+$ xaig daig latent storyline latents/atmosphere --field surface_precipitation_rate \
+    --layer 0 --layer 4 --layer 6 --layer 8 --time 4 --time 7 --time 19 \
+    --bases 'bases/sae_L{layer:02d}.npz' --lead 1
+best |r| of any feature (basis) with surface_precipitation_rate, by layer and time
+
+TIME                 LAYER 0  LAYER 4  LAYER 6  LAYER 8
+2015-01-04T12:00:00  0.51     0.464    0.755    0.86
+2015-01-05T06:00:00  0.47     0.411    0.773    0.86
+2015-01-08T06:00:00  0.492    0.46     0.746    0.842
+```
+
+Without `--lead` the last column reads 0.65, 0.52 and 0.55: the rain the network builds deep
+down is set against rain it did not build. The reference axis keeps every forward step, so a
+lead is exact even where latents were kept for fewer, and the last latent time's output is
+there too. Which fields are inputs a manifest does not say; the exporter that wrote it does.
+
 A **Hovmoller diagram** averages one quantity over a latitude band, per longitude and
 time: anything that travels draws tilted stripes, whose slope is its speed. The quantity
 is a field, one channel of a layer, or one feature of a basis.

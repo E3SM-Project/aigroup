@@ -27,6 +27,7 @@ from xaig.daig.latent.analysis import Region
 from xaig.daig.latent.basis import Decomposition
 from xaig.daig.latent.samples import _time_labels
 from xaig.daig.latent.source import LatentSource, ReferenceFields, check_basis_fits
+from xaig.daig.latent.through import _field_at
 
 try:
     import numpy as np
@@ -224,11 +225,13 @@ def feature_profile(
     region: Region | None = None,
     threshold: float = 0.0,
     allow_unverified_basis: bool = False,
+    lead: int = 0,
 ) -> FeatureProfile:
     """Every physical field where one channel -- or one of a ``basis``'s features
     -- is active, against where it is not, pooled over ``times`` (all, by default)
     and over the whole grid or a ``region``. Says what the column goes with, not
-    what it causes."""
+    what it causes. ``lead`` sets it against every field that many reference times
+    later, as ``rank_by_field`` does: 1 for what the forward pass produced."""
     info, grid = source.info(), source.grid()
     if not isinstance(source, ReferenceFields):
         raise RequestError(f"{info.source} keeps no physical fields beside its latents")
@@ -263,7 +266,7 @@ def feature_profile(
         active_area += float(weights[on].sum())
         total_area += float(weights.sum())
         for k, name in enumerate(names):
-            field = source.field(name, label)[nodes]
+            field = _field_at(source, name, label, lead)[nodes]
             ok = np.isfinite(field)
             if np.isnan(shift[k]) and ok.any():
                 shift[k] = float(weights[ok] @ field[ok] / weights[ok].sum())
@@ -290,6 +293,7 @@ def feature_profile(
             "basis": None if basis is None else basis.meta.get("path"),
             "region": None if region is None else asdict(region),
             "threshold": threshold,
+            "lead": lead,
             "allow_unverified_basis": allow_unverified_basis,
         },
         provenance={**info.provenance(), "xaig": __version__},

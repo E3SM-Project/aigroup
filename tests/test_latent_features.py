@@ -159,3 +159,11 @@ def test_cli_profile(fields, tmp_path):
     assert by_feature.exit_code == 0 and json.loads(by_feature.output)["settings"]["column"] == 0
     neither = _invoke("profile", fields, "--layer", 2)
     assert neither.exit_code != 0 and "name one" in neither.output
+
+
+def test_a_profile_can_set_a_pass_against_what_it_wrote(fields):
+    source = open_source(fields)
+    same = feature_profile(source, layer=2, column=4, times=[0], threshold=NEAR_THE_BUMP)
+    ahead = feature_profile(source, layer=2, column=4, times=[0], threshold=NEAR_THE_BUMP, lead=1)
+    rain = [dict(zip(p.fields, p.effect, strict=True))["rain"] for p in (same, ahead)]
+    assert np.isnan(rain[0]) and rain[1] > 1.0 and ahead.settings["lead"] == 1

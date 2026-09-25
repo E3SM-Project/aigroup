@@ -144,17 +144,21 @@ def _found_bases(
 
 @st.cache_data(max_entries=_CACHED, show_spinner="Setting the layer against the field…")
 def _rank(
-    path, mask_variable, time, layer, field, basis, stamp, unverified: bool = False
+    path, mask_variable, time, layer, field, basis, stamp, unverified: bool = False, lead: int = 0
 ) -> FieldRanking:
     return rank_by_field(
         _open(path, mask_variable), time=time, layer=layer, field=field, top=_COLUMNS * 2 - 1,
         basis=_basis(basis, stamp) if basis else None, allow_unverified_basis=unverified,
+        lead=lead,
     )  # fmt: skip
 
 
 @st.cache_data(max_entries=_CACHED, show_spinner=False)
-def _field(path: str, mask_variable: str | None, field: str, time: str) -> np.ndarray:
-    return _open(path, mask_variable).field(field, time)
+def _field(
+    path: str, mask_variable: str | None, field: str, time: str, lead: int = 0
+) -> np.ndarray:
+    source = _open(path, mask_variable)
+    return source.field(field, time, lead=lead) if lead else source.field(field, time)
 
 
 @st.cache_data(max_entries=_CACHED, show_spinner="Reading them…")
@@ -168,11 +172,12 @@ def _columns(path, mask_variable, time, layer, columns, basis, stamp) -> np.ndar
 
 @st.cache_data(max_entries=_CACHED, show_spinner="Profiling it against every field…")
 def _profile(
-    path, mask_variable, layer, column, basis, stamp, times, unverified: bool = False
+    path, mask_variable, layer, column, basis, stamp, times, unverified: bool = False, lead: int = 0
 ) -> FeatureProfile:
     return feature_profile(
         _open(path, mask_variable), layer=layer, column=column, times=list(times),
         basis=_basis(basis, stamp) if basis else None, allow_unverified_basis=unverified,
+        lead=lead,
     )  # fmt: skip
 
 
@@ -320,7 +325,18 @@ def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...
                 "they follow it.",
             )
             field = None if field == _NO_FIELD else field
-    return field, {
+            lead = st.radio(
+                "Set it against",
+                [0, 1],
+                format_func={
+                    0: "what the pass reads (this time)",
+                    1: "what it writes (the next)",
+                }.get,
+                help="A forward pass reads the state at its own time and writes the next. An "
+                "input belongs with the first; an output the model produces, precipitation "
+                "say, with the second.",
+            )
+    return (field, lead if field else 0), {
         "time": time,
         "layer": layer,
         "region": {"lat": lat, "lon": lon, "radius_km": float(radius_km)},
@@ -353,7 +369,7 @@ def _signed(values: np.ndarray) -> bool:
     return bool(finite.size and finite.min() < 0.0 < finite.max())
 
 
-def _field_tab(path, mask_variable, settings, field, region) -> None:
+def _field_tab(path, mask_variable, settings, field, lead, region) -> None:
     if field is None:
         st.info("Pick a physical field in the sidebar to set this layer against it.")
         return
@@ -361,13 +377,14 @@ def _field_tab(path, mask_variable, settings, field, region) -> None:
     stamp, unverified = _stamp(basis), settings["allow_unverified_basis"]
     kind = "feature" if basis else "channel"
     try:
-        ranking = _rank(path, mask_variable, time, layer, field, basis, stamp, unverified)
+        ranking = _rank(path, mask_variable, time, layer, field, basis, stamp, unverified, lead)
     except RequestError as exc:
         st.warning(str(exc))
         return
     ranked = [int(c) for c in ranking.ranking.channels]
+    when = f"{time}, against the {field} this pass writes" if lead else time
     st.markdown(
-        f"The {kind}s of layer {layer} that follow **{field}** most closely at {time}: "
+        f"The {kind}s of layer {layer} that follow **{field}** most closely at {when}: "
         "area-weighted correlation over the valid nodes. It says where to look, not what "
         f"causes what. Features come from the *Method* in the sidebar: a basis file, or "
         "else the layer's own channels."
@@ -380,10 +397,10 @@ def _field_tab(path, mask_variable, settings, field, region) -> None:
         hide_index=True,
         width="stretch",
     )
-    values = _field(path, mask_variable, field, time)
+    values = _field(path, mask_variable, field, time, lead)
     columns = _columns(path, mask_variable, time, layer, tuple(ranked), basis, stamp)
     maps = [values, *columns.T]
-    titles = [f"{field} · {time}"] + [
+    titles = [f"{field} · {time}" + (f" {lead:+d} step" if lead else "")] + [
         f"{kind.capitalize()} {c} · layer {layer} · r = {ranking.correlation[c]:+.2f}"
         for c in ranked
     ]
@@ -411,7 +428,9 @@ def _field_tab(path, mask_variable, settings, field, region) -> None:
         profile = None
     else:
         try:
-            profile = _profile(path, mask_variable, layer, column, basis, stamp, chosen, unverified)
+            profile = _profile(
+                path, mask_variable, layer, column, basis, stamp, chosen, unverified, lead
+            )
         except RequestError as exc:
             st.warning(str(exc))
             profile = None
@@ -439,6 +458,9 @@ def _field_tab(path, mask_variable, settings, field, region) -> None:
         profile_command += [f"--basis {shlex.quote(basis)}", f"--feature {column}"]
     else:
         profile_command.append(f"--channel {column}")
+    if lead:
+        command.append(f"--lead {lead}")
+        profile_command.append(f"--lead {lead}")
     if mask_variable:
         command.append(f"--mask-variable {shlex.quote(mask_variable)}")
         profile_command.append(f"--mask-variable {shlex.quote(mask_variable)}")
@@ -592,7 +614,7 @@ def page() -> None:
     if info.experiment:
         st.caption("experiment: " + json.dumps(dict(info.experiment)))
     fields = source.field_names() if isinstance(source, ReferenceFields) else ()
-    field, settings = _controls(info, path, mask_variable, tuple(fields))
+    (field, lead), settings = _controls(info, path, mask_variable, tuple(fields))
     no_features = None
     try:
         try:
@@ -672,7 +694,7 @@ def page() -> None:
             )  # fmt: skip
 
     with tab_field:
-        _field_tab(path, mask_variable, settings, field, region)
+        _field_tab(path, mask_variable, settings, field, lead, region)
 
     with tab_time:
         _through_time(path, mask_variable, settings, result)

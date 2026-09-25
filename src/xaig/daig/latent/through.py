@@ -458,11 +458,17 @@ def rank_by_field(
     top: int = 15,
     basis: Decomposition | None = None,
     allow_unverified_basis: bool = False,
+    lead: int = 0,
 ) -> FieldRanking:
     """Which channels -- or which of a ``basis``'s features -- track a physical
     field the source kept beside its latents (``ReferenceFields``): the start of
     a feature-finding expedition. Correlation is over valid nodes, area-weighted,
-    and says nothing about cause."""
+    and says nothing about cause.
+
+    ``lead`` sets the latents against the field that many reference times later.
+    A forward pass reads the state at its own time and writes the next, so an
+    output the pass produces -- precipitation, say -- is at ``lead=1``; at 0 it is
+    the previous pass's, which this one never saw."""
     from xaig.daig.latent.source import ReferenceFields
 
     info, grid = source.info(), source.grid()
@@ -475,7 +481,7 @@ def rank_by_field(
     info.layer(layer)
     if basis is not None:
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
-    values = _field_with_values(source, field, label)
+    values = _field_with_values(source, field, label, lead)
     latents = source.load(label, layer)
     weights = grid.weights()
     if basis is None:
@@ -489,6 +495,7 @@ def rank_by_field(
             "time": label,
             "layer": layer,
             "field": field,
+            "lead": lead,
             "top": top,
             "columns": "features" if basis is not None else "channels",
             "basis": None if basis is None else basis.meta.get("path"),
@@ -500,12 +507,19 @@ def rank_by_field(
     )
 
 
-def _field_with_values(source: LatentSource, field: str, label: str) -> np.ndarray:
-    values = source.field(field, label)
+def _field_at(source: LatentSource, field: str, label: str, lead: int = 0) -> np.ndarray:
+    """A field at a latent time, or ``lead`` reference times after it. A source that
+    predates ``lead`` is asked the old way when none is wanted."""
+    return source.field(field, label, lead=lead) if lead else source.field(field, label)
+
+
+def _field_with_values(source: LatentSource, field: str, label: str, lead: int = 0) -> np.ndarray:
+    values = _field_at(source, field, label, lead)
     if not np.isfinite(values[source.grid().valid]).any():
+        where = label if not lead else f"{lead:+d} time(s) from {label}"
         raise RequestError(
-            f"{field!r} has no values at {label}. A model's diagnostic outputs usually "
-            "start one step after its initial state: try a later time"
+            f"{field!r} has no values at {where}. A model's diagnostic outputs usually "
+            "start one step after its initial state: try a later time, or lead=1"
         )
     return values
 
@@ -564,12 +578,15 @@ def field_storyline(
     times: Sequence[str | int] | None = None,
     bases: dict[int, Decomposition] | None = None,
     allow_unverified_basis: bool = False,
+    lead: int = 0,
 ) -> FieldStoryline:
     """Follow one physical field through the network and through time.
 
     ``bases`` maps a layer to a basis for it; a layer without one is read by its
     channels. Each layer at each time is loaded once, so a storyline over nine
-    layers and twenty times reads the archive once."""
+    layers and twenty times reads the archive once. ``lead`` is as for
+    ``rank_by_field``: 1 follows an output to the pass that produced it; a time
+    whose led field the source does not hold is left empty."""
     _reference_fields(source, field)
     info, grid = source.info(), source.grid()
     chosen = tuple(x.index for x in info.layers) if layers is None else tuple(layers)
@@ -587,7 +604,12 @@ def field_storyline(
     column = np.full(best.shape, -1, dtype=np.int64)
     sign = np.zeros(best.shape, dtype=np.int8)
     for i, label in enumerate(labels):
-        values = source.field(field, label)
+        try:
+            values = _field_at(source, field, label, lead)
+        except RequestError:
+            if not lead:
+                raise
+            continue  # past the end of the source's reference times
         if not np.isfinite(values[grid.valid]).any():
             continue
         for j, layer in enumerate(chosen):
@@ -604,6 +626,7 @@ def field_storyline(
     return FieldStoryline(
         settings={
             "field": field,
+            "lead": lead,
             "layers": list(chosen),
             "bases": {int(k): v.meta.get("path") for k, v in bases.items()},
             "allow_unverified_basis": allow_unverified_basis,

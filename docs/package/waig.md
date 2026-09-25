@@ -88,8 +88,10 @@ told apart — then a time, a layer and a region. The view is
   it most closely at this time, and a map of each. Below, one of them
   [profiled](latents.md#browsing-features-and-what-one-goes-with) against every field —
   where it is active against where it is not — over a few times spread through the
-  archive, on request. The `latent fields` and `latent profile` commands that give the
-  same numbers are under *Reproduce*.
+  archive, on request. *Set it against* chooses what the pass reads (the field at the same
+  time, for an input) or what it writes (the next, for an output such as precipitation):
+  [why it matters](latents.md#what-a-pass-reads-and-what-it-writes). The `latent fields` and
+  `latent profile` commands that give the same numbers are under *Reproduce*.
 - **Through time** — the region's mean of the ranked channels (or the basis's features)
   at every time the archive holds, placed by its own calendar so that a gap between kept
   steps looks like one. On request, since centred it reads every time once.

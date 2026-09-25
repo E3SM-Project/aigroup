@@ -297,7 +297,7 @@ class LatentArchive:
                     )
         return self._fields
 
-    def field(self, name: str, time: str | int) -> np.ndarray:
+    def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray:
         label = self._info.times[self._info.time_index(time)]
         if name not in self.field_names():
             known = ", ".join(self.field_names()) or "none"
@@ -305,10 +305,15 @@ class LatentArchive:
         times = self._reference_times()
         if label not in times:
             raise RequestError(f"{self.path}: the reference file has no time {label!r}")
+        index = times.index(label) + lead
+        if not 0 <= index < len(times):
+            raise RequestError(
+                f"{self.path}: the reference file ends before {lead:+d} time(s) from {label}"
+            )
         _, dataset = self._open_reference("a field")
         with dataset as ds:
             variable = ds[name]
-            values = variable.isel({variable.dims[0]: times.index(label)}).values
+            values = variable.isel({variable.dims[0]: index}).values
         return np.asarray(values, dtype=np.float64).ravel()
 
     def _array(self, layer: int) -> np.ndarray:
