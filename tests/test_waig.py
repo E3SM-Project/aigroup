@@ -307,3 +307,78 @@ def test_a_url_is_kept_as_given_for_its_adapter(monkeypatch):
     assert discover_archives(url) == [url]
     monkeypatch.setenv(LATENTS_ENV, f"{url}\n/data/ocean")
     assert configured_latents() == [url, "/data/ocean"]
+
+
+def test_a_basis_kept_in_an_archive_is_offered_where_it_fits(monkeypatch, latent_archive, tmp_path):
+    from conftest import write_latent_archive
+    from xaig.daig.latent import accumulate_moments, open_source, pca_from_moments, save_basis
+
+    source = open_source(latent_archive)
+    for layer in (1, 2):
+        pca = pca_from_moments(accumulate_moments(source, layer=layer), 2)
+        save_basis(latent_archive / "bases" / f"pca_L{layer:02d}.npz", pca)
+    (latent_archive / "bases" / "notes.txt").write_text("not a basis")
+    # A twin run of the same network is offered the control's basis files as well.
+    twin = write_latent_archive(tmp_path / "twin", shift=(2, 1.0))
+    monkeypatch.setenv(LATENTS_ENV, f"{latent_archive}\n{twin}")
+    at = _at_the_bump(_run())
+    method = _widget(at.sidebar.selectbox, "Method")
+    offered = [o for o in method.options if o.startswith("pca_")]
+    assert offered == ["pca_L02.npz · PCA, 2 features · latents"]  # the last layer's only
+    method.set_value(offered[0])
+    _widget(at.sidebar.number_input, "Features to map").set_value(2)
+    at.run()
+    assert not at.exception, at.exception
+    assert at.dataframe[1].value["feature"].tolist() == ["F0", "F1"]
+    _widget(at.sidebar.selectbox, "Archive").set_value(str(twin))
+    at.run()
+    assert offered[0] in _widget(at.sidebar.selectbox, "Method").options
+
+
+@pytest.fixture
+def with_fields(latent_archive):
+    """The toy archive, with ``warmth`` (the bump's shape) and ``flat`` beside it."""
+    np = pytest.importorskip("numpy")
+    xarray = pytest.importorskip("xarray")
+    from conftest import BUMP, LATENT_TIMES, N_LAT, N_LON
+
+    with np.load(latent_archive / "grid.npz") as grid:
+        distance = np.hypot(grid["lat"] - BUMP[0], grid["lon"] - BUMP[1])
+    shape = np.exp(-((distance / 20.0) ** 2)).reshape(1, N_LAT, N_LON)
+    manifest = json.loads((latent_archive / "manifest.json").read_text())
+    manifest["reference_file"] = "reference.nc"
+    manifest["reference_times"] = ["0425-01-01T00:00:00", *LATENT_TIMES]
+    (latent_archive / "manifest.json").write_text(json.dumps(manifest))
+    dims = ("time", "lat", "lon")
+    xarray.Dataset(
+        {"warmth": (dims, np.repeat(shape, 3, axis=0)), "flat": (dims, np.ones((3, N_LAT, N_LON)))}
+    ).to_netcdf(latent_archive / "reference.nc")
+    return latent_archive
+
+
+def test_a_field_ranks_the_layer_and_profiles_what_follows_it(monkeypatch, with_fields):
+    monkeypatch.setenv(LATENTS_ENV, str(with_fields))
+    at = _run()
+    assert not at.exception, at.exception
+    assert "Pick a physical field" in at.info[0].value
+    _widget(at.sidebar.selectbox, "Field").set_value("warmth")
+    at.run()
+    assert not at.exception, at.exception
+    ranking = next(d.value for d in at.dataframe if "correlation" in d.value.columns)
+    assert ranking["channel"].iloc[0] == 4 and ranking["correlation"].iloc[0] > 0.99
+    _widget(at.toggle, "Profile it (reads 2 times)").set_value(True)
+    at.run()
+    assert not at.exception, at.exception
+    assert any("Channel 4 is active over" in c.value for c in at.caption)
+
+    # What the tab shows, a terminal says too.
+    fields_command = next(c.value for c in at.code if "latent fields" in c.value)
+    argv = shlex.split(fields_command.replace("\\\n", " "))
+    rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
+    assert rerun.exit_code == 0, rerun.output
+    assert json.loads(rerun.output)["ranking"][0]["column"] == 4
+    profile_command = next(c.value for c in at.code if "latent profile" in c.value)
+    argv = shlex.split(profile_command.replace("\\\n", " "))
+    rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
+    assert rerun.exit_code == 0, rerun.output
+    assert json.loads(rerun.output)["fields"][0]["field"] == "warmth"

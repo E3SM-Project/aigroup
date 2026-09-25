@@ -79,6 +79,17 @@ told apart — then a time, a layer and a region. The view is
   a basis that does not fit the layer, still shows everything else, and says why here.
   A basis that does not say which model and layer it was fitted on is refused until
   *Allow an unverified basis* is ticked, as `--allow-unverified-basis` does for the command.
+  The *Method* drop-down also lists, by name, every basis file kept in the
+  [`bases/` folder](latents.md#the-latent-archive) of any open archive that fits the layer
+  shown — fitted on the same network and layer, which the file says — so the control's
+  bases serve every run of the same model without a path being typed.
+- **Field** — for an archive that keeps physical fields beside its latents, pick one under
+  *A physical field*: its map, the channels (or the chosen basis's features) that follow
+  it most closely at this time, and a map of each. Below, one of them
+  [profiled](latents.md#browsing-features-and-what-one-goes-with) against every field —
+  where it is active against where it is not — over a few times spread through the
+  archive, on request. The `latent fields` and `latent profile` commands that give the
+  same numbers are under *Reproduce*.
 - **Through time** — the region's mean of the ranked channels (or the basis's features)
   at every time the archive holds, placed by its own calendar so that a gap between kept
   steps looks like one. On request, since centred it reads every time once.
@@ -124,5 +135,5 @@ fig.savefig("similarity.png", dpi=150)
 - [ ] A reference-field panel beside the latent maps (needs `FieldSource`)
 - [ ] Click on a map to move the region
 - [ ] A run against its control (`latent diff`), and two archives side by side
-- [ ] Rank channels and features against a reference field (`latent fields`)
+- [x] Rank channels and features against a reference field (`latent fields`), and profile one
 - [ ] A PDF report of a session
