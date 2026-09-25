@@ -9,7 +9,7 @@ from click.testing import CliRunner
 
 from xaig._cli import cli
 from xaig.waig import cli as waig_cli
-from xaig.waig.config import LATENTS_ENV, discover_archives
+from xaig.waig.config import LATENTS_ENV, configured_latents, discover_archives
 
 # -- the launcher works on a base install ----------------------------------
 
@@ -36,7 +36,7 @@ def test_launcher_hands_the_app_absolute_paths_through_the_environment(monkeypat
     result = CliRunner().invoke(cli, [*args, "--headless"])
     assert result.exit_code == 0, result.output
     # The app runs elsewhere, so a path relative to here would mean nothing to it.
-    assert seen["env"][LATENTS_ENV].split(os.pathsep) == [
+    assert seen["env"][LATENTS_ENV].splitlines() == [
         str((tmp_path / name).resolve()) for name in ("atm", "ocn")
     ]
     command = seen["command"]
@@ -300,3 +300,10 @@ def test_a_basis_refitted_to_the_same_name_is_the_one_shown(monkeypatch, latent_
     at.run()
     assert not at.exception, at.exception
     assert at.dataframe[1].value["feature"].tolist() == ["F2"]  # the bump's component moved
+
+
+def test_a_url_is_kept_as_given_for_its_adapter(monkeypatch):
+    url = "hf://datasets/owner/repo/atmosphere"
+    assert discover_archives(url) == [url]
+    monkeypatch.setenv(LATENTS_ENV, f"{url}\n/data/ocean")
+    assert configured_latents() == [url, "/data/ocean"]

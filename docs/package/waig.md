@@ -46,7 +46,7 @@ Every option is optional: archives can also be opened from the sidebar.
 
 | Option | Meaning |
 | --- | --- |
-| `--latents` | a latent archive, or a directory of them, to offer in the explorer; repeatable |
+| `--latents` | a latent archive, a directory of them, or a Hugging Face path (`hf://datasets/<owner>/<repo>/<folder>`, with `xaig[hf]`) to offer in the explorer; repeatable |
 | `--port` | 8501 by default |
 | `--address` | the interface to listen on; `localhost` by default, so the app is reachable from this machine only |
 | `--headless` | do not open a browser |
