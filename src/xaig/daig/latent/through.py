@@ -427,6 +427,26 @@ class FieldRanking:
 
 
 _FEATURES_AT_ONCE = 256
+# Feature activations held at once, when a basis is set against a field: 2**27 float64s
+# is 1 GiB. Below it a layer is encoded once; above it, in slices of features -- which
+# costs a full encoding per slice when features compete (TopK), but bounds memory.
+_ACTIVATIONS_AT_ONCE = 2**27
+
+
+def _correlate_features(
+    basis: Decomposition, latents: np.ndarray, values: np.ndarray, weights: np.ndarray
+) -> np.ndarray:
+    """Every feature of ``basis`` against one field, encoding the layer as few times as
+    memory allows."""
+    if latents.shape[0] * basis.n_features <= _ACTIVATIONS_AT_ONCE:
+        return correlate_field(basis.transform(latents), values, weights)
+    return np.concatenate(
+        [
+            correlate_field(basis.transform(latents, features=range(start, stop)), values, weights)
+            for start in range(0, basis.n_features, _FEATURES_AT_ONCE)
+            for stop in [min(start + _FEATURES_AT_ONCE, basis.n_features)]
+        ]
+    )
 
 
 def rank_by_field(
@@ -461,15 +481,7 @@ def rank_by_field(
     if basis is None:
         correlation = correlate_field(latents, values, weights)
     else:
-        correlation = np.concatenate(
-            [
-                correlate_field(
-                    basis.transform(latents, features=range(start, stop)), values, weights
-                )
-                for start in range(0, basis.n_features, _FEATURES_AT_ONCE)
-                for stop in [min(start + _FEATURES_AT_ONCE, basis.n_features)]
-            ]
-        )
+        correlation = _correlate_features(basis, latents, values, weights)
     order = np.argsort(np.nan_to_num(np.abs(correlation), nan=-1.0), kind="stable")[::-1]
     chosen = order[: max(top, 0)]
     return FieldRanking(
@@ -584,15 +596,7 @@ def field_storyline(
             if basis is None:
                 r = correlate_field(latents, values, weights)
             else:
-                r = np.concatenate(
-                    [
-                        correlate_field(
-                            basis.transform(latents, features=range(start, stop)), values, weights
-                        )
-                        for start in range(0, basis.n_features, _FEATURES_AT_ONCE)
-                        for stop in [min(start + _FEATURES_AT_ONCE, basis.n_features)]
-                    ]
-                )
+                r = _correlate_features(basis, latents, values, weights)
             if np.isnan(r).all():
                 continue
             k = int(np.nanargmax(np.abs(r)))
