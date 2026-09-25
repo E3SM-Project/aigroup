@@ -438,6 +438,24 @@ and weight wrongly. `extra_steps` are layers recorded on a coarser grid than `gr
 inner levels of a U-Net — and are listed but not loadable. A file whose shape contradicts
 the manifest is refused rather than misread.
 
+## From a Hugging Face repository
+
+An archive kept in a Hugging Face dataset repository opens in place, with the `hf`
+extra:
+
+```console
+$ uv pip install 'xaig[hf]'
+$ xaig daig latent info hf://datasets/<owner>/<repo>/<folder>
+```
+
+Nothing is downloaded until something needs it, and then one file at a time, into the
+Hugging Face cache: opening an archive fetches its manifest, a map its grid, a layer its
+one `step_XX.npy`. A notebook that looks at one layer of a nine-layer archive downloads
+one layer. Every file comes from the revision the repository was at when the archive was
+opened; `open_source(url, revision="v1")` pins one. `source.file("bases/sae_L08.npz")`
+fetches any other file kept in the folder, and says None when there is none. A private or
+gated repository reads the token `huggingface_hub` finds (`HF_TOKEN`, or `hf auth login`).
+
 ## Another source of latents
 
 `LatentSource` is three methods — `info()`, `grid()` and `load(time, layer, channels,
