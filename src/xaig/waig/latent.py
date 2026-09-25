@@ -1,4 +1,5 @@
-"""The latent explorer: pick a model and a region, see what its channels do there.
+"""The latent explorer: pick a model and a region, see what its channels do there,
+and set them against a physical field the archive keeps beside them.
 
 Widgets and layout only. The analysis is ``xaig.daig.latent`` and the figures are
 ``xaig.faig``; the last tab hands back the settings, command and code that
@@ -21,22 +22,31 @@ import streamlit as st
 
 from xaig.core.errors import RequestError, XaigError
 from xaig.daig.latent import (
+    FeatureProfile,
+    FieldRanking,
+    ReferenceFields,
     Region,
     RegionAnalysis,
     RegionSeries,
     analyse_region,
+    feature_profile,
     load_basis,
     load_channels,
     open_source,
+    rank_by_field,
     region_series,
 )
-from xaig.faig import map_figure, series_figure, to_png, why_no_coastlines
+from xaig.daig.latent.source import check_basis_fits
+from xaig.faig import map_figure, profile_figure, series_figure, to_png, why_no_coastlines
 from xaig.waig.config import configured_latents
 
 _CACHED = 16
 _COLUMNS = 3
 _IN_REGION = "PCA fitted in the region"
 _FROM_FILE = "a basis file (global PCA, SAE)…"
+_NO_FIELD = "none"
+_BASES = "bases"  # where an archive keeps basis files fitted on it
+_PROFILED_TIMES = 5
 
 
 @st.cache_resource(max_entries=16, show_spinner=False)
@@ -97,14 +107,87 @@ def _series(
     )
 
 
+@st.cache_data(max_entries=_CACHED, show_spinner="Looking for basis files…")
+def _found_bases(
+    archives: tuple[str, ...], path: str, mask_variable: str | None, layer: int
+) -> list[tuple[str, str]]:
+    """``(label, file)`` for every basis kept in the ``bases/`` folder of any open
+    archive that fits this archive's layer. Whether it fits is ``daig``'s check, so a
+    basis fitted on the control is offered for every run of the same network, and one
+    fitted on another network or layer is not. An archive that cannot be opened, or
+    cannot list its files, offers none."""
+    info = _open(path, mask_variable).info()
+    found = []
+    for archive in archives:
+        try:
+            other = _open(archive, None)
+            names = other.files(_BASES) if hasattr(other, "files") else ()
+        except XaigError:
+            continue
+        run = archive.rstrip("/").rsplit("/", 1)[-1]
+        for name in names:
+            if not name.endswith(".npz"):
+                continue
+            try:
+                local = other.file(name)
+                basis = load_basis(local) if local is not None else None
+                if basis is None:
+                    continue
+                check_basis_fits(basis, info, layer)
+            except XaigError:
+                continue
+            kind = type(basis).__name__
+            label = f"{name.rsplit('/', 1)[-1]} · {kind}, {basis.n_features} features · {run}"
+            found.append((label, str(local)))
+    return found
+
+
+@st.cache_data(max_entries=_CACHED, show_spinner="Setting the layer against the field…")
+def _rank(
+    path, mask_variable, time, layer, field, basis, stamp, unverified: bool = False
+) -> FieldRanking:
+    return rank_by_field(
+        _open(path, mask_variable), time=time, layer=layer, field=field, top=_COLUMNS * 2 - 1,
+        basis=_basis(basis, stamp) if basis else None, allow_unverified_basis=unverified,
+    )  # fmt: skip
+
+
+@st.cache_data(max_entries=_CACHED, show_spinner=False)
+def _field(path: str, mask_variable: str | None, field: str, time: str) -> np.ndarray:
+    return _open(path, mask_variable).field(field, time)
+
+
+@st.cache_data(max_entries=_CACHED, show_spinner="Reading them…")
+def _columns(path, mask_variable, time, layer, columns, basis, stamp) -> np.ndarray:
+    """``(n_nodes, len(columns))``: channels as recorded, or a basis's features."""
+    source = _open(path, mask_variable)
+    if basis:
+        return _basis(basis, stamp).transform(source.load(time, layer), features=list(columns))
+    return np.asarray(source.load(time, layer, channels=list(columns)), dtype=np.float64)
+
+
+@st.cache_data(max_entries=_CACHED, show_spinner="Profiling it against every field…")
+def _profile(
+    path, mask_variable, layer, column, basis, stamp, times, unverified: bool = False
+) -> FeatureProfile:
+    return feature_profile(
+        _open(path, mask_variable), layer=layer, column=column, times=list(times),
+        basis=_basis(basis, stamp) if basis else None, allow_unverified_basis=unverified,
+    )  # fmt: skip
+
+
 @st.cache_data(max_entries=6 * _CACHED, show_spinner=False)
-def _map(path: str, mask_variable: str | None, values, title, label, region, limit, dark):
+def _map(
+    path: str, mask_variable: str | None, values, title, label, region, limit, dark,
+    symmetric: bool = True,
+):  # fmt: skip
     fig = map_figure(
         _open(path, mask_variable).grid(),
         values,
         title=title,
         label=label,
         region=Region(*region),
+        symmetric=symmetric,
         limit=limit,
         dark=dark,
     )
@@ -160,7 +243,8 @@ def _pick_archive() -> tuple[str | None, str | None]:
     return path, mask_variable.strip() or None
 
 
-def _controls(info) -> dict:
+def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...]):
+    """The analysis's settings, and the physical field to set it against (or None)."""
     layers = {f"{x.index} · {x.label}" if x.label else str(x.index): x.index for x in info.layers}
     names = list(layers)
     with st.sidebar:
@@ -204,14 +288,17 @@ def _controls(info) -> dict:
         )
 
         st.subheader("Features")
+        archives = tuple(st.session_state.get("latent_archives", ()))
+        found = dict(_found_bases(archives, path, mask_variable, layer))
         method = st.selectbox(
             "Method",
-            [_IN_REGION, _FROM_FILE],
+            [_IN_REGION, *found, _FROM_FILE],
             help="A basis file comes from `xaig daig latent pca` (a global PCA) or "
             "`xaig taig sae` (a sparse autoencoder); its features that respond most "
-            "strongly in the region are the ones mapped.",
+            "strongly in the region are the ones mapped. Listed by name are the basis "
+            f"files in the `{_BASES}/` folder of any open archive that fit this layer.",
         )
-        basis, unverified = None, False
+        basis, unverified = found.get(method), False
         if method == _FROM_FILE:
             basis = st.text_input("Basis file", placeholder="/path/to/sae.npz").strip() or None
             unverified = st.checkbox(
@@ -221,7 +308,19 @@ def _controls(info) -> dict:
                 "refused either way.",
             )
         n_components = st.number_input("Features to map", 0, 16, 4)
-    return {
+
+        field = None
+        if fields:
+            st.subheader("A physical field")
+            field = st.selectbox(
+                "Field",
+                [_NO_FIELD, *fields],
+                help="One of the fields the archive keeps beside its latents. The Field "
+                "tab ranks the layer's channels, or the basis's features, by how closely "
+                "they follow it.",
+            )
+            field = None if field == _NO_FIELD else field
+    return field, {
         "time": time,
         "layer": layer,
         "region": {"lat": lat, "lon": lon, "radius_km": float(radius_km)},
@@ -236,12 +335,118 @@ def _controls(info) -> dict:
     }
 
 
-def _gallery(path, mask_variable, fields, titles, label, region, limit, across=_COLUMNS) -> None:
+def _gallery(
+    path, mask_variable, fields, titles, label, region, limit, across=_COLUMNS, symmetric=None
+) -> None:
+    """``symmetric`` is one flag per map, or None for a scale centred on zero throughout."""
     columns = st.columns(across)
     dark = _dark_page()
+    symmetric = [True] * len(titles) if symmetric is None else symmetric
     for i, (values, title) in enumerate(zip(fields, titles, strict=True)):
-        png = _map(path, mask_variable, values, title, label, region, limit, dark)
+        png = _map(path, mask_variable, values, title, label, region, limit, dark, symmetric[i])
         columns[i % across].image(png, width="stretch")
+
+
+def _signed(values: np.ndarray) -> bool:
+    """Whether a map has both signs, and so wants a scale centred on zero."""
+    finite = values[np.isfinite(values)]
+    return bool(finite.size and finite.min() < 0.0 < finite.max())
+
+
+def _field_tab(path, mask_variable, settings, field, region) -> None:
+    if field is None:
+        st.info("Pick a physical field in the sidebar to set this layer against it.")
+        return
+    time, layer, basis = settings["time"], settings["layer"], settings["basis"]
+    stamp, unverified = _stamp(basis), settings["allow_unverified_basis"]
+    kind = "feature" if basis else "channel"
+    try:
+        ranking = _rank(path, mask_variable, time, layer, field, basis, stamp, unverified)
+    except RequestError as exc:
+        st.warning(str(exc))
+        return
+    ranked = [int(c) for c in ranking.ranking.channels]
+    st.markdown(
+        f"The {kind}s of layer {layer} that follow **{field}** most closely at {time}: "
+        "area-weighted correlation over the valid nodes. It says where to look, not what "
+        f"causes what. Features come from the *Method* in the sidebar: a basis file, or "
+        "else the layer's own channels."
+    )
+    st.dataframe(
+        [
+            {"rank": i, kind: c, "correlation": round(float(ranking.correlation[c]), 3)}
+            for i, c in enumerate(ranked, start=1)
+        ],
+        hide_index=True,
+        width="stretch",
+    )
+    values = _field(path, mask_variable, field, time)
+    columns = _columns(path, mask_variable, time, layer, tuple(ranked), basis, stamp)
+    maps = [values, *columns.T]
+    titles = [f"{field} · {time}"] + [
+        f"{kind.capitalize()} {c} · layer {layer} · r = {ranking.correlation[c]:+.2f}"
+        for c in ranked
+    ]
+    _gallery(
+        path, mask_variable, maps, titles, None, region, None,
+        symmetric=[_signed(m) for m in maps],
+    )  # fmt: skip
+
+    st.markdown(
+        f"**What one {kind} goes with.** Every field the archive keeps, where the {kind} "
+        "is active (above zero) against where it is not, in units of each field's own "
+        "spread. It describes the "
+        f"{kind} by all the fields at once, which a single correlation cannot."
+    )
+    left, right = st.columns([1, 2])
+    column = left.selectbox(kind.capitalize(), ranked)
+    times = _source_times(path, mask_variable)
+    chosen = tuple(times[:: max(1, len(times) // _PROFILED_TIMES)])
+    if not right.toggle(
+        f"Profile it (reads {len(chosen)} times)", value=False, help="Reads the layer at each."
+    ):
+        profile = None
+    else:
+        try:
+            profile = _profile(path, mask_variable, layer, column, basis, stamp, chosen, unverified)
+        except RequestError as exc:
+            st.warning(str(exc))
+            profile = None
+    if profile is not None:
+        st.caption(
+            f"{kind.capitalize()} {column} is active over {profile.coverage:.1%} of the area, "
+            f"over {len(profile.times)} times from {profile.times[0]} to {profile.times[-1]}."
+        )
+        fig = profile_figure(
+            profile.fields, profile.effect, title=f"{kind} {column} of layer {layer}",
+            dark=_dark_page(),
+        )  # fmt: skip
+        st.image(to_png(fig), width="stretch")
+
+    command = [
+        f"xaig daig latent fields {shlex.quote(path)} --field {shlex.quote(field)}",
+        f"--time {shlex.quote(time)} --layer {layer} --top {len(ranked)}",
+    ]
+    profile_command = [
+        f"xaig daig latent profile {shlex.quote(path)} --layer {layer}",
+        *(f"--time {shlex.quote(t)}" for t in chosen),
+    ]
+    if basis:
+        command.append(f"--basis {shlex.quote(basis)}")
+        profile_command += [f"--basis {shlex.quote(basis)}", f"--feature {column}"]
+    else:
+        profile_command.append(f"--channel {column}")
+    if mask_variable:
+        command.append(f"--mask-variable {shlex.quote(mask_variable)}")
+        profile_command.append(f"--mask-variable {shlex.quote(mask_variable)}")
+    with st.expander("Reproduce"):
+        st.code(" \\\n    ".join(command), language="bash")
+        st.code(" \\\n    ".join(profile_command), language="bash")
+
+
+@st.cache_data(max_entries=_CACHED, show_spinner=False)
+def _source_times(path: str, mask_variable: str | None) -> tuple[str, ...]:
+    return tuple(_open(path, mask_variable).info().times)
 
 
 def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[str, str]:
@@ -383,7 +588,8 @@ def page() -> None:
     )
     if info.experiment:
         st.caption("experiment: " + json.dumps(dict(info.experiment)))
-    settings = _controls(info)
+    fields = source.field_names() if isinstance(source, ReferenceFields) else ()
+    field, settings = _controls(info, path, mask_variable, tuple(fields))
     no_features = None
     try:
         try:
@@ -405,8 +611,8 @@ def page() -> None:
 
     region = tuple(settings["region"].values())
     layer, time = settings["layer"], settings["time"]
-    tab_channels, tab_similarity, tab_features, tab_time, tab_reproduce = st.tabs(
-        ["Channels", "Similarity", "Features", "Through time", "Reproduce"]
+    tab_channels, tab_similarity, tab_features, tab_field, tab_time, tab_reproduce = st.tabs(
+        ["Channels", "Similarity", "Features", "Field", "Through time", "Reproduce"]
     )
 
     with tab_channels:
@@ -461,6 +667,9 @@ def page() -> None:
                 path, mask_variable, result.scores.T, [row["feature"] for row in rows],
                 "activation" if settings["basis"] else "score", region, None,
             )  # fmt: skip
+
+    with tab_field:
+        _field_tab(path, mask_variable, settings, field, region)
 
     with tab_time:
         _through_time(path, mask_variable, settings, result)

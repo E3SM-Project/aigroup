@@ -10,7 +10,7 @@ import streamlit as st
 
 from xaig.waig import latent
 
-st.set_page_config(page_title="xaig", layout="wide")
+st.set_page_config(page_title="xaig", page_icon=":material/blur_on:", layout="wide")
 st.navigation(
     [
         st.Page(latent.page, title="Latents", url_path="latents", default=True),
