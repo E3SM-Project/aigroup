@@ -647,7 +647,9 @@ def profile_cmd(
     """Every physical field where one channel (or feature) is active, against where it is not."""
     from xaig.daig.latent import feature_profile
 
-    if (channel is None) == (basis_path is None or feature is None):
+    by_channel = channel is not None and basis_path is None and feature is None
+    by_feature = channel is None and basis_path is not None and feature is not None
+    if not (by_channel or by_feature):
         raise click.UsageError("name one: --channel N, or --basis FILE --feature N")
     opened = _open(source, adapter, mask_variable)
     result = feature_profile(

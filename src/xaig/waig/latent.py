@@ -461,6 +461,9 @@ def _field_tab(path, mask_variable, settings, field, lead, region) -> None:
     if lead:
         command.append(f"--lead {lead}")
         profile_command.append(f"--lead {lead}")
+    if unverified:
+        command.append("--allow-unverified-basis")
+        profile_command.append("--allow-unverified-basis")
     if mask_variable:
         command.append(f"--mask-variable {shlex.quote(mask_variable)}")
         profile_command.append(f"--mask-variable {shlex.quote(mask_variable)}")
