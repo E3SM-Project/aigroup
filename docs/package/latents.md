@@ -191,6 +191,23 @@ The first ranks channels by the area-weighted RMS of `steered − control` at on
 which channels the change reached. `--growth` follows its size through every layer and
 every time the two share, relative to the control's own spread across the globe.
 
+### Against the model's own noise
+
+A stochastic model -- one that draws noise at every step -- makes a node-for-node
+comparison mean something only when both runs drew the *same* noise: give the exporter one
+seed for the control and every experiment. Even then, a perturbation grows as the runs
+drift apart, and some of what `--growth` shows after a few steps is that drift. The
+yardstick is a third run: the control again, with another seed.
+
+```console
+$ xaig daig latent diff latents/control latents/steered --growth --noise latents/control-seed1
+```
+
+The second table it prints is the experiment's difference as a multiple of the one a new
+noise draw makes, layer by layer and time by time: above 1, the intervention moved the
+layer more than chance does. From Python, `difference_growth(control, steered,
+noise=reseeded)` returns the same as `noise_rms` and `signal_to_noise`.
+
 For two archives to be told apart at all, the exporter has to say what it did. Anything
 under `experiment` in the [manifest](#the-latent-archive) — a seed, a perturbed input, a
 steered channel — is shown by `latent info` and carried into the provenance of every
@@ -227,6 +244,38 @@ from the same channel 45. Correlation is area-weighted over valid nodes, leaves 
 where the field is missing, is taken at one time, and says nothing about cause: it is
 where an expedition starts, and a [steering experiment](#a-run-against-its-control) is
 where it ends.
+
+## Storylines and travelling things
+
+Two views follow something through the network and through time at once.
+
+A **storyline** asks, for one physical field, how closely each layer follows it at each
+time: the best absolute correlation any channel reaches (or any feature, for layers given
+a basis). Bright at the first layer means the field comes in with the inputs; bright only
+deep in the network means the network builds it.
+
+```console
+$ xaig daig latent storyline latents/atmosphere --field surface_precipitation_rate
+$ xaig daig latent storyline latents/atmosphere --field surface_precipitation_rate \
+    --bases 'bases/sae_L{layer:02d}.npz'
+```
+
+A time at which the field has no values -- a diagnostic output, before the model's first
+step -- is left empty rather than refused.
+
+A **Hovmoller diagram** averages one quantity over a latitude band, per longitude and
+time: anything that travels draws tilted stripes, whose slope is its speed. The quantity
+is a field, one channel of a layer, or one feature of a basis.
+
+```console
+$ xaig daig latent hovmoller latents/atmosphere --lat-min 40 --lat-max 60 --field V_3
+$ xaig daig latent hovmoller latents/atmosphere --lat-min 40 --lat-max 60 --layer 8 --channel 45 \
+    --out hovmoller.npz
+```
+
+The command prints the diagram in coarse longitude bins; `--out` keeps it whole, and
+`xaig.faig.hovmoller_figure` draws it. `xaig.faig.layer_time_figure` draws a storyline,
+or a `--growth` table: anything that is layers against time.
 
 ## Python API
 
@@ -287,6 +336,15 @@ difference_growth(control, steered).relative  # (n_times, n_layers)
 
 for batch in iter_batches(source, layer=8, batch_size=4096):  # to train on
     ...  # float32 (4096, 384): valid nodes only, drawn in proportion to area
+
+from xaig.daig.latent import field_storyline, hovmoller
+
+story = field_storyline(source, field="SOLIN", bases={8: basis})
+story.best  # (n_times, n_layers): the best |r| of any channel, or of layer 8's features
+band = hovmoller(source, lat_min=40, lat_max=60, layer=8, channel=45)
+band.values  # (n_times, n_lon), with band.lon
+growth = difference_growth(control, steered, noise=open_source("latents/control-seed1"))
+growth.signal_to_noise  # (n_times, n_layers)
 ```
 
 !!! warning "area, again"
@@ -412,4 +470,3 @@ Meshes need no special handling: without a `grid_shape` everything works except
       time, the measure Cheon (2026) reports beside explained variance
 - [ ] A probe for a labelled phenomenon on features against one on channels (MacMillan &
       Ouellette 2025 find a tropical-cyclone feature a probe on neurons cannot)
-- [ ] A time–longitude figure beside the line plot

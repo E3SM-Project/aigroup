@@ -16,7 +16,8 @@ Reading is an adapter's job (see ``LatentSource``); this package computes.
 - ``basis``     ``Decomposition``: PCA, a sparse ``Dictionary``, and their file
 - ``analysis``  one region at one time: ranking, similarity, a decomposition
 - ``samples``   many times at once: moments, a global PCA, batches to train on
-- ``through``   through time and between runs: series, differences, field correlation
+- ``through``   through time and between runs: series, differences, field correlation,
+                storylines, Hovmoller diagrams
 """
 
 from __future__ import annotations
@@ -54,11 +55,15 @@ from xaig.daig.latent.source import (
 from xaig.daig.latent.through import (
     DifferenceGrowth,
     FieldRanking,
+    FieldStoryline,
+    Hovmoller,
     PairedDifference,
     RegionSeries,
     correlate_field,
     difference,
     difference_growth,
+    field_storyline,
+    hovmoller,
     rank_by_field,
     region_series,
 )
@@ -70,6 +75,8 @@ __all__ = [
     "Dictionary",
     "DifferenceGrowth",
     "FieldRanking",
+    "FieldStoryline",
+    "Hovmoller",
     "LatentInfo",
     "LatentSource",
     "LayerInfo",
@@ -87,6 +94,8 @@ __all__ = [
     "cosine_similarity",
     "difference",
     "difference_growth",
+    "field_storyline",
+    "hovmoller",
     "fit_pca",
     "iter_batches",
     "load_basis",
