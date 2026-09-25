@@ -46,6 +46,7 @@ Error: numpy is not installed; it comes with the 'daig' extra: uv pip install -e
 | `faig` | matplotlib, cartopy | `xaig.faig`: maps and figures (brings `daig`) |
 | `waig` | streamlit | [`xaig waig`](waig.md) (brings `faig`) |
 | `taig` | torch | [`xaig.taig`](taig.md) and `xaig taig` (not part of a plain `uv sync`) |
+| `hf` | huggingface_hub | [archives read from a Hugging Face repository](latents.md#from-a-hugging-face-repository) (brings `daig`) |
 
 !!! tip "uv cache"
 

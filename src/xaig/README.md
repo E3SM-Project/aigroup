@@ -20,6 +20,7 @@ $ uv pip install 'xaig[daig]'     # or: pip install 'xaig[daig]'
 | `faig` | matplotlib, cartopy | `xaig.faig`: maps and series figures (brings `daig`) |
 | `waig` | streamlit | `xaig waig`: a local web app (brings `faig`) |
 | `taig` | torch | `xaig.taig` and `xaig taig`: sparse autoencoders (brings `daig`) |
+| `hf` | huggingface_hub | archives read from a Hugging Face repository, `hf://datasets/...` (brings `daig`) |
 
 A missing extra says so, with the command that fits how `xaig` was installed.
 

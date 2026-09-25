@@ -12,6 +12,12 @@ Layer files are memory-mapped, and only the requested time, nodes and channels
 are ever read into memory. The reference file is opened with xarray, and only
 when a mask or a field is asked of it.
 
+An archive can also be read straight from a Hugging Face dataset repository,
+``hf://datasets/<owner>/<repo>/<folder>`` (``xaig[hf]``). Each file is downloaded
+the first time something needs it and cached, so a notebook that looks at one
+layer downloads one layer. Every file comes from the one revision the archive was
+opened at.
+
 ``write_archive`` is the other half: whatever can hand over arrays -- a toy model,
 an exporter hooked into a real one -- writes the layout through it, so the writer
 and the reader are tested against each other rather than against a description.
@@ -37,9 +43,46 @@ try:
 except ImportError as exc:
     raise missing_extra("numpy", "daig") from exc
 
+HF_PREFIX = "hf://datasets/"
 MANIFEST = "manifest.json"
 GRID = "grid.npz"
 REFERENCE = "reference.nc"
+
+
+class _HubFolder:
+    """One folder of a Hugging Face dataset repository, fetched a file at a time."""
+
+    def __init__(self, url: str, revision: str | None) -> None:
+        rest = url[len(HF_PREFIX) :].strip("/")
+        parts = rest.split("/")
+        if len(parts) < 3 or not all(parts):
+            raise AdapterError(f"expected {HF_PREFIX}<owner>/<repo>/<folder>, got {url!r}")
+        self.url = url
+        self.repo_id = "/".join(parts[:2])
+        self.folder = "/".join(parts[2:])
+        hub = require("huggingface_hub", "hf")
+        try:
+            self.revision = revision or hub.HfApi().repo_info(self.repo_id, repo_type="dataset").sha
+        except Exception as exc:  # the hub's own errors: no network, no such repo, no access
+            raise AdapterError(f"{url}: cannot reach the dataset repository ({exc})") from exc
+        self._download = hub.hf_hub_download
+
+    def fetch(self, name: str) -> Path | None:
+        """Local path of one file of the folder, or None when the repository lacks it."""
+        from huggingface_hub.utils import EntryNotFoundError
+
+        try:
+            local = self._download(
+                self.repo_id,
+                f"{self.folder}/{name}",
+                repo_type="dataset",
+                revision=self.revision,
+            )
+        except EntryNotFoundError:
+            return None
+        except Exception as exc:
+            raise AdapterError(f"{self.url}: could not download {name} ({exc})") from exc
+        return Path(local)
 
 
 def _layers(entries: Any, where: Path) -> list[dict[str, Any]]:
@@ -66,9 +109,22 @@ class LatentArchive:
     ocean model, whose activations over land mean nothing.
     """
 
-    def __init__(self, path: str | Path, mask_variable: str | None = None) -> None:
-        self.path = Path(path)
+    def __init__(
+        self, path: str | Path, mask_variable: str | None = None, revision: str | None = None
+    ) -> None:
         self.mask_variable = mask_variable
+        self._hub: _HubFolder | None = None
+        if str(path).startswith(HF_PREFIX):
+            self._hub = _HubFolder(str(path), revision)
+            fetched = self._hub.fetch(MANIFEST)
+            if fetched is None:
+                raise AdapterError(f"not a latent archive (no {MANIFEST}): {path}")
+            self.path = fetched.parent
+        elif revision is not None:
+            raise AdapterError("'revision' applies to hf:// sources only")
+        else:
+            self.path = Path(path)
+        self._name = str(path) if self._hub is not None else str(self.path)
         manifest_path = self.path / MANIFEST
         if not self.path.is_dir():
             raise AdapterError(f"no such directory: {self.path}")
@@ -95,7 +151,7 @@ class LatentArchive:
             raise AdapterError(f"{manifest_path}: 'experiment' must be a mapping")
         self._fields: tuple[str, ...] | None = None
         self._info = LatentInfo(
-            source=str(self.path),
+            source=self._name,
             times=times,
             layers=tuple(entry["info"] for entry in layers),
             n_nodes=n_nodes,
@@ -119,15 +175,24 @@ class LatentArchive:
     def info(self) -> LatentInfo:
         return self._info
 
+    def file(self, name: str) -> Path | None:
+        """Local path of a file of the archive (``bases/sae_L08.npz``, say), or None
+        when there is no such file. From a hub, this is when it is downloaded."""
+        local = self.path / name
+        if self._hub is not None and not local.is_file():
+            fetched = self._hub.fetch(name)
+            return fetched if fetched is not None and fetched.is_file() else None
+        return local if local.is_file() else None
+
     def grid(self) -> Grid:
         if self._grid is None:
             self._grid = self._read_grid()
         return self._grid
 
     def _read_grid(self) -> Grid:
-        grid_path = self.path / GRID
-        if not grid_path.is_file():
-            raise AdapterError(f"{self.path}: no {GRID}")
+        grid_path = self.file(GRID)
+        if grid_path is None:
+            raise AdapterError(f"{self._name}: no {GRID}")
         with np.load(grid_path) as stored:
             names = set(stored.files)
             if not {"lat", "lon"} <= names:
@@ -149,7 +214,7 @@ class LatentArchive:
 
     def _reference(self) -> Path | None:
         name = self._manifest.get("reference_file")
-        return self.path / name if name and (self.path / name).is_file() else None
+        return self.file(name) if name else None
 
     def _open_reference(self, wanted_for: str):
         path = self._reference()
@@ -219,7 +284,7 @@ class LatentArchive:
     def _array(self, layer: int) -> np.ndarray:
         if layer not in self._arrays:
             info = self._info.layer(layer)
-            file = self.path / self._files[layer]
+            file = self.file(self._files[layer]) or self.path / self._files[layer]
             if not file.is_file():
                 raise AdapterError(f"layer {layer}: {file} is missing")
             array = np.load(file, mmap_mode="r")
