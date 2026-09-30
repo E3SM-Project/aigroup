@@ -18,6 +18,7 @@ from typing import Any
 from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
+from xaig.daig.grid import Grid, small_circle
 from xaig.daig.latent.basis import PCA, Decomposition, _floating, fit_pca, top_loadings
 from xaig.daig.latent.source import LatentSource, check_basis_fits
 
@@ -36,6 +37,76 @@ class Region:
     lat: float
     lon: float
     radius_km: float
+
+    @property
+    def centre(self) -> tuple[float, float]:
+        return self.lat, self.lon
+
+    def nodes(self, grid: Grid) -> np.ndarray:
+        """Indices of the valid nodes inside the region."""
+        return grid.within(self.lat, self.lon, self.radius_km)
+
+    def describe(self) -> str:
+        return f"within {self.radius_km:g} km of ({self.lat:g}, {self.lon:g})"
+
+    def outline(self) -> tuple[np.ndarray, np.ndarray]:
+        """``(lat, lon)`` points tracing the edge, for drawing."""
+        return small_circle(self.lat, self.lon, self.radius_km)
+
+
+@dataclass(frozen=True, slots=True)
+class Box:
+    """A latitude-longitude box: ``lat_min`` to ``lat_max`` and, going east from
+    ``lon_min`` to ``lon_max``. It may cross the dateline or the prime meridian
+    (``lon_min=170, lon_max=-170`` is 20 degrees wide); longitudes may be given in
+    either convention. Equal longitudes are a zero-width meridian, and a span of
+    360 degrees or more is every longitude."""
+
+    lat_min: float
+    lat_max: float
+    lon_min: float
+    lon_max: float
+
+    def __post_init__(self) -> None:
+        if not -90.0 <= self.lat_min <= self.lat_max <= 90.0:
+            raise RequestError(
+                f"box latitudes must satisfy -90 <= lat_min <= lat_max <= 90; "
+                f"got {self.lat_min:g}, {self.lat_max:g}"
+            )
+
+    @property
+    def _width(self) -> float:
+        span = self.lon_max - self.lon_min
+        return span if span >= 360.0 else span % 360.0
+
+    @property
+    def centre(self) -> tuple[float, float]:
+        lon = self.lon_min + self._width / 2.0
+        return (self.lat_min + self.lat_max) / 2.0, (lon + 180.0) % 360.0 - 180.0
+
+    def nodes(self, grid: Grid) -> np.ndarray:
+        """Indices of the valid nodes inside the region."""
+        inside = (grid.lat >= self.lat_min) & (grid.lat <= self.lat_max)
+        if self._width < 360.0:
+            inside &= (grid.lon - self.lon_min) % 360.0 <= self._width
+        return np.flatnonzero(inside & grid.valid)
+
+    def describe(self) -> str:
+        return (
+            f"in the box {self.lat_min:g}..{self.lat_max:g} N, {self.lon_min:g}..{self.lon_max:g} E"
+        )
+
+    def outline(self) -> tuple[np.ndarray, np.ndarray]:
+        """``(lat, lon)`` points tracing the edge, for drawing."""
+        n = 45
+        lons = self.lon_min + np.linspace(0.0, self._width, n)
+        lats = np.linspace(self.lat_min, self.lat_max, n)
+        lat = np.concatenate([np.full(n, self.lat_min), lats, np.full(n, self.lat_max), lats[::-1]])
+        lon = np.concatenate([lons, np.full(n, lons[-1]), lons[::-1], np.full(n, lons[0])])
+        return lat, (lon + 180.0) % 360.0 - 180.0
+
+
+AnyRegion = Region | Box
 
 
 @dataclass(frozen=True, eq=False)
@@ -169,7 +240,7 @@ def analyse_region(
     *,
     time: str | int,
     layer: int,
-    region: Region,
+    region: AnyRegion,
     rank_layer: int | None = None,
     top: int = 15,
     pinned: Sequence[int] = (),
@@ -225,12 +296,9 @@ def analyse_region(
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
     time_label = info.times[info.time_index(time)]
 
-    nodes = grid.within(region.lat, region.lon, region.radius_km)
+    nodes = region.nodes(grid)
     if nodes.size == 0:
-        raise RequestError(
-            f"no valid nodes within {region.radius_km:g} km of "
-            f"({region.lat:g}, {region.lon:g}); widen the region"
-        )
+        raise RequestError(f"no valid nodes {region.describe()}; widen the region")
     weights = grid.weights()
     if n_components:
         limit = basis.n_features if basis is not None else max(min(nodes.size - 1, width), 0)
@@ -291,7 +359,7 @@ def analyse_region(
         ranking = rank_channels(latents[nodes], top=top, pinned=pinned)
 
     if reference == "nearest":
-        vector = latents[grid.nearest(region.lat, region.lon)]
+        vector = latents[grid.nearest(*region.centre)]
     else:
         vector = (weights[nodes] / weights[nodes].sum()) @ latents[nodes]
     valid = grid.valid
