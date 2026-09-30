@@ -9,8 +9,8 @@ np = pytest.importorskip("numpy")
 
 from conftest import BUMP, LATENT_TIMES, write_latent_archive  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.daig.grid import Grid  # noqa: E402
-from xaig.daig.latent import (  # noqa: E402
+from xaig.diagnostics.grid import Grid  # noqa: E402
+from xaig.diagnostics.latent import (  # noqa: E402
     Box,
     Region,
     analyse_region,

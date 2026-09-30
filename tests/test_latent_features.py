@@ -14,7 +14,7 @@ from click.testing import CliRunner  # noqa: E402
 from conftest import BUMP, LATENT_TIMES, N_LAT, N_LON, write_latent_archive  # noqa: E402
 from xaig._cli import cli  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.daig.latent import (  # noqa: E402
+from xaig.diagnostics.latent import (  # noqa: E402
     Region,
     accumulate_moments,
     feature_census,
@@ -133,7 +133,7 @@ def test_a_profile_says_what_it_cannot_do(fields, tmp_path):
 
 
 def _invoke(*args):
-    result = CliRunner().invoke(cli, ["daig", "latent", *(str(a) for a in args)])
+    result = CliRunner().invoke(cli, ["diagnostics", "latent", *(str(a) for a in args)])
     assert "Traceback" not in result.output
     return result
 

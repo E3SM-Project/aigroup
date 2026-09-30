@@ -28,30 +28,30 @@ classifiers = [
 dependencies = ["click>=8.1"]
 
 # One extra per subpackage that needs more than the base tier, named after it, and
-# no others: "to use xaig.daig, install xaig[daig]" is the whole rule.
+# no others: "to use xaig.diagnostics, install xaig[diagnostics]" is the whole rule.
 [project.optional-dependencies]
 # xarray reads what the adapters read, and needs a backend to open NetCDF with;
 # netCDF4 is the one the rest of the E3SM/ACE stack already uses.
-daig = ["numpy>=1.24", "xarray>=2023.1", "netCDF4>=1.6"]
+diagnostics = ["numpy>=1.24", "xarray>=2023.1", "netCDF4>=1.6"]
 # cartopy is for coastlines; without its data (no network) maps are still drawn.
-faig = ["matplotlib>=3.7", "cartopy>=0.23", "xaig[daig]"]
-waig = ["streamlit>=1.50", "xaig[faig]"]
-# It trains on daig's latents, so it brings daig's extra as faig does.
-taig = ["torch>=2.0", "xaig[daig]"]
+figures = ["matplotlib>=3.7", "cartopy>=0.23", "xaig[diagnostics]"]
+widgets = ["streamlit>=1.50", "xaig[figures]"]
+# It trains on the latents of diagnostics, so it brings that extra as figures does.
+blocks = ["torch>=2.0", "xaig[diagnostics]"]
 # Reads a latent archive straight from a Hugging Face dataset repository (hf://datasets/...),
 # a file at a time.
-hf = ["huggingface_hub>=0.23", "xaig[daig]"]
+hf = ["huggingface_hub>=0.23", "xaig[diagnostics]"]
 
 # What a checkout gets and a wheel does not. uv installs the `dev` and `full` groups by
 # default, so `uv run xaig ...`, `uv run pytest` and `uv run ruff check` work with no
 # flags, while an installed xaig stays on the base tier until an extra is asked for.
 # `full` is every extra but torch, which is large and whose build (CPU, CUDA) is the
-# machine's business: ask for it with `uv sync --extra taig`. The base tier alone:
+# machine's business: ask for it with `uv sync --extra blocks`. The base tier alone:
 #   uv sync --no-default-groups --group dev
 # and the guide site: `uv run --group docs mkdocs build --strict`.
 [dependency-groups]
 dev = ["pytest>=7.4", "ruff>=0.5"]
-full = ["xaig[waig]", "xaig[hf]"]
+full = ["xaig[widgets]", "xaig[hf]"]
 # mkdocs 2 drops the plugin system this site is built on.
 docs = ["mkdocs>=1.6,<2", "mkdocs-material[imaging]>=9.5"]
 

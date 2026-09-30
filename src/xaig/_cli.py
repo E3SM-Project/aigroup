@@ -22,9 +22,9 @@ log = logging.getLogger(__name__)
 # module, so each must stay importable on the base tier: anything heavier is
 # imported inside the command that needs it (tests/test_purity.py holds them to it).
 _COMMANDS = {
-    "daig": "xaig.daig.cli:daig",
-    "taig": "xaig.taig.cli:taig",
-    "waig": "xaig.waig.cli:waig",
+    "diagnostics": "xaig.diagnostics.cli:diagnostics",
+    "blocks": "xaig.blocks.cli:blocks",
+    "widgets": "xaig.widgets.cli:widgets",
 }
 
 # A separate distribution adds a command by registering a ``click.Command``
