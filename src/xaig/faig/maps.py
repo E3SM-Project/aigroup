@@ -174,6 +174,8 @@ def map_figure(
         ax.set_yticks(range(-90, 91, 30))
         ax.tick_params(labelsize=7, colors=ink, length=2)
         ax.grid(color=ink, alpha=0.15, linewidth=0.5)
+        ax.set_xlabel("longitude (°E)", fontsize=8, color=ink)
+        ax.set_ylabel("latitude (°N)", fontsize=8, color=ink)
         on_map = {}
     ax.set_facecolor(invalid)
 
@@ -201,6 +203,12 @@ def map_figure(
     if ccrs is not None:
         ax.coastlines(linewidth=0.5, color=ink)
         ax.spines["geo"].set_edgecolor(ink)
+        grid_lines = ax.gridlines(
+            draw_labels=True, xlocs=range(-180, 181, 60), ylocs=range(-90, 91, 30),
+            color=ink, alpha=0.15, linewidth=0.5,
+        )  # fmt: skip
+        grid_lines.top_labels = grid_lines.right_labels = False
+        grid_lines.xlabel_style = grid_lines.ylabel_style = {"size": 7, "color": ink}
     else:
         for spine in ax.spines.values():
             spine.set_edgecolor(ink)
