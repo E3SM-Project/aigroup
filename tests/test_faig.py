@@ -7,7 +7,7 @@ pytest.importorskip("matplotlib")
 
 from conftest import BUMP, write_latent_archive  # noqa: E402
 from xaig.daig.grid import Grid, small_circle  # noqa: E402
-from xaig.daig.latent import Region, load_channels, open_source  # noqa: E402
+from xaig.daig.latent import Box, Region, load_channels, open_source  # noqa: E402
 from xaig.faig import map_figure, maps, to_png  # noqa: E402
 
 
@@ -235,3 +235,10 @@ def test_a_profile_draws_the_largest_bars_and_skips_what_says_nothing():
     assert labels == ["d", "b"]
     with pytest.raises(ValueError, match="expected 4"):
         profile_figure(["a", "b", "c", "d"], [1.0])
+
+
+def test_a_box_is_outlined(latent_archive):
+    grid = open_source(latent_archive).grid()
+    figure = map_figure(grid, np.zeros(grid.n_nodes), region=Box(-20, 20, 170, -170))
+    ring_lon = figure.axes[0].lines[0].get_xdata()
+    assert np.nanmax(np.abs(np.diff(ring_lon))) < 180.0
