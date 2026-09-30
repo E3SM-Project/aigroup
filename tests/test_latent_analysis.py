@@ -9,7 +9,9 @@ np = pytest.importorskip("numpy")
 
 from conftest import BUMP, LATENT_TIMES, write_latent_archive  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
+from xaig.daig.grid import Grid  # noqa: E402
 from xaig.daig.latent import (  # noqa: E402
+    Box,
     Region,
     analyse_region,
     cosine_similarity,
@@ -248,3 +250,49 @@ def test_everything_that_can_be_refused_is_refused_before_the_first_read(latent_
 def test_nodes_a_source_does_not_have_are_a_request_not_a_crash(latent_archive):
     with pytest.raises(RequestError, match="288 nodes x 6 channels"):
         open_source(latent_archive).load(0, 2, channels=[6])
+
+
+# -- boxes -----------------------------------------------------------------
+
+
+def test_a_box_may_cross_the_dateline_and_either_longitude_convention():
+    grid = Grid(lat=np.zeros(5), lon=np.array([170.0, 180.0, -170.0, 0.0, 100.0]))
+    assert Box(-10, 10, 170, -170).nodes(grid).tolist() == [0, 1, 2]
+    assert Box(-10, 10, 170, 190).nodes(grid).tolist() == [0, 1, 2]
+    assert Box(-10, 10, -10, 10).nodes(grid).tolist() == [3]
+    assert Box(-10, 10, 0, 360).nodes(grid).size == 5
+    assert Box(5, 10, 170, -170).nodes(grid).size == 0
+    assert Box(-10, 10, 170, -170).centre == (0.0, -180.0)
+
+
+def test_a_box_leaves_out_invalid_nodes():
+    grid = Grid(lat=np.zeros(3), lon=np.array([0.0, 1.0, 2.0]), mask=np.array([1, 0, 1]))
+    assert Box(-1, 1, 0, 2).nodes(grid).tolist() == [0, 2]
+
+
+def test_a_box_with_bad_latitudes_is_refused():
+    with pytest.raises(RequestError, match="latitudes"):
+        Box(10, -10, 0, 1)
+    with pytest.raises(RequestError, match="latitudes"):
+        Box(-100, 10, 0, 1)
+
+
+def test_a_box_outline_closes_on_itself():
+    lat, lon = Box(-10, 20, 30, 60).outline()
+    assert (lat[0], lon[0]) == (lat[-1], lon[-1])
+    assert lat.min() == -10 and lat.max() == 20 and lon.min() == 30 and lon.max() == 60
+
+
+def test_analysis_takes_a_box(latent_archive):
+    source = open_source(latent_archive)
+    box = Box(BUMP[0] - 20, BUMP[0] + 20, BUMP[1] - 30, BUMP[1] + 30)
+    result = analyse_region(source, time=0, layer=2, region=box, centred=True)
+    assert result.nodes.size and result.ranking.channels[0] == 4
+    assert result.summary()["settings"]["region"] == {
+        "lat_min": box.lat_min,
+        "lat_max": box.lat_max,
+        "lon_min": box.lon_min,
+        "lon_max": box.lon_max,
+    }
+    with pytest.raises(RequestError, match="no valid nodes in the box.*widen the region"):
+        analyse_region(source, time=0, layer=2, region=Box(89, 90, 0, 0.001))
