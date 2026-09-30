@@ -16,7 +16,7 @@ np = pytest.importorskip("numpy")
 
 from conftest import write_latent_archive  # noqa: E402
 from xaig.core.errors import AdapterError  # noqa: E402
-from xaig.daig.latent import open_source  # noqa: E402
+from xaig.diagnostics.latent import open_source  # noqa: E402
 
 
 class _EntryNotFound(Exception):

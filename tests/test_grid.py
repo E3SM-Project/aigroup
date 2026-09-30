@@ -4,7 +4,7 @@ import pytest
 
 np = pytest.importorskip("numpy")
 
-from xaig.daig.grid import Grid, cell_area_weights, great_circle_km  # noqa: E402
+from xaig.diagnostics.grid import Grid, cell_area_weights, great_circle_km  # noqa: E402
 
 
 def _regular(step: float = 1.0, mask=None) -> Grid:

@@ -35,13 +35,15 @@ def test_a_separate_distribution_can_add_a_command(runner, monkeypatch):
     monkeypatch.setattr(_cli, "entry_points", lambda group: eps)
     assert "hello from a plugin" in runner.invoke(cli, ["hello"]).output
     listing = runner.invoke(cli, ["--help"])
-    assert listing.exit_code == 0 and "daig" in listing.output and "hello" in listing.output
+    assert listing.exit_code == 0 and "diagnostics" in listing.output and "hello" in listing.output
 
 
 def test_a_plugin_cannot_replace_a_shipped_command(runner, monkeypatch):
-    impostor = click.Command("daig", callback=lambda: click.echo("impostor"))
-    monkeypatch.setattr(_cli, "entry_points", lambda group: [_FakeEntryPoint("daig", impostor)])
-    assert "impostor" not in runner.invoke(cli, ["daig", "latent", "--help"]).output
+    impostor = click.Command("diagnostics", callback=lambda: click.echo("impostor"))
+    monkeypatch.setattr(
+        _cli, "entry_points", lambda group: [_FakeEntryPoint("diagnostics", impostor)]
+    )
+    assert "impostor" not in runner.invoke(cli, ["diagnostics", "latent", "--help"]).output
 
 
 # -- one way out for deliberate errors ---------------------------------------
@@ -52,7 +54,7 @@ def test_deliberate_errors_are_one_line_and_debug_keeps_the_traceback(runner, tm
     and with it the directory that holds no archive is."""
     from xaig.core.errors import XaigError
 
-    args = ["daig", "latent", "info", str(tmp_path / "nothing-here")]
+    args = ["diagnostics", "latent", "info", str(tmp_path / "nothing-here")]
     plain = runner.invoke(cli, args)
     assert plain.exit_code == 1 and plain.output.startswith("Error: ")
     assert isinstance(runner.invoke(cli, ["--debug", *args]).exception, XaigError)

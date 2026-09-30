@@ -20,8 +20,8 @@ from click.testing import CliRunner  # noqa: E402
 from xaig._cli import cli  # noqa: E402
 from xaig.adapters.latent_archive import write_archive  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.daig.latent import ReferenceFields, open_source  # noqa: E402
-from xaig.daig.latent.toy import (  # noqa: E402
+from xaig.diagnostics.latent import ReferenceFields, open_source  # noqa: E402
+from xaig.diagnostics.latent.toy import (  # noqa: E402
     OFFSET_CHANNEL,
     STORM_CHANNEL,
     noleap_label,
@@ -204,21 +204,25 @@ def test_steps_and_steering_are_checked():
         toy_run(steer=(4, 0, 1.0))
 
 
-# -- xaig daig latent toy ------------------------------------------------------------
+# -- xaig diagnostics latent toy ------------------------------------------------------------
 
 
 def test_cli_toy_then_info(tmp_path):
     out = tmp_path / "steered"
     made = CliRunner().invoke(
-        cli, ["daig", "latent", "toy", str(out), "--steer", "2:7:3", "--keep", "1-2,6"]
+        cli, ["diagnostics", "latent", "toy", str(out), "--steer", "2:7:3", "--keep", "1-2,6"]
     )
     assert made.exit_code == 0, made.output
     assert json.loads((out / "manifest.json").read_text())["latent_times"][-1].endswith("T12:00:00")
-    shown = CliRunner().invoke(cli, ["daig", "latent", "info", str(out), "--mask-variable", "sst"])
+    shown = CliRunner().invoke(
+        cli, ["diagnostics", "latent", "info", str(out), "--mask-variable", "sst"]
+    )
     assert shown.exit_code == 0, shown.output
     assert "24x48, 1152 nodes, 1062 valid" in shown.output and "xaig-toy" in shown.output
     assert "experiment.steer" in shown.output and "3 reference field(s)" in shown.output
-    bad = CliRunner().invoke(cli, ["daig", "latent", "toy", str(tmp_path / "x"), "--steer", "2:7"])
+    bad = CliRunner().invoke(
+        cli, ["diagnostics", "latent", "toy", str(tmp_path / "x"), "--steer", "2:7"]
+    )
     assert bad.exit_code == 1 and "LAYER:CHANNEL:AMOUNT" in bad.output
 
 

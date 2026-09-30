@@ -5,10 +5,10 @@ this repo alongside the guides, as a peer rather than an appendix.
 
 | Subpackage | Scope |
 | --- | --- |
-| `daig` | diagnostics of emulators: [what they hold inside](latents.md) |
-| `taig` | neural blocks trained on `daig`'s latents: [sparse autoencoders](taig.md) |
-| `faig` | figures, with no web framework in them |
-| `waig` | [a local web app](waig.md) over `daig` |
+| `diagnostics` | [what emulators hold inside](latents.md) |
+| `blocks` | neural blocks trained on those latents: [sparse autoencoders](blocks.md) |
+| `figures` | figures, with no web framework in them |
+| `widgets` | [a local web app](widgets.md) over `diagnostics` |
 
 !!! warning "research tool"
 
@@ -21,14 +21,15 @@ $ uv sync
 $ uv run xaig --help
 ```
 
-In a checkout, `uv sync` (or the first `uv run`) installs every extra below but `taig`,
+In a checkout, `uv sync` (or the first `uv run`) installs every extra below but `blocks`,
 plus pytest and ruff. Torch is large, and whether it should be a CPU or a CUDA build is the
-machine's business: ask for it with `uv sync --extra taig`. To use it from another project,
-install it from [PyPI](https://pypi.org/project/xaig/), asking for the extras you need:
+machine's business: ask for it with `uv sync --extra blocks`. To use it from another
+project, install it from [PyPI](https://pypi.org/project/xaig/), asking for the extras you
+need:
 
 ```console
-$ uv pip install 'xaig[daig]'
-$ uv pip install 'xaig[daig] @ git+https://github.com/E3SM-Project/aigroup'   # what main holds and no release does yet
+$ uv pip install 'xaig[diagnostics]'
+$ uv pip install 'xaig[diagnostics] @ git+https://github.com/E3SM-Project/aigroup'   # what main holds and no release does yet
 ```
 
 The base install pulls only Click. Anything heavier sits behind an extra named after the
@@ -36,17 +37,17 @@ subpackage that needs it. A missing one says so, with the command that fits how 
 `xaig` was installed:
 
 ```console
-$ xaig daig latent info latents/atmosphere
-Error: numpy is not installed; it comes with the 'daig' extra: uv pip install -e '/path/to/aigroup[daig]'  (in that checkout: `uv sync --extra daig`)
+$ xaig diagnostics latent info latents/atmosphere
+Error: numpy is not installed; it comes with the 'diagnostics' extra: uv pip install -e '/path/to/aigroup[diagnostics]'  (in that checkout: `uv sync --extra diagnostics`)
 ```
 
 | Extra | Pulls | Gets you |
 | --- | --- | --- |
-| `daig` | numpy, xarray, netCDF4 | `xaig.daig` |
-| `faig` | matplotlib, cartopy | `xaig.faig`: maps and figures (brings `daig`) |
-| `waig` | streamlit | [`xaig waig`](waig.md) (brings `faig`) |
-| `taig` | torch | [`xaig.taig`](taig.md) and `xaig taig` (not part of a plain `uv sync`) |
-| `hf` | huggingface_hub | [archives read from a Hugging Face repository](latents.md#from-a-hugging-face-repository) (brings `daig`) |
+| `diagnostics` | numpy, xarray, netCDF4 | `xaig.diagnostics` |
+| `figures` | matplotlib, cartopy | `xaig.figures`: maps and figures (brings `diagnostics`) |
+| `widgets` | streamlit | [`xaig widgets`](widgets.md) (brings `figures`) |
+| `blocks` | torch | [`xaig.blocks`](blocks.md) and `xaig blocks` (not part of a plain `uv sync`) |
+| `hf` | huggingface_hub | [archives read from a Hugging Face repository](latents.md#from-a-hugging-face-repository) (brings `diagnostics`) |
 
 !!! tip "uv cache"
 
@@ -80,20 +81,20 @@ else is a bug and keeps its traceback, as does everything under `xaig --debug`.
 
 ## Looking inside a model
 
-`daig.latent` reads activations recorded from inside a model, through an adapter, and
-analyses them; [latent diagnostics](latents.md) is the guide to it.
+`diagnostics.latent` reads activations recorded from inside a model, through an adapter,
+and analyses them; [latent diagnostics](latents.md) is the guide to it.
 
 ```console
-$ xaig daig latent info /path/to/latents/atmosphere
+$ xaig diagnostics latent info /path/to/latents/atmosphere
 ```
 
 With no model and no data to hand, make an archive with the toy emulator — an MLP with a
 residual stream on a small Gaussian grid, in numpy, in a few seconds — and read it back:
 
 ```console
-$ xaig daig latent toy scratch/toy/control
-$ xaig daig latent toy scratch/toy/steered --steer 2:7:3     # +3 on channel 7 of layer 2, every step
-$ xaig daig latent info scratch/toy/steered --mask-variable sst
+$ xaig diagnostics latent toy scratch/toy/control
+$ xaig diagnostics latent toy scratch/toy/steered --steer 2:7:3     # +3 on channel 7 of layer 2, every step
+$ xaig diagnostics latent info scratch/toy/steered --mask-variable sst
 model                  xaig-toy
 calendar               noleap
 grid                   24x48, 1152 nodes, 1062 valid
@@ -110,7 +111,7 @@ an analysis has a right answer to find.
 The CLI is a thin client of the API; anything it can do, a notebook can.
 
 ```python
-from xaig.daig.latent import open_source
+from xaig.diagnostics.latent import open_source
 
 source = open_source("latents/atmosphere")
 source.info().layers  # what was recorded, without loading any of it
@@ -146,7 +147,7 @@ myframework = "mypkg.adapter:MyAdapter"
 
 ```console
 $ uv sync   # entry points are read from installed metadata
-$ xaig daig latent info /path/to/export --adapter myframework
+$ xaig diagnostics latent info /path/to/export --adapter myframework
 ```
 
 ## Where this comes from
@@ -157,24 +158,24 @@ Three papers are behind what is here, and behind what comes next. Cite them if y
   ([doi:10.1007/978-3-032-29915-4_10](https://doi.org/10.1007/978-3-032-29915-4_10);
   [code](https://github.com/ktempestuous/latent_space_visualiser_weather_models)). Its
   workflow — a region, the channels that respond there, cosine similarity, a PCA fitted
-  in the region and mapped everywhere — is what [`daig.latent`](latents.md) reimplements
-  as a library, and what [the app](waig.md) puts widgets on.
+  in the region and mapped everywhere — is what [`diagnostics.latent`](latents.md)
+  reimplements as a library, and what [the app](widgets.md) puts widgets on.
 - [MacMillan & Ouellette (2025)](https://arxiv.org/abs/2512.24440), *Towards mechanistic understanding in a data-driven weather model:
   internal activations reveal interpretable physical features*
   ([code](https://github.com/theodoremacmillan/graphcast-interpretability)). Sparse
   autoencoders on GraphCast's node embeddings, and interventions on the features they
-  find. The TopK autoencoder in [`taig`](taig.md) is theirs in form; their auxiliary
+  find. The TopK autoencoder in [`blocks`](blocks.md) is theirs in form; their auxiliary
   loss for dead features, their held-out evaluation and their steering are not here yet.
 - [Cheon (2026)](https://arxiv.org/abs/2605.17493), *Beyond Linear Superposition: Discovering Climate Features in AI Weather
   Models with KAN-SAE*. A sparse autoencoder whose ReLU is replaced by a learnable
-  B-spline per feature. **Not implemented here yet**: `taig`'s `bspline` activation
-  predates our reading of it and is a different thing ([see there](taig.md)).
+  B-spline per feature. **Not implemented here yet**: the `bspline` activation in `blocks`
+  predates our reading of it and is a different thing ([see there](blocks.md)).
 
 ## Remaining tasks
 
-- [ ] `daig`: bias and time-mean maps, spectra, zonal means (a `FieldSource` beside
-      `LatentSource`, on the same `daig.grid`)
-- [ ] `daig.latent`: a GraphCast mesh adapter; the activation exporter as an adapter,
-      with a steering hook
-- [ ] `taig`: the B-spline autoencoder as its paper has it, held-out evaluation and an
-      auxiliary loss for dead features, steering — in that order ([the list](taig.md#remaining-tasks))
+- [ ] `diagnostics`: bias and time-mean maps, spectra, zonal means (a `FieldSource` beside
+      `LatentSource`, on the same `diagnostics.grid`)
+- [ ] `diagnostics.latent`: a GraphCast mesh adapter; the activation exporter as an
+      adapter, with a steering hook
+- [ ] `blocks`: the B-spline autoencoder as its paper has it, held-out evaluation and an
+      auxiliary loss for dead features, steering — in that order ([the list](blocks.md#remaining-tasks))

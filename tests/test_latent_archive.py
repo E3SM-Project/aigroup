@@ -13,7 +13,7 @@ from conftest import LATENT_TIMES, N_CHANNELS, N_LAT, N_LON, write_latent_archiv
 from xaig._cli import cli  # noqa: E402
 from xaig.core import registry  # noqa: E402
 from xaig.core.errors import AdapterError, RequestError  # noqa: E402
-from xaig.daig.latent import LatentSource, open_source  # noqa: E402
+from xaig.diagnostics.latent import LatentSource, open_source  # noqa: E402
 
 
 def test_describes_the_archive_without_loading_it(latent_archive):
@@ -107,18 +107,18 @@ def test_an_adapter_that_cannot_supply_latents_is_refused(tmp_path):
         registry.unregister("not-latents")
 
 
-# -- xaig daig latent ------------------------------------------------------
+# -- xaig diagnostics latent ------------------------------------------------------
 
 
 def test_cli_info(latent_archive):
-    result = CliRunner().invoke(cli, ["daig", "latent", "info", str(latent_archive)])
+    result = CliRunner().invoke(cli, ["diagnostics", "latent", "info", str(latent_archive)])
     assert result.exit_code == 0, result.output
     assert "toy.ckpt" in result.output and "12x24, 288 nodes, 288 valid" in result.output
     assert "1 more layer(s) on coarser grids" in result.output
 
 
 def test_cli_region_as_a_table_and_as_json(latent_archive):
-    args = ["daig", "latent", "region", str(latent_archive), "--lat", "7.5", "--lon", "45"]
+    args = ["diagnostics", "latent", "region", str(latent_archive), "--lat", "7.5", "--lon", "45"]
     args += ["--radius-km", "2500", "--centred", "--top", "3", "--pcs", "2"]
     table = CliRunner().invoke(cli, args)
     assert table.exit_code == 0, table.output
@@ -131,7 +131,7 @@ def test_cli_region_as_a_table_and_as_json(latent_archive):
 
 
 def test_cli_explains_a_bad_request_in_one_line(latent_archive):
-    args = ["daig", "latent", "region", str(latent_archive), "--lat", "0", "--lon", "0"]
+    args = ["diagnostics", "latent", "region", str(latent_archive), "--lat", "0", "--lon", "0"]
     result = CliRunner().invoke(cli, [*args, "--layer", "9"])
     assert result.exit_code != 0 and "layers are 0, 1, 2" in result.output
     assert "Traceback" not in result.output

@@ -8,7 +8,7 @@ np = pytest.importorskip("numpy")
 
 from conftest import N_CHANNELS, N_LAT, N_LON, N_TIMES, write_latent_archive  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.daig.latent import (  # noqa: E402
+from xaig.diagnostics.latent import (  # noqa: E402
     accumulate_moments,
     fit_pca,
     iter_batches,
