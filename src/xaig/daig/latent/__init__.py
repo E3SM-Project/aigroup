@@ -25,6 +25,8 @@ Reading is an adapter's job (see ``LatentSource``); this package computes.
 from __future__ import annotations
 
 from xaig.daig.latent.analysis import (
+    AnyRegion,
+    Box,
     ChannelRanking,
     Region,
     RegionAnalysis,
@@ -93,6 +95,8 @@ __all__ = [
     "Moments",
     "PairedDifference",
     "ReferenceFields",
+    "AnyRegion",
+    "Box",
     "Region",
     "RegionAnalysis",
     "RegionSeries",

@@ -25,7 +25,7 @@ from typing import Any
 from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.daig.latent.analysis import ChannelRanking, Region
+from xaig.daig.latent.analysis import AnyRegion, ChannelRanking
 from xaig.daig.latent.basis import Decomposition
 from xaig.daig.latent.samples import _time_labels
 from xaig.daig.latent.source import (
@@ -79,7 +79,7 @@ def region_series(
     source: LatentSource,
     *,
     layer: int,
-    region: Region,
+    region: AnyRegion,
     channels: Sequence[int] | None = None,
     basis: Decomposition | None = None,
     features: Sequence[int] | None = None,
@@ -100,12 +100,9 @@ def region_series(
     info, grid = source.info(), source.grid()
     width = info.layer(layer).n_channels
     labels = _time_labels(source, times)
-    nodes = grid.within(region.lat, region.lon, region.radius_km)
+    nodes = region.nodes(grid)
     if nodes.size == 0:
-        raise RequestError(
-            f"no valid nodes within {region.radius_km:g} km of "
-            f"({region.lat:g}, {region.lon:g}); widen the region"
-        )
+        raise RequestError(f"no valid nodes {region.describe()}; widen the region")
     if basis is not None:
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
         columns = tuple(int(f) for f in (range(basis.n_features) if features is None else features))

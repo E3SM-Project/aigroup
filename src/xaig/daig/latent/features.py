@@ -23,7 +23,7 @@ from typing import Any
 from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.daig.latent.analysis import Region
+from xaig.daig.latent.analysis import AnyRegion
 from xaig.daig.latent.basis import Decomposition
 from xaig.daig.latent.samples import _time_labels
 from xaig.daig.latent.source import LatentSource, ReferenceFields, check_basis_fits
@@ -38,16 +38,13 @@ _BLOCK = 8192
 _ORDERS = ("coverage", "mean", "strength", "peak")
 
 
-def _nodes(source: LatentSource, region: Region | None) -> np.ndarray:
+def _nodes(source: LatentSource, region: AnyRegion | None) -> np.ndarray:
     grid = source.grid()
     if region is None:
         return np.flatnonzero(grid.valid)
-    nodes = grid.within(region.lat, region.lon, region.radius_km)
+    nodes = region.nodes(grid)
     if nodes.size == 0:
-        raise RequestError(
-            f"no valid nodes within {region.radius_km:g} km of "
-            f"({region.lat:g}, {region.lon:g}); widen the region"
-        )
+        raise RequestError(f"no valid nodes {region.describe()}; widen the region")
     return nodes
 
 
@@ -118,7 +115,7 @@ def feature_census(
     time: str | int,
     layer: int,
     basis: Decomposition | None = None,
-    region: Region | None = None,
+    region: AnyRegion | None = None,
     threshold: float = 0.0,
     allow_unverified_basis: bool = False,
 ) -> FeatureCensus:
@@ -235,7 +232,7 @@ def feature_profile(
     basis: Decomposition | None = None,
     times: Sequence[str | int] | None = None,
     fields: Sequence[str] | None = None,
-    region: Region | None = None,
+    region: AnyRegion | None = None,
     threshold: float = 0.0,
     allow_unverified_basis: bool = False,
     lead: int = 0,

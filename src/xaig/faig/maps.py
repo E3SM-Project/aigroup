@@ -40,7 +40,7 @@ try:
 except ImportError as exc:
     raise missing_extra(exc.name or "matplotlib", "faig") from exc
 
-from xaig.daig.grid import Grid, small_circle
+from xaig.daig.grid import Grid
 
 log = logging.getLogger(__name__)
 
@@ -62,10 +62,8 @@ DARK_INVALID_COLOUR = "#4b4b47"
 _DARK_INK = "#d9d9d3"
 
 
-class _Cap(Protocol):
-    lat: float
-    lon: float
-    radius_km: float
+class _Outlined(Protocol):
+    def outline(self) -> tuple[np.ndarray, np.ndarray]: ...
 
 
 @lru_cache(maxsize=1)
@@ -130,7 +128,7 @@ def map_figure(
     *,
     title: str | None = None,
     label: str | None = None,
-    region: _Cap | None = None,
+    region: _Outlined | None = None,
     symmetric: bool = True,
     cmap: str | None = None,
     limit: float | None = None,
@@ -140,8 +138,8 @@ def map_figure(
 ) -> Figure:
     """One per-node field on a global map.
 
-    A structured grid is drawn as cells, a mesh as points. ``region`` (anything
-    with ``lat``, ``lon`` and ``radius_km``) is outlined. ``limit`` pins the colour
+    A structured grid is drawn as cells, a mesh as points. ``region`` (a ``Region``,
+    a ``Box``, or anything with ``outline()``) is outlined. ``limit`` pins the colour
     range to ``±limit`` so several maps can be compared by eye; without it each
     map scales to its own data. ``dark`` draws for a dark page.
     """
@@ -214,9 +212,7 @@ def map_figure(
             spine.set_edgecolor(ink)
 
     if region is not None:
-        ring_lat, ring_lon = _break_at_dateline(
-            *small_circle(region.lat, region.lon, region.radius_km)
-        )
+        ring_lat, ring_lon = _break_at_dateline(*region.outline())
         ax.plot(ring_lon, ring_lat, color=ink, linewidth=1.2, **on_map)
 
     bar = fig.colorbar(drawn, ax=ax, shrink=0.85, pad=0.02, aspect=28)
