@@ -6,7 +6,7 @@ different Python); analysing them needs numpy. An exporter on one side writes
 latents down, an adapter on the other reads them back through this protocol, and
 nothing here ever imports a model.
 
-The contract lives next to its consumers, all of which sit on ``diagnostics``. It moves
+The contract lives next to its consumers, all of which sit on ``latents``. It moves
 to ``xaig.core`` when a subpackage that does not needs it, and not before.
 """
 
@@ -22,12 +22,12 @@ from typing import Any, Protocol, runtime_checkable
 from xaig.core import registry
 from xaig.core.errors import AdapterError, RequestError
 from xaig.core.extras import missing_extra
-from xaig.diagnostics.grid import Grid
+from xaig.latents.grid import Grid
 
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 DEFAULT_ADAPTER = "latent-archive"
 

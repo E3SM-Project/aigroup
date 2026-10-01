@@ -1,7 +1,7 @@
 # figures — reusable figures
 
 Plotting functions with no web framework in them, so a notebook and a report draw the
-same picture. May import `core` and `diagnostics`; needs the `figures` extra (matplotlib,
+same picture. May import `core` and `latents`; needs the `figures` extra (matplotlib,
 and cartopy for coastlines).
 
 ## Rules

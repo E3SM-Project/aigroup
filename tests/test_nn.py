@@ -1,4 +1,4 @@
-"""blocks: the blocks, and fitting one to a model's latents."""
+"""nn: the modules, and fitting one to a model's latents."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from xaig._cli import cli
 
 def test_the_command_is_listed_and_explains_itself_without_torch():
     """`xaig --help` imports every cli module, torch or no torch."""
-    listed = CliRunner().invoke(cli, ["blocks", "sae", "--help"])
+    listed = CliRunner().invoke(cli, ["nn", "sae", "--help"])
     assert listed.exit_code == 0 and "sparse autoencoder" in listed.output
 
 
@@ -24,20 +24,18 @@ def test_without_torch_the_command_names_the_one_extra_that_brings_everything():
         "sys.modules['torch'] = sys.modules['numpy'] = None\n"  # as if neither were installed
         "from click.testing import CliRunner\n"
         "from xaig._cli import cli\n"
-        "print(CliRunner().invoke(cli, ['blocks', 'sae', 'anywhere', '--out', 'x.npz']).output)\n"
+        "print(CliRunner().invoke(cli, ['nn', 'sae', 'anywhere', '--out', 'x.npz']).output)\n"
     )
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True).stdout
-    assert "'blocks' extra" in out and "'diagnostics' extra" not in out and "Traceback" not in out
+    assert "'nn' extra" in out and "'latents' extra" not in out and "Traceback" not in out
 
 
 np = pytest.importorskip("numpy")
 torch = pytest.importorskip("torch")
 
 from conftest import BUMP, N_CHANNELS  # noqa: E402
-from xaig.blocks.sae import BSplineActivation, SparseAutoencoder  # noqa: E402
-from xaig.blocks.train import fit_sae  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.diagnostics.latent import (  # noqa: E402
+from xaig.latents import (  # noqa: E402
     Decomposition,
     Region,
     analyse_region,
@@ -45,6 +43,8 @@ from xaig.diagnostics.latent import (  # noqa: E402
     load_basis,
     open_source,
 )
+from xaig.nn.sae import BSplineActivation, SparseAutoencoder  # noqa: E402
+from xaig.nn.train import fit_sae  # noqa: E402
 
 HERE = Region(lat=BUMP[0], lon=BUMP[1], radius_km=2500.0)
 
@@ -146,12 +146,12 @@ def test_a_fit_that_asks_for_nothing_is_refused(latent_archive):
 
 def test_cli_fits_and_the_file_is_a_basis_anywhere(latent_archive, tmp_path):
     out = tmp_path / "sae.npz"
-    args = ["blocks", "sae", str(latent_archive), "--features", "8", "--k", "2", "--epochs", "3"]
+    args = ["nn", "sae", str(latent_archive), "--features", "8", "--k", "2", "--epochs", "3"]
     fitted = CliRunner().invoke(cli, [*args, "--batch-size", "96", "--device", "cpu", "--out", out])
     assert fitted.exit_code == 0, fitted.output
     assert "8 feature(s) of layer 2" in fitted.output and "active per node" in fitted.output
     assert load_basis(out).meta["training"]["activation"] == "topk"
-    region = ["diagnostics", "latent", "region", str(latent_archive), "--lat", "7.5", "--lon", "45"]
+    region = ["latents", "region", str(latent_archive), "--lat", "7.5", "--lon", "45"]
     shown = CliRunner().invoke(
         cli, [*region, "--radius-km", "2500", "--features", "2", "--basis", out]
     )

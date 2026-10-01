@@ -8,16 +8,16 @@ import pytest
 from click.testing import CliRunner
 
 from xaig._cli import cli
-from xaig.widgets import cli as widgets_cli
-from xaig.widgets.config import LATENTS_ENV, configured_latents, discover_archives
+from xaig.app import cli as app_cli
+from xaig.app.config import LATENTS_ENV, configured_latents, discover_archives
 
 # -- the launcher works on a base install ----------------------------------
 
 
 def test_launcher_names_the_extra_when_streamlit_is_absent(monkeypatch):
-    monkeypatch.setattr(widgets_cli, "find_spec", lambda name: None)
-    result = CliRunner().invoke(cli, ["widgets"])
-    assert result.exit_code != 0 and "'widgets' extra" in result.output
+    monkeypatch.setattr(app_cli, "find_spec", lambda name: None)
+    result = CliRunner().invoke(cli, ["app"])
+    assert result.exit_code != 0 and "'app' extra" in result.output
 
 
 def test_launcher_hands_the_app_absolute_paths_through_the_environment(monkeypatch, tmp_path):
@@ -27,12 +27,12 @@ def test_launcher_hands_the_app_absolute_paths_through_the_environment(monkeypat
         seen.update(command=command, env=env)
         return 0
 
-    monkeypatch.setattr(widgets_cli, "find_spec", lambda name: object())
-    monkeypatch.setattr(widgets_cli.subprocess, "call", call)
+    monkeypatch.setattr(app_cli, "find_spec", lambda name: object())
+    monkeypatch.setattr(app_cli.subprocess, "call", call)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "atm").mkdir()
     (tmp_path / "ocn").mkdir()
-    args = ["widgets", "--latents", "atm", "--latents", "ocn", "--port", "9000"]
+    args = ["app", "--latents", "atm", "--latents", "ocn", "--port", "9000"]
     result = CliRunner().invoke(cli, [*args, "--headless"])
     assert result.exit_code == 0, result.output
     # The app runs elsewhere, so a path relative to here would mean nothing to it.
@@ -40,7 +40,7 @@ def test_launcher_hands_the_app_absolute_paths_through_the_environment(monkeypat
         str((tmp_path / name).resolve()) for name in ("atm", "ocn")
     ]
     command = seen["command"]
-    assert command[1:4] == ["-m", "streamlit", "run"] and command[4].endswith("widgets/app.py")
+    assert command[1:4] == ["-m", "streamlit", "run"] and command[4].endswith("app/main.py")
     assert command[command.index("--server.port") + 1] == "9000"
     # Streamlit's default is every interface; the app reads any path it is given.
     assert command[command.index("--server.address") + 1] == "localhost"
@@ -66,7 +66,7 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 
 from xaig.figures import maps  # noqa: E402
 
-APP = str(widgets_cli.Path(widgets_cli.__file__).with_name("app.py"))
+APP = str(app_cli.Path(app_cli.__file__).with_name("main.py"))
 
 
 @pytest.fixture(autouse=True)
@@ -97,7 +97,7 @@ def _at_the_bump(at: AppTest) -> AppTest:
 def test_with_nothing_to_open_it_says_how(monkeypatch):
     at = _run()
     assert not at.exception
-    assert "xaig widgets --latents" in at.info[0].value
+    assert "xaig app --latents" in at.info[0].value
 
 
 def test_the_latent_view_shows_the_analysis(monkeypatch, latent_archive):
@@ -178,7 +178,7 @@ def test_the_drop_down_names_the_model_not_just_the_path(monkeypatch, latent_arc
 
 @pytest.fixture
 def basis_file(latent_archive, tmp_path):
-    from xaig.diagnostics.latent import (
+    from xaig.latents import (
         accumulate_moments,
         open_source,
         pca_from_moments,
@@ -221,7 +221,7 @@ def test_an_unverified_basis_is_refused_until_it_is_allowed_and_then_reproduces(
     the command asks for a flag, and what it then shows says that it was allowed."""
     import numpy as np
 
-    from xaig.diagnostics.latent import fit_pca, save_basis
+    from xaig.latents import fit_pca, save_basis
 
     anonymous = str(
         save_basis(tmp_path / "anon.npz", fit_pca(np.random.default_rng(0).normal(size=(40, 6)), 2))
@@ -283,7 +283,7 @@ def test_a_basis_refitted_to_the_same_name_is_the_one_shown(monkeypatch, latent_
     dictionary written there until it was restarted."""
     from dataclasses import replace
 
-    from xaig.diagnostics.latent import (
+    from xaig.latents import (
         accumulate_moments,
         open_source,
         pca_from_moments,
@@ -321,7 +321,7 @@ def test_a_url_is_kept_as_given_for_its_adapter(monkeypatch):
 
 def test_a_basis_kept_in_an_archive_is_offered_where_it_fits(monkeypatch, latent_archive, tmp_path):
     from conftest import write_latent_archive
-    from xaig.diagnostics.latent import (
+    from xaig.latents import (
         accumulate_moments,
         open_source,
         pca_from_moments,
@@ -387,12 +387,12 @@ def test_a_field_ranks_the_layer_and_profiles_what_follows_it(monkeypatch, with_
     assert any("Channel 4 is active over" in c.value for c in at.caption)
 
     # What the tab shows, a terminal says too.
-    fields_command = next(c.value for c in at.code if "latent fields" in c.value)
+    fields_command = next(c.value for c in at.code if "latents fields" in c.value)
     argv = shlex.split(fields_command.replace("\\\n", " "))
     rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
     assert rerun.exit_code == 0, rerun.output
     assert json.loads(rerun.output)["ranking"][0]["column"] == 4
-    profile_command = next(c.value for c in at.code if "latent profile" in c.value)
+    profile_command = next(c.value for c in at.code if "latents profile" in c.value)
     argv = shlex.split(profile_command.replace("\\\n", " "))
     rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
     assert rerun.exit_code == 0, rerun.output
@@ -406,7 +406,7 @@ def test_a_field_can_be_set_against_what_the_pass_wrote(monkeypatch, with_fields
     _widget(at.sidebar.radio, "Set it against").set_value(1)
     at.run()
     assert not at.exception, at.exception
-    command = next(c.value for c in at.code if "latent fields" in c.value)
+    command = next(c.value for c in at.code if "latents fields" in c.value)
     assert "--lead 1" in command
     argv = shlex.split(command.replace("\\\n", " "))
     rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
@@ -415,7 +415,7 @@ def test_a_field_can_be_set_against_what_the_pass_wrote(monkeypatch, with_fields
 
 
 def test_a_field_reproduces_with_an_unverified_basis(monkeypatch, with_fields, tmp_path):
-    from xaig.diagnostics.latent import (
+    from xaig.latents import (
         accumulate_moments,
         open_source,
         pca_from_moments,
@@ -435,7 +435,7 @@ def test_a_field_reproduces_with_an_unverified_basis(monkeypatch, with_fields, t
     _widget(at.sidebar.selectbox, "Field").set_value("warmth")
     at.run()
     assert not at.exception, at.exception
-    command = next(c.value for c in at.code if "latent fields" in c.value)
+    command = next(c.value for c in at.code if "latents fields" in c.value)
     assert "--allow-unverified-basis" in command
     argv = shlex.split(command.replace("\\\n", " "))
     rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])

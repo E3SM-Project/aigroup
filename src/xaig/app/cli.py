@@ -1,4 +1,4 @@
-"""``xaig widgets``: start the local web app. Must import on a base install."""
+"""``xaig app``: start the local web app. Must import on a base install."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from pathlib import Path
 
 import click
 
+from xaig.app.config import LATENTS_ENV, discover_archives
 from xaig.core.extras import missing_extra
-from xaig.widgets.config import LATENTS_ENV, discover_archives
 
 
-@click.command(name="widgets")
+@click.command(name="app")
 @click.option(
     "--latents",
     multiple=True,
@@ -32,7 +32,7 @@ from xaig.widgets.config import LATENTS_ENV, discover_archives
 @click.option(
     "--headless", is_flag=True, help="Do not open a browser (a remote or proxied session)."
 )
-def widgets(latents, port, address, headless) -> None:
+def app(latents, port, address, headless) -> None:
     """Explore latents in a local web app.
 
     Runs on this machine and reads what is on disk; nothing is uploaded and no
@@ -40,12 +40,12 @@ def widgets(latents, port, address, headless) -> None:
     the port through your usual tunnel or Jupyter proxy.
     """
     if find_spec("streamlit") is None:
-        raise missing_extra("streamlit", "widgets")
+        raise missing_extra("streamlit", "app")
     env = dict(os.environ)
     found = [archive for path in latents for archive in discover_archives(path)]
     env[LATENTS_ENV] = "\n".join(dict.fromkeys(found))
     command = [
-        sys.executable, "-m", "streamlit", "run", str(Path(__file__).with_name("app.py")),
+        sys.executable, "-m", "streamlit", "run", str(Path(__file__).with_name("main.py")),
         "--server.port", str(port),
         # Streamlit's own default is every interface, and the app opens any path typed
         # into it: on a shared login node that is everyone's view of your files.
@@ -56,4 +56,4 @@ def widgets(latents, port, address, headless) -> None:
     raise SystemExit(subprocess.call(command, env=env))
 
 
-__all__ = ["widgets"]
+__all__ = ["app"]

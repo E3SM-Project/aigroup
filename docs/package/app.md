@@ -1,9 +1,9 @@
 # The web app
 
-`xaig widgets` is a local web app over the rest of the package: an explorer for
+`xaig app` is a local web app over the rest of the package: an explorer for
 [latent archives](latents.md) — pick a model, a region and a method — after the tool of
 [Tempest, Beylich & Craig (2026)](https://arxiv.org/abs/2604.20467).
-It is presentation only — every number on screen comes from `xaig.diagnostics` and every
+It is presentation only — every number on screen comes from `xaig.latents` and every
 figure from `xaig.figures` — so anything you see there can be redone in a notebook or a
 batch job, and the app tells you how.
 
@@ -16,10 +16,10 @@ batch job, and the app tells you how.
 
 ```console
 $ uv sync                      # in a checkout: everything
-$ uv pip install 'xaig[widgets]'   # elsewhere, from PyPI
+$ uv pip install 'xaig[app]'   # elsewhere, from PyPI
 ```
 
-The `widgets` extra brings Streamlit and everything `figures` and `diagnostics` need.
+The `app` extra brings Streamlit and everything `figures` and `latents` need.
 
 !!! tip "coastlines on a compute node"
 
@@ -38,8 +38,8 @@ The `widgets` extra brings Streamlit and everything `figures` and `diagnostics` 
 ## Start it
 
 ```console
-$ uv run xaig widgets --latents latents/atmosphere --latents latents/ocean
-$ uv run xaig widgets --latents latents/        # every archive directly inside it
+$ uv run xaig app --latents latents/atmosphere --latents latents/ocean
+$ uv run xaig app --latents latents/        # every archive directly inside it
 ```
 
 Every option is optional: archives can also be opened from the sidebar.
@@ -74,7 +74,7 @@ told apart — then a time, a layer and a region. The view is
 - **Features** — by the *Method* chosen in the sidebar: principal components fitted in
   the region and projected everywhere, or the features of a
   [basis file](latents.md#methods-a-basis-is-a-value) — a global PCA, a
-  [sparse autoencoder](blocks.md) — that respond most strongly there. Either way, with the
+  [sparse autoencoder](nn.md) — that respond most strongly there. Either way, with the
   channels that weigh most in each. A region too small for the components asked of it, or
   a basis that does not fit the layer, still shows everything else, and says why here.
   A basis that does not say which model and layer it was fitted on is refused until
@@ -90,12 +90,12 @@ told apart — then a time, a layer and a region. The view is
   where it is active against where it is not — over a few times spread through the
   archive, on request. *Set it against* chooses what the pass reads (the field at the same
   time, for an input) or what it writes (the next, for an output such as precipitation):
-  [why it matters](latents.md#what-a-pass-reads-and-what-it-writes). The `latent fields` and
-  `latent profile` commands that give the same numbers are under *Reproduce*.
+  [why it matters](latents.md#what-a-pass-reads-and-what-it-writes). The `latents fields`
+  and `latents profile` commands that give the same numbers are under *Reproduce*.
 - **Through time** — the region's mean of the ranked channels (or the basis's features)
   at every time the archive holds, placed by its own calendar so that a gap between kept
   steps looks like one. On request, since centred it reads every time once.
-- **Reproduce** — the settings, the `xaig diagnostics latent region` command and the
+- **Reproduce** — the settings, the `xaig latents region` command and the
   Python that produce exactly what is on screen, and a JSON download of all three. The
   test suite runs that command and that code and checks they agree with the app.
 
@@ -112,7 +112,7 @@ analysis, and results and rendered maps are cached, bounded.
 ## The same figures without the app
 
 ```python
-from xaig.diagnostics.latent import Region, analyse_region, open_source
+from xaig.latents import Region, analyse_region, open_source
 from xaig.figures import map_figure
 
 source = open_source("latents/atmosphere")
@@ -136,6 +136,7 @@ fig.savefig("similarity.png", dpi=150)
 
 - [ ] A reference-field panel beside the latent maps (needs `FieldSource`)
 - [ ] Click on a map to move the region
-- [ ] A run against its control (`latent diff`), and two archives side by side
-- [x] Rank channels and features against a reference field (`latent fields`), and profile one
+- [ ] A run against its control (`latents diff`), and two archives side by side
+- [x] Rank channels and features against a reference field (`latents fields`),
+      and profile one
 - [ ] A PDF report of a session

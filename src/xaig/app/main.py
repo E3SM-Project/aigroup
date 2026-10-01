@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from xaig.widgets import latent
+from xaig.app import latent
 
 st.set_page_config(page_title="xaig", page_icon=":material/blur_on:", layout="wide")
 st.navigation(

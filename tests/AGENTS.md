@@ -21,7 +21,7 @@
   channel and a constant offset in another, so ranking and centring can be asserted, not
   just exercised. Its noise is seeded, so two archives are twins node for node, and
   `shift=` makes a perturbed one whose difference from its control is known exactly.
-- Where the real thing has a shape, give the fixture that shape. `diagnostics.latent.toy`
+- Where the real thing has a shape, give the fixture that shape. `latents.toy`
   writes an archive the way the real exporter does — kept steps with a gap, fields that
   begin a step before the latents, a mask only a field knows, no leap days — and
   `test_latent_toy.py` reads it back.

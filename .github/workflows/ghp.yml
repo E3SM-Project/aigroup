@@ -48,6 +48,7 @@ jobs:
             python=3.13
             mkdocs
             mkdocs-material
+            mkdocs-redirects
             cairosvg
             pillow
       # build every time (PR or push to master)

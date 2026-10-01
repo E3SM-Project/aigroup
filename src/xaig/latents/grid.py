@@ -24,7 +24,7 @@ from xaig.core.extras import missing_extra
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 EARTH_RADIUS_KM = 6371.0
 _BLOCK = 8192  # nodes per step of a blocked reduction

@@ -1,4 +1,4 @@
-"""``xaig blocks``: train a sparse autoencoder. Must import on a base install, so
+"""``xaig nn``: train a sparse autoencoder. Must import on a base install, so
 torch and numpy are imported inside the command that needs them."""
 
 from __future__ import annotations
@@ -8,12 +8,12 @@ import click
 from xaig.core.extras import require
 
 
-@click.group(name="blocks")
-def blocks() -> None:
+@click.group(name="nn")
+def nn() -> None:
     """Train a sparse autoencoder on a model's latents."""
 
 
-@blocks.command("sae")
+@nn.command("sae")
 @click.argument("source", type=click.Path())
 @click.option("--adapter", default="latent-archive", show_default=True, help="How SOURCE is read.")
 @click.option(
@@ -41,14 +41,14 @@ def blocks() -> None:
 def sae_cmd(source, adapter, mask_variable, layer, out, times, k, activation, **kw) -> None:
     """Fit a sparse autoencoder to one layer of SOURCE; write a basis file.
 
-    The file is used wherever a PCA is: `xaig diagnostics latent region --basis`,
-    `latent series --basis`, `latent fields --basis`.
+    The file is used wherever a PCA is: `xaig latents region --basis`,
+    `latents series --basis`, `latents fields --basis`.
     """
     # Asked for first: whoever wants to train should be pointed at the one extra that
     # brings everything, not at numpy's and then ours.
-    require("torch", "blocks")
-    from xaig.blocks.train import fit_sae
-    from xaig.diagnostics.latent import open_source, parse_time, save_basis
+    require("torch", "nn")
+    from xaig.latents import open_source, parse_time, save_basis
+    from xaig.nn.train import fit_sae
 
     options = {"mask_variable": mask_variable} if mask_variable else {}
     opened = open_source(source, adapter=adapter, **options)
@@ -76,4 +76,4 @@ def sae_cmd(source, adapter, mask_variable, layer, out, times, k, activation, **
     )
 
 
-__all__ = ["blocks"]
+__all__ = ["nn"]

@@ -9,8 +9,7 @@ np = pytest.importorskip("numpy")
 
 from conftest import BUMP, LATENT_TIMES, write_latent_archive  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.diagnostics.grid import Grid  # noqa: E402
-from xaig.diagnostics.latent import (  # noqa: E402
+from xaig.latents import (  # noqa: E402
     Box,
     Region,
     analyse_region,
@@ -19,6 +18,7 @@ from xaig.diagnostics.latent import (  # noqa: E402
     open_source,
     rank_channels,
 )
+from xaig.latents.grid import Grid  # noqa: E402
 
 HERE = Region(lat=BUMP[0], lon=BUMP[1], radius_km=2500.0)
 
@@ -296,3 +296,22 @@ def test_analysis_takes_a_box(latent_archive):
     }
     with pytest.raises(RequestError, match="no valid nodes in the box.*widen the region"):
         analyse_region(source, time=0, layer=2, region=Box(89, 90, 0, 0.001))
+
+
+# -- the package's public names --------------------------------------------
+
+
+def test_every_public_name_is_one_lazy_import_away():
+    """``xaig.latents`` re-exports lazily, so that ``xaig --help`` stays on Click; a name
+    left out of the table, or pointing at the wrong module, fails only when it is used."""
+    from importlib import import_module
+
+    import xaig.latents as latents
+
+    assert set(latents.__all__) == set(latents._LAZY)
+    for name, module in latents._LAZY.items():
+        defined = getattr(import_module(f"xaig.latents.{module}"), name)
+        assert getattr(latents, name) is defined, name
+    assert set(latents.__all__) <= set(dir(latents))
+    with pytest.raises(AttributeError):
+        latents.no_such_name  # noqa: B018

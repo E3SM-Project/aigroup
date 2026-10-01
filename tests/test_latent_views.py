@@ -14,7 +14,7 @@ from click.testing import CliRunner  # noqa: E402
 from conftest import BUMP, LATENT_TIMES, N_LAT, N_LON, write_latent_archive  # noqa: E402
 from xaig._cli import cli  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.diagnostics.latent import (  # noqa: E402
+from xaig.latents import (  # noqa: E402
     accumulate_moments,
     difference_growth,
     field_storyline,
@@ -164,7 +164,7 @@ def test_a_masked_column_is_left_empty(tmp_path):
 
 
 def _invoke(*args):
-    result = CliRunner().invoke(cli, ["diagnostics", "latent", *(str(a) for a in args)])
+    result = CliRunner().invoke(cli, ["latents", *(str(a) for a in args)])
     assert "Traceback" not in result.output
     return result
 
@@ -173,7 +173,7 @@ def test_cli_storyline(fields, tmp_path):
     result = _invoke("storyline", fields, "--field", "warmth")
     assert result.exit_code == 0 and "best |r| of any channel" in result.output
     basis = pca_from_moments(accumulate_moments(open_source(fields), layer=2), 2)
-    from xaig.diagnostics.latent import save_basis
+    from xaig.latents import save_basis
 
     save_basis(tmp_path / "pca_L02.npz", basis, provenance=open_source(fields).info().provenance())
     template = str(tmp_path / "pca_L{layer:02d}.npz")

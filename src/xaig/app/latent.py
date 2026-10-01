@@ -1,7 +1,7 @@
 """The latent explorer: pick a model and a region, see what its channels do there,
 and set them against a physical field the archive keeps beside them.
 
-Widgets and layout only. The analysis is ``xaig.diagnostics.latent`` and the figures are
+Widgets and layout only. The analysis is ``xaig.latents`` and the figures are
 ``xaig.figures``; the last tab hands back the settings, command and code that
 reproduce what is on screen.
 
@@ -20,8 +20,10 @@ import shlex
 import numpy as np
 import streamlit as st
 
+from xaig.app.config import configured_latents
 from xaig.core.errors import RequestError, XaigError
-from xaig.diagnostics.latent import (
+from xaig.figures import map_figure, profile_figure, series_figure, to_png, why_no_coastlines
+from xaig.latents import (
     FeatureProfile,
     FieldRanking,
     ReferenceFields,
@@ -36,9 +38,7 @@ from xaig.diagnostics.latent import (
     rank_by_field,
     region_series,
 )
-from xaig.diagnostics.latent.source import check_basis_fits
-from xaig.figures import map_figure, profile_figure, series_figure, to_png, why_no_coastlines
-from xaig.widgets.config import configured_latents
+from xaig.latents.source import check_basis_fits
 
 _CACHED = 16
 _COLUMNS = 3
@@ -112,7 +112,7 @@ def _found_bases(
     archives: tuple[str, ...], path: str, mask_variable: str | None, layer: int
 ) -> list[tuple[str, str]]:
     """``(label, file)`` for every basis kept in the ``bases/`` folder of any open
-    archive that fits this archive's layer. Whether it fits is checked by ``diagnostics``, so a
+    archive that fits this archive's layer. Whether it fits is checked by ``latents``, so a
     basis fitted on the control is offered for every run of the same network, and one
     fitted on another network or layer is not. An archive that cannot be opened, or
     cannot list its files, offers none."""
@@ -298,8 +298,8 @@ def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...
         method = st.selectbox(
             "Method",
             [_IN_REGION, *found, _FROM_FILE],
-            help="A basis file comes from `xaig diagnostics latent pca` (a global PCA) or "
-            "`xaig blocks sae` (a sparse autoencoder); its features that respond most "
+            help="A basis file comes from `xaig latents pca` (a global PCA) or "
+            "`xaig nn sae` (a sparse autoencoder); its features that respond most "
             "strongly in the region are the ones mapped. Listed by name are the basis "
             f"files in the `{_BASES}/` folder of any open archive that fit this layer.",
         )
@@ -446,11 +446,11 @@ def _field_tab(path, mask_variable, settings, field, lead, region) -> None:
         st.image(to_png(fig), width="stretch")
 
     command = [
-        f"xaig diagnostics latent fields {shlex.quote(path)} --field {shlex.quote(field)}",
+        f"xaig latents fields {shlex.quote(path)} --field {shlex.quote(field)}",
         f"--time {shlex.quote(time)} --layer {layer} --top {len(ranked)}",
     ]
     profile_command = [
-        f"xaig diagnostics latent profile {shlex.quote(path)} --layer {layer}",
+        f"xaig latents profile {shlex.quote(path)} --layer {layer}",
         *(f"--time {shlex.quote(t)}" for t in chosen),
     ]
     if basis:
@@ -492,7 +492,7 @@ def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[
         options.append(("--basis", s["basis"]))
     if mask_variable:
         options.append(("--mask-variable", mask_variable))
-    lines = [shlex.join(["xaig", "diagnostics", "latent", "region", path])]
+    lines = [shlex.join(["xaig", "latents", "region", path])]
     lines += [shlex.join([flag, str(value)]) for flag, value in options]
     lines += ["--centred"] if s["centred"] else []
     lines += ["--allow-unverified-basis"] if s.get("allow_unverified_basis") else []
@@ -512,7 +512,7 @@ def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[
         arguments.append(f"basis=load_basis({s['basis']!r})")
         names.insert(2, "load_basis")
     python = (
-        f"from xaig.diagnostics.latent import {', '.join(names)}\n\n"
+        f"from xaig.latents import {', '.join(names)}\n\n"
         f"source = {opened}\n"
         "result = analyse_region(\n    source,\n    " + ",\n    ".join(arguments) + ",\n)"
     )
@@ -599,7 +599,7 @@ def page() -> None:
     if path is None:
         st.info(
             "Open a latent archive from the sidebar, or start the app with "
-            "`xaig widgets --latents PATH`."
+            "`xaig app --latents PATH`."
         )
         return
     try:

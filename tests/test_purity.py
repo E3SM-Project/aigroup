@@ -29,11 +29,11 @@ ALLOWED: dict[str, set[str]] = {
     "_cli": {"core"},  # subcommands are named by string and loaded lazily
     "_render": set(),
     "core": set(),
-    "adapters": {"core", "diagnostics"},  # an adapter imports the contract it implements
-    "diagnostics": {"core", "_render"},
-    "figures": {"core", "diagnostics"},
-    "blocks": {"core", "diagnostics"},  # trains on latent batches, returns a Dictionary
-    "widgets": {"core", "diagnostics", "figures"},  # downstream of everything; nothing imports it
+    "adapters": {"core", "latents"},  # an adapter imports the contract it implements
+    "latents": {"core", "_render"},
+    "figures": {"core", "latents"},
+    "nn": {"core", "latents"},  # trains on latent batches, returns a Dictionary
+    "app": {"core", "latents", "figures"},  # downstream of everything; nothing imports it
 }
 
 # unit -> third-party roots it may import. Units absent from this table are not
@@ -43,10 +43,10 @@ THIRD_PARTY: dict[str, set[str]] = {
     "_cli": {"click"},
     "_render": set(),
     "core": set(),
-    "diagnostics": {"click", "numpy"},  # the science stays free of any UI or file format
+    "latents": {"click", "numpy"},  # the science stays free of any UI or file format
     "figures": {"cartopy", "matplotlib", "numpy"},  # figures, with no web framework in them
-    "blocks": {"click", "numpy", "torch"},  # blocks over tensors; no training harness
-    "widgets": {"click", "numpy", "streamlit"},  # presentation; the figures are imported
+    "nn": {"click", "numpy", "torch"},  # modules over tensors; no training harness
+    "app": {"click", "numpy", "streamlit"},  # presentation; the figures are imported
 }
 
 # The name of the adapter entry-point group; it is an identifier, not an import path.
@@ -147,11 +147,9 @@ def test_the_checks_see_relative_and_from_package_imports(tmp_path: Path, monkey
     fake = tmp_path / "xaig" / "core"
     fake.mkdir(parents=True)
     module = fake / "leak.py"
-    module.write_text(
-        "from ..diagnostics import grid\nfrom . import errors\nfrom xaig import _cli\n"
-    )
+    module.write_text("from ..latents import grid\nfrom . import errors\nfrom xaig import _cli\n")
     monkeypatch.setattr(sys.modules[__name__], "SRC", tmp_path / "xaig")
-    assert _xaig_units(_imports(module)) == {"diagnostics", "core", "_cli"}
+    assert _xaig_units(_imports(module)) == {"latents", "core", "_cli"}
 
 
 def _run(code: str) -> subprocess.CompletedProcess[str]:

@@ -63,6 +63,11 @@ exclude_docs: |
 
 plugins:
   - search
+  # The package pages were renamed with their subpackages; old links still land.
+  - redirects:
+      redirect_maps:
+        package/taig.md: package/nn.md
+        package/waig.md: package/app.md
   - social:
       # Cards are drawn with cairo, a system library. CI has it; a laptop may not:
       #   MKDOCS_SOCIAL=false uv run --group docs mkdocs build --strict
@@ -142,6 +147,6 @@ nav:
   - Package:
       - Overview: package/index.md
       - Latent diagnostics: package/latents.md
-      - Sparse autoencoders: package/blocks.md
-      - Web app: package/widgets.md
+      - Sparse autoencoders: package/nn.md
+      - Web app: package/app.md
 

@@ -1,14 +1,14 @@
 """Fit a sparse autoencoder to a model's latents.
 
-This is the one place ``blocks`` reaches into ``diagnostics``: the batches come from
-``diagnostics.latent.iter_batches`` -- valid nodes only, drawn by area, so a plain mean
+This is the one place ``nn`` reaches into ``latents``: the batches come from
+``latents.iter_batches`` -- valid nodes only, drawn by area, so a plain mean
 over a batch is already the area-weighted loss -- and what comes back is a
-``diagnostics.latent.Dictionary``, which every analysis and the CLI take wherever they
+``latents.Dictionary``, which every analysis and the CLI take wherever they
 take a PCA.
 
 It is a toy loop on purpose: Adam, a fixed learning rate, no resampling of dead
 features. It trains a useful dictionary on a laptop in minutes, and says how good
-it is; making it better is what the blocks being separate is for.
+it is; making it better is what the modules being separate is for.
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ from xaig.core.extras import missing_extra
 try:
     import torch
 except ImportError as exc:
-    raise missing_extra("torch", "blocks") from exc
+    raise missing_extra("torch", "nn") from exc
 
-from xaig.blocks.sae import SparseAutoencoder
-from xaig.diagnostics.latent import Dictionary, LatentSource, accumulate_moments, iter_batches
+from xaig.latents import Dictionary, LatentSource, accumulate_moments, iter_batches
+from xaig.nn.sae import SparseAutoencoder
 
 
 def pick_device(device: str | None = None) -> torch.device:

@@ -11,7 +11,7 @@ np = pytest.importorskip("numpy")
 
 from conftest import BUMP  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
-from xaig.diagnostics.latent import (  # noqa: E402
+from xaig.latents import (  # noqa: E402
     Decomposition,
     Dictionary,
     Region,
@@ -190,7 +190,7 @@ def test_a_basis_for_another_layer_is_refused_before_anything_is_read(latent_arc
 
 
 def test_topk_keeps_exactly_k_and_a_tie_goes_to_the_lowest_index():
-    from xaig.diagnostics.latent.basis import topk_mask
+    from xaig.latents.basis import topk_mask
 
     z = np.array([[3.0, 3.0, 3.0, 3.0], [5.0, 3.0, 3.0, 3.0], [0.0, 2.0, 0.0, 2.0]])
     assert topk_mask(z, 1).tolist() == [[1, 0, 0, 0], [1, 0, 0, 0], [0, 1, 0, 0]]
@@ -283,7 +283,7 @@ def test_region_basis_round_trips_raw_inputs_with_identity(latent_archive, tmp_p
 
 
 def test_pca_projection_retains_small_float32_variation_across_blocks():
-    from xaig.diagnostics.latent.basis import PCA
+    from xaig.latents.basis import PCA
 
     direction = np.array([[1.0, 1.0]]) / np.sqrt(2.0)
     basis = PCA(np.array([1e8, 1e8]), direction, np.ones(1))
@@ -332,7 +332,7 @@ def test_incomplete_basis_identity_refused_before_loading(latent_archive, missin
 def test_missing_source_identity_needs_override(latent_archive):
     from dataclasses import replace
 
-    from xaig.diagnostics.latent.source import check_basis_fits
+    from xaig.latents.source import check_basis_fits
 
     source = open_source(latent_archive)
     result = analyse_region(source, time=0, layer=2, region=HERE, n_components=1)
@@ -352,8 +352,7 @@ def test_cli_requires_explicit_unverified_basis_override(latent_archive, tmp_pat
     basis = fit_pca(np.random.default_rng(0).normal(size=(20, 6)), 2)
     path = save_basis(tmp_path / "anonymous.npz", basis)
     args = [
-        "diagnostics",
-        "latent",
+        "latents",
         "region",
         str(latent_archive),
         "--basis",
@@ -380,8 +379,8 @@ def test_a_basis_is_matched_to_a_layer_by_its_place_in_the_network(latent_archiv
     fitted on layer 2 of a run that kept them all belongs at its index 1, not 2."""
     import shutil
 
-    from xaig.diagnostics.latent import accumulate_moments, pca_from_moments
-    from xaig.diagnostics.latent.source import check_basis_fits
+    from xaig.latents import accumulate_moments, pca_from_moments
+    from xaig.latents.source import check_basis_fits
 
     full = open_source(latent_archive)
     basis = pca_from_moments(accumulate_moments(full, layer=2), 2)

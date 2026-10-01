@@ -1,4 +1,4 @@
-"""Diagnostics, the command half: a thin client of the ``diagnostics`` APIs.
+"""``xaig latents``, the command half: a thin client of the ``xaig.latents`` APIs.
 
 This module must import on a base install (``xaig --help`` lists every command),
 so numpy-backed modules are imported inside the commands that use them. What a
@@ -25,7 +25,7 @@ _basis_option = click.option(
     "--basis",
     "basis_path",
     type=click.Path(dir_okay=False),
-    help="A basis file (from `latent pca` or `xaig blocks sae`) whose features to use.",
+    help="A basis file (from `latents pca` or `xaig nn sae`) whose features to use.",
 )
 _unverified_option = click.option(
     "--allow-unverified-basis",
@@ -46,7 +46,7 @@ _json_option = click.option(
 
 
 def _open(source: str, adapter: str, mask_variable: str | None):
-    from xaig.diagnostics.latent import open_source
+    from xaig.latents import open_source
 
     options = {"mask_variable": mask_variable} if mask_variable else {}
     return open_source(source, adapter=adapter, **options)
@@ -55,13 +55,13 @@ def _open(source: str, adapter: str, mask_variable: str | None):
 def _basis(path: str | None):
     if path is None:
         return None
-    from xaig.diagnostics.latent import load_basis
+    from xaig.latents import load_basis
 
     return load_basis(path)
 
 
 def _time(text: str) -> str | int:
-    from xaig.diagnostics.latent import parse_time
+    from xaig.latents import parse_time
 
     return parse_time(text)
 
@@ -76,23 +76,18 @@ def _region_options(command):
     return command
 
 
-@click.group(name="diagnostics")
-def diagnostics() -> None:
-    """Diagnose emulators: what they hold inside."""
-
-
-@diagnostics.group("latent")
-def latent() -> None:
+@click.group(name="latents")
+def latents() -> None:
     """Explore activations recorded from inside a model."""
 
 
-@latent.command("info")
+@latents.command("info")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
 def info_cmd(source, adapter, mask_variable) -> None:
     """Describe what SOURCE holds, without loading it."""
-    from xaig.diagnostics.latent import ReferenceFields
+    from xaig.latents import ReferenceFields
 
     opened = _open(source, adapter, mask_variable)
     info, grid = opened.info(), opened.grid()
@@ -118,10 +113,10 @@ def info_cmd(source, adapter, mask_variable) -> None:
     if info.off_grid_layers:
         click.echo(f"\n{len(info.off_grid_layers)} more layer(s) on coarser grids, not loadable")
     if isinstance(opened, ReferenceFields) and opened.field_names():
-        click.echo(f"\n{len(opened.field_names())} reference field(s); see `latent fields`")
+        click.echo(f"\n{len(opened.field_names())} reference field(s); see `latents fields`")
 
 
-@latent.command("toy")
+@latents.command("toy")
 @click.argument("out", type=click.Path(file_okay=False))
 @click.option("--steps", type=int, default=12, show_default=True, help="Steps to roll forward.")
 @click.option("--keep", default="1-4,9-12", show_default=True, help="Steps whose latents are kept.")
@@ -140,7 +135,7 @@ def toy_cmd(out, steps, keep, seed, steer, overwrite, adapter) -> None:
     data, a few seconds. What comes out is read like any other archive.
     """
     from xaig.core.errors import RequestError
-    from xaig.diagnostics.latent.toy import parse_steps, write_toy
+    from xaig.latents.toy import parse_steps, write_toy
 
     pushed = None
     if steer:
@@ -158,10 +153,10 @@ def toy_cmd(out, steps, keep, seed, steer, overwrite, adapter) -> None:
         seed=seed,
         steer=pushed,
     )
-    click.echo(f"wrote {path}; try `xaig diagnostics latent info {path} --mask-variable sst`")
+    click.echo(f"wrote {path}; try `xaig latents info {path} --mask-variable sst`")
 
 
-@latent.command("region")
+@latents.command("region")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -189,7 +184,7 @@ def region_cmd(
     source, adapter, mask_variable, time, layer, as_json, lat, lon, radius_km, basis_path, **kw
 ):
     """Rank the channels that respond in a region; optionally map a decomposition."""
-    from xaig.diagnostics.latent import Region, analyse_region
+    from xaig.latents import Region, analyse_region
 
     opened = _open(source, adapter, mask_variable)
     result = analyse_region(
@@ -222,7 +217,7 @@ def region_cmd(
         click.echo(f"\n{feature['label']}  {size}  {loadings}")
 
 
-@latent.command("series")
+@latents.command("series")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -239,7 +234,7 @@ def series_cmd(
     basis_path, allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Follow a region's mean response through every time of SOURCE."""
-    from xaig.diagnostics.latent import Region, region_series
+    from xaig.latents import Region, region_series
 
     if not channels and not (basis_path and features):
         raise click.UsageError("name what to follow: --channel N, or --basis FILE --feature N")
@@ -269,7 +264,7 @@ def series_cmd(
     click.echo(_render.table(rows))
 
 
-@latent.command("pca")
+@latents.command("pca")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -281,9 +276,9 @@ def pca_cmd(source, adapter, mask_variable, layer, components, times, out) -> No
     """Fit a global, area-weighted PCA over every node and time; write a basis.
 
     The baseline any learned dictionary has to beat, and usable wherever one is:
-    `latent region --basis`, `latent series --basis`.
+    `latents region --basis`, `latents series --basis`.
     """
-    from xaig.diagnostics.latent import accumulate_moments, pca_from_moments, save_basis
+    from xaig.latents import accumulate_moments, pca_from_moments, save_basis
 
     opened = _open(source, adapter, mask_variable)
     layer = opened.info().last_layer if layer is None else layer
@@ -297,7 +292,7 @@ def pca_cmd(source, adapter, mask_variable, layer, components, times, out) -> No
     )
 
 
-@latent.command("diff")
+@latents.command("diff")
 @click.argument("control", type=click.Path())
 @click.argument("experiment", type=click.Path())
 @_adapter_option
@@ -326,7 +321,7 @@ def diff_cmd(
     as_json,
 ):  # fmt: skip
     """Set a perturbed or steered run against its CONTROL, node for node."""
-    from xaig.diagnostics.latent import difference, difference_growth
+    from xaig.latents import difference, difference_growth
 
     if noise is not None and not growth:
         raise click.UsageError("--noise goes with --growth")
@@ -378,7 +373,7 @@ def _layer_table(times, names, values) -> str:
     return _render.table(rows)
 
 
-@latent.command("storyline")
+@latents.command("storyline")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -402,7 +397,7 @@ def storyline_cmd(
     """Where a physical field lives in the network, time by time: the best |r| per layer."""
     from pathlib import Path
 
-    from xaig.diagnostics.latent import field_storyline
+    from xaig.latents import field_storyline
 
     opened = _open(source, adapter, mask_variable)
     chosen = list(layers) or [x.index for x in opened.info().layers]
@@ -431,7 +426,7 @@ def storyline_cmd(
     click.echo(_layer_table(result.times, [f"layer {x}" for x in result.layers], result.best))
 
 
-@latent.command("hovmoller")
+@latents.command("hovmoller")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -453,7 +448,7 @@ def hovmoller_cmd(
     """A quantity along a latitude band, longitude against time: travelling things tilt."""
     import numpy as np
 
-    from xaig.diagnostics.latent import hovmoller
+    from xaig.latents import hovmoller
 
     opened = _open(source, adapter, mask_variable)
     result = hovmoller(
@@ -490,7 +485,7 @@ def hovmoller_cmd(
     click.echo(_layer_table(result.times, names, binned))
 
 
-@latent.command("fields")
+@latents.command("fields")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -507,7 +502,7 @@ def fields_cmd(
     allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Which channels (or features) track a physical field kept beside the latents."""
-    from xaig.diagnostics.latent import ReferenceFields, rank_by_field
+    from xaig.latents import ReferenceFields, rank_by_field
 
     opened = _open(source, adapter, mask_variable)
     if field is None:
@@ -539,7 +534,7 @@ def fields_cmd(
 
 
 def _optional_region(lat, lon, radius_km):
-    from xaig.diagnostics.latent import Region
+    from xaig.latents import Region
 
     if (lat is None) != (lon is None):
         raise click.UsageError("give both --lat and --lon, or neither")
@@ -569,7 +564,7 @@ def _with(options):
     return apply
 
 
-@latent.command("census")
+@latents.command("census")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -593,7 +588,7 @@ def census_cmd(
     threshold, allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Every channel (or feature) of a layer: how much of the world it is active over."""
-    from xaig.diagnostics.latent import feature_census
+    from xaig.latents import feature_census
 
     opened = _open(source, adapter, mask_variable)
     result = feature_census(
@@ -625,7 +620,7 @@ def census_cmd(
     click.echo(_render.table(rows))
 
 
-@latent.command("profile")
+@latents.command("profile")
 @click.argument("source", type=click.Path())
 @_adapter_option
 @_mask_option
@@ -645,7 +640,7 @@ def profile_cmd(
     radius_km, threshold, lead, allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Every physical field where one channel (or feature) is active, against where it is not."""
-    from xaig.diagnostics.latent import feature_profile
+    from xaig.latents import feature_profile
 
     by_channel = channel is not None and basis_path is None and feature is None
     by_feature = channel is None and basis_path is not None and feature is not None
@@ -681,4 +676,4 @@ def profile_cmd(
     click.echo(_render.table(rows))
 
 
-__all__ = ["diagnostics"]
+__all__ = ["latents"]

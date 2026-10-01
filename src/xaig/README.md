@@ -11,16 +11,16 @@ The base install pulls only Click. Anything heavier sits behind an extra named a
 subpackage that needs it:
 
 ```console
-$ uv pip install 'xaig[diagnostics]'     # or: pip install 'xaig[diagnostics]'
+$ uv pip install 'xaig[latents]'     # or: pip install 'xaig[latents]'
 ```
 
 | Extra | Pulls | Gets you |
 | --- | --- | --- |
-| `diagnostics` | numpy, xarray, netCDF4 | `xaig.diagnostics`: latent diagnostics on a grid |
-| `figures` | matplotlib, cartopy | `xaig.figures`: maps and series figures (brings `diagnostics`) |
-| `widgets` | streamlit | `xaig widgets`: a local web app (brings `figures`) |
-| `blocks` | torch | `xaig.blocks` and `xaig blocks`: sparse autoencoders (brings `diagnostics`) |
-| `hf` | huggingface_hub | archives read from a Hugging Face repository, `hf://datasets/...` (brings `diagnostics`) |
+| `latents` | numpy, xarray, netCDF4 | `xaig.latents`: latent diagnostics on a grid |
+| `figures` | matplotlib, cartopy | `xaig.figures`: maps and series figures (brings `latents`) |
+| `app` | streamlit | `xaig app`: a local web app (brings `figures`) |
+| `nn` | torch | `xaig.nn` and `xaig nn`: sparse autoencoders (brings `latents`) |
+| `hf` | huggingface_hub | archives read from a Hugging Face repository, `hf://datasets/...` (brings `latents`) |
 
 A missing extra says so, with the command that fits how `xaig` was installed.
 
@@ -30,18 +30,18 @@ A toy emulator writes a latent archive with nothing but numpy; everything else r
 like any other:
 
 ```console
-$ xaig diagnostics latent toy scratch/toy/control
-$ xaig diagnostics latent info scratch/toy/control --mask-variable sst
-$ xaig diagnostics latent region scratch/toy/control --lat 10 --lon -114 --time 2 --centred --pcs 2
-$ xaig diagnostics latent fields scratch/toy/control --field precipitation --top 3
-$ xaig blocks sae scratch/toy/control --features 64 --k 4 --out scratch/toy/sae.npz   # needs xaig[blocks]
-$ xaig widgets --latents scratch/toy                                                  # needs xaig[widgets]
+$ xaig latents toy scratch/toy/control
+$ xaig latents info scratch/toy/control --mask-variable sst
+$ xaig latents region scratch/toy/control --lat 10 --lon -114 --time 2 --centred --pcs 2
+$ xaig latents fields scratch/toy/control --field precipitation --top 3
+$ xaig nn sae scratch/toy/control --features 64 --k 4 --out scratch/toy/sae.npz   # needs xaig[nn]
+$ xaig app --latents scratch/toy                                                  # needs xaig[app]
 ```
 
 The CLI is a thin client of the Python API; anything it can do, a notebook can:
 
 ```python
-from xaig.diagnostics.latent import Region, analyse_region, open_source
+from xaig.latents import Region, analyse_region, open_source
 
 source = open_source("scratch/toy/control", mask_variable="sst")
 result = analyse_region(
@@ -55,9 +55,9 @@ result.ranking.channels  # the channels that respond most strongly there
 - Guides: <https://e3sm-project.github.io/aigroup/package/>
 - Source and issues: <https://github.com/E3SM-Project/aigroup>
 
-BSD-3-Clause. `xaig.diagnostics.latent`, `xaig.figures` and `xaig.widgets` grew out of
+BSD-3-Clause. `xaig.latents`, `xaig.figures` and `xaig.app` grew out of
 the [latent space visualiser for weather models](https://github.com/ktempestuous/latent_space_visualiser_weather_models)
 (Tempest, Beylich & Craig 2026, arXiv:2604.20467, doi:10.1007/978-3-032-29915-4_10); see
 `NOTICE`. The sparse autoencoders follow MacMillan & Ouellette (2025, arXiv:2512.24440);
-the B-spline autoencoder of Cheon (2026, arXiv:2605.17493) is what `xaig.blocks` is
+the B-spline autoencoder of Cheon (2026, arXiv:2605.17493) is what `xaig.nn` is
 heading for and does not implement yet.

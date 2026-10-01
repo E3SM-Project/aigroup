@@ -1,19 +1,26 @@
-# diagnostics — emulator diagnostics
+# latents — what an emulator holds inside
 
-What an emulator holds inside.
+Diagnostics of a model's latent space: what its internal channels respond to, on a grid.
 
 | Module | Holds |
 |---|---|
 | `grid.py` | nodes on a sphere: masks, area weights, regions, maps |
-| `latent/source.py` | the contract: `LatentSource`, the optional `ReferenceFields`, `LatentInfo` |
-| `latent/toy.py` | a toy emulator in numpy, so an archive can be made with no model and no data |
-| `latent/basis.py` | `Decomposition`: `PCA`, a sparse `Dictionary`, and the basis file |
-| `latent/analysis.py` | one region at one time: ranking, similarity, a decomposition |
-| `latent/samples.py` | many times at once: moments, a global PCA, batches to train on |
-| `latent/through.py` | through time and between runs: series, differences, field correlation |
+| `source.py` | the contract: `LatentSource`, the optional `ReferenceFields`, `LatentInfo` |
+| `toy.py` | a toy emulator in numpy, so an archive can be made with no model and no data |
+| `basis.py` | `Decomposition`: `PCA`, a sparse `Dictionary`, and the basis file |
+| `analysis.py` | one region at one time: ranking, similarity, a decomposition |
+| `samples.py` | many times at once: moments, a global PCA, batches to train on |
+| `through.py` | through time and between runs: series, differences, field correlation |
+| `features.py` | a feature without a field in mind: a census of a layer, one feature's profile |
+| `cli.py` | `xaig latents …`, a thin client of the above |
+| `__init__.py` | the public names, re-exported lazily (see the first rule) |
 
 ## Rules that must not be lost
 
+- **`__init__.py` imports nothing heavy.** `xaig --help` imports `cli.py`, and with it
+  this package, on a base install. The public names (`from xaig.latents import Region`)
+  are resolved on first use through `_LAZY`; a new public name goes there, in `__all__`
+  and under `TYPE_CHECKING`.
 - **Area-weight everything.** Unweighted means on a lat-lon grid are simply wrong. On
   real SamudrACE latents, unweighted centring moved one channel's global mean by 40% of
   its standard deviation and changed the top-5 ranking.
@@ -25,7 +32,7 @@ What an emulator holds inside.
   what a framework wrote is an adapter's job (`LatentSource`); drawing is a client's.
   Third-party imports are capped at numpy and click by `tests/test_purity.py`. The one
   file this package itself reads and writes is its own: the basis `.npz` (`basis.py`),
-  plain arrays and a JSON record, because a basis is fitted once — often by `blocks`,
+  plain arrays and a JSON record, because a basis is fitted once — often by `nn`,
   with torch — and used many times, including from the model's environment, with numpy
   alone.
 - **An index is not an identity.** Channel 42 of one trained network is not channel 42
@@ -38,7 +45,7 @@ What an emulator holds inside.
   `--allow-unverified-basis`); known mismatches are always refused.
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
-  product. `blocks` keeps directions at unit length so that the two agree.
+  product. `nn` keeps directions at unit length so that the two agree.
 - **A method is a value.** Anything that turns channels into features is a
   `Decomposition`; routines take one as `basis=` rather than growing an argument per
   method. A basis is handed *raw* latents: its standardisation is its own and travels
@@ -54,10 +61,10 @@ What an emulator holds inside.
 - **Mind the memory.** One layer of a 1-degree, 384-channel model is 100 MB; nine layers
   at one time is 0.9 GB. Ask a source for the nodes and channels you need, keep a layer
   in its own precision, and never make a second copy of one.
-  `xaig diagnostics latent region` on the real atmosphere archive peaks near 275 MB
+  `xaig latents region` on the real atmosphere archive peaks near 275 MB
   resident (`/usr/bin/time -l`), a quarter of it the archive's own mapped pages; the
   first draft took 650.
 - **Deterministic results.** No dependence on node order; PCA signs are fixed; batches
   are a function of their seed.
 - Plotting requires the `figures` extra. Do not import matplotlib at package import time.
-- May not import `blocks` (`blocks` imports this, never the reverse).
+- May not import `nn` (`nn` imports this, never the reverse).

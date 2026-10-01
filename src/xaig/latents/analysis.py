@@ -18,14 +18,14 @@ from typing import Any
 from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.diagnostics.grid import Grid, small_circle
-from xaig.diagnostics.latent.basis import PCA, Decomposition, _floating, fit_pca, top_loadings
-from xaig.diagnostics.latent.source import LatentSource, check_basis_fits
+from xaig.latents.basis import PCA, Decomposition, _floating, fit_pca, top_loadings
+from xaig.latents.grid import Grid, small_circle
+from xaig.latents.source import LatentSource, check_basis_fits
 
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 REFERENCES = ("nearest", "mean")
 

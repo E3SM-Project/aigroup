@@ -26,11 +26,11 @@ with `isinstance`, so everything one framework can supply travels under one name
 
 | Protocol | Method | Consumer |
 |---|---|---|
-| `diagnostics.latent.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `diagnostics`, `blocks` |
-| `diagnostics.latent.ReferenceFields` | `field_names()`, `field(name, time)` → per-node values | `diagnostics` |
+| `latents.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `latents`, `nn` |
+| `latents.ReferenceFields` | `field_names()`, `field(name, time)` → per-node values | `latents` |
 
 An adapter may also *write* what it reads: a `write(path, **contents)` on the class the
-registry hands out. `diagnostics.latent.toy` reaches the archive writer that way, by
+registry hands out. `latents.toy` reaches the archive writer that way, by
 name, and a writer is always tested against its own reader.
 
 ## Registering
@@ -50,7 +50,7 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 ## Rules
 
 - An adapter may import `xaig.core` and the domain contract it implements
-  (`xaig.diagnostics.latent`). Nothing imports an adapter; it is reached through the
+  (`xaig.latents`). Nothing imports an adapter; it is reached through the
   registry.
 - Heavy dependencies go behind an extra and are imported by the adapter, which loads
   lazily — never at `import xaig` time.
@@ -65,6 +65,6 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 
 - `latent_archive.py` — activations recorded from a model, as a directory of
   memory-mapped arrays, with the physical fields kept beside them; `write_archive` writes
-  one (`xaig[diagnostics]`; format in `docs/package/latents.md`). The same reader takes an
+  one (`xaig[latents]`; format in `docs/package/latents.md`). The same reader takes an
   `hf://datasets/<owner>/<repo>/<folder>` source and downloads one file at a time
   (`xaig[hf]`).
