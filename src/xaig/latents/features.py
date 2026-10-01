@@ -23,16 +23,16 @@ from typing import Any
 from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.diagnostics.latent.analysis import AnyRegion
-from xaig.diagnostics.latent.basis import Decomposition
-from xaig.diagnostics.latent.samples import _time_labels
-from xaig.diagnostics.latent.source import LatentSource, ReferenceFields, check_basis_fits
-from xaig.diagnostics.latent.through import _field_at
+from xaig.latents.analysis import AnyRegion
+from xaig.latents.basis import Decomposition
+from xaig.latents.samples import _time_labels
+from xaig.latents.source import LatentSource, ReferenceFields, check_basis_fits
+from xaig.latents.through import _field_at
 
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 _BLOCK = 8192
 _ORDERS = ("coverage", "mean", "strength", "peak")

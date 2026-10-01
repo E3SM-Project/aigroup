@@ -6,9 +6,9 @@ np = pytest.importorskip("numpy")
 pytest.importorskip("matplotlib")
 
 from conftest import BUMP, write_latent_archive  # noqa: E402
-from xaig.diagnostics.grid import Grid, small_circle  # noqa: E402
-from xaig.diagnostics.latent import Box, Region, load_channels, open_source  # noqa: E402
 from xaig.figures import map_figure, maps, to_png  # noqa: E402
+from xaig.latents import Box, Region, load_channels, open_source  # noqa: E402
+from xaig.latents.grid import Grid, small_circle  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -108,7 +108,7 @@ def test_a_region_is_outlined_without_a_line_the_long_way_round(latent_archive):
 
 
 def test_the_outline_is_a_circle_on_the_sphere():
-    from xaig.diagnostics.grid import great_circle_km
+    from xaig.latents.grid import great_circle_km
 
     lat, lon = small_circle(60.0, -170.0, 2000.0)
     assert great_circle_km(lat, lon, 60.0, -170.0) == pytest.approx(2000.0)
@@ -126,7 +126,7 @@ def test_a_missing_dependency_names_the_one_extra_that_brings_everything():
         "try:\n    import xaig.figures\nexcept ImportError as exc:\n    print(exc)\n"
     )
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True).stdout
-    assert "'figures' extra" in out and "'diagnostics' extra" not in out
+    assert "'figures' extra" in out and "'latents' extra" not in out
 
 
 def test_values_must_be_one_per_node(latent_archive):

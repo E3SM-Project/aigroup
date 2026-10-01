@@ -1,14 +1,16 @@
 # Sparse autoencoders
 
-`xaig.blocks` holds a sparse autoencoder over a model's [latents](latents.md): one node's vector of channels goes in, a
-wide and mostly-zero vector of *features* comes out, and the input is rebuilt from it.
-Channels are entangled; features, being few at a time, are easier to name. It is the tool
-[MacMillan & Ouellette (2025)](https://arxiv.org/abs/2512.24440) turned on GraphCast, where it found tropical cyclones,
-atmospheric rivers and sea ice among the features, and let them steer a hurricane.
+`xaig.nn` holds a sparse autoencoder over a model's [latents](latents.md): one node's
+vector of channels goes in, a wide and mostly-zero vector of *features* comes out, and the
+input is rebuilt from it. Channels are entangled; features, being few at a time, are
+easier to name. It is the tool
+[MacMillan & Ouellette (2025)](https://arxiv.org/abs/2512.24440) turned on GraphCast,
+where it found tropical cyclones, atmospheric rivers and sea ice among the features, and
+let them steer a hurricane.
 
 What it produces is a [basis file](latents.md#methods-a-basis-is-a-value), used wherever
-a PCA is — `xaig diagnostics latent region`, `series`, `fields`, and the
-[web app](widgets.md) — and readable with nothing but numpy from the environment that
+a PCA is — `xaig latents region`, `series`, `fields`, and the
+[web app](app.md) — and readable with nothing but numpy from the environment that
 runs the model.
 
 ## Install
@@ -17,14 +19,14 @@ runs the model.
 is the machine's business.
 
 ```console
-$ uv sync --extra blocks
-$ uv pip install 'xaig[blocks]'   # elsewhere, from PyPI
+$ uv sync --extra nn
+$ uv pip install 'xaig[nn]'   # elsewhere, from PyPI
 ```
 
 ## Fit one
 
 ```console
-$ xaig blocks sae latents/atmosphere --layer 8 --features 1024 --out sae8.npz
+$ xaig nn sae latents/atmosphere --layer 8 --features 1024 --out sae8.npz
   step     25  reconstruction 153.5
   step    250  reconstruction 78.66
   step    500  reconstruction 68.42
@@ -82,7 +84,7 @@ against the [global PCA](latents.md#methods-a-basis-is-a-value) of the same laye
 
     Adam, a fixed learning rate, no resampling of dead features, no held-out times. It
     trains a useful dictionary on a laptop in seconds and says how good it is; making it
-    better is what the blocks being separate is for.
+    better is what the modules being separate is for.
 
 Inputs are centred on the layer's area-weighted mean over the times used and divided by
 one number, so a node's vector has unit mean square per channel and the channels keep
@@ -96,8 +98,8 @@ so the plain mean the loop takes is already the area-weighted loss.
 ## Python API
 
 ```python
-from xaig.diagnostics.latent import open_source, save_basis
-from xaig.blocks.train import fit_sae
+from xaig.latents import open_source, save_basis
+from xaig.nn.train import fit_sae
 
 source = open_source("latents/atmosphere")
 dictionary = fit_sae(source, layer=8, n_features=1024, activation="topk", k=32)
@@ -105,19 +107,19 @@ dictionary.meta["metrics"]  # explained_variance, mean_active_features, dead_fra
 save_basis("sae8.npz", dictionary)
 ```
 
-The blocks are plain `nn.Module`s that take and return tensors and know nothing of
+The modules are plain `nn.Module`s that take and return tensors and know nothing of
 archives, grids or loops, so they can be lifted into any harness:
 
 ```python
-from xaig.blocks.sae import BSplineActivation, SparseAutoencoder
+from xaig.nn.sae import BSplineActivation, SparseAutoencoder
 
-block = SparseAutoencoder(384, 1024, activation="bspline")
-rebuilt, features = block(x)  # x standardised, (n, 384)
-total, reconstruction, features = block.loss(x, l1=5.0)
-block.to_dictionary(input_mean=mean, input_scale=scale)  # plain arrays, for xaig.diagnostics
+sae = SparseAutoencoder(384, 1024, activation="bspline")
+rebuilt, features = sae(x)  # x standardised, (n, 384)
+total, reconstruction, features = sae.loss(x, l1=5.0)
+sae.to_dictionary(input_mean=mean, input_scale=scale)  # plain arrays, for xaig.latents
 ```
 
-Trained against another layer (`target_layer=`, or `block.loss(x, target)`), the same block
+Trained against another layer (`target_layer=`, or `sae.loss(x, target)`), the same module
 is a transcoder: it reads one layer and writes a later one, and its features are steps of
 computation rather than directions of representation. A cross-layer transcoder is several
 of these sharing an encoder.
@@ -125,14 +127,14 @@ of these sharing an encoder.
 ## From a feature to an experiment
 
 1. Fit a dictionary, and find a feature worth naming: where it answers
-   (`latent region --basis`), what it tracks (`latent fields --basis`), how it evolves
-   (`latent series --basis`).
+   (`latents region --basis`), what it tracks (`latents fields --basis`), how it evolves
+   (`latents series --basis`).
 2. Read its direction in the model's environment, which needs only numpy:
    `np.load("sae8.npz")["decoder"][676]` is the unit direction feature 676 writes to
    layer 8; an activation of `a` adds `a × input_scale` of it, in the layer's own units.
 3. Add a multiple of it to that layer in a forward hook, export the run as a latent
    archive whose manifest says so under `experiment`, and set it against its control:
-   `xaig diagnostics latent diff control steered --growth`.
+   `xaig latents diff control steered --growth`.
 
 Step 3's hook is the exporter's to grow; see [remaining tasks](#remaining-tasks).
 
@@ -153,6 +155,6 @@ In the order we mean to take them, and after whom:
       model run on. The [toy emulator](latents.md) can do this in numpy today; a real model
       needs a hook in its exporter
 - [ ] A sweep over `k` and the number of features, for the trade between sparsity and fidelity
-- [ ] A cross-layer transcoder block (several decoders on one encoder), and tracing a
+- [ ] A cross-layer transcoder (several decoders on one encoder), and tracing a
       feature to its antecedents in an earlier layer, as Cheon (2026) does by correlation
 - [ ] Features compared across seeds of the ablation campaign

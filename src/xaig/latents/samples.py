@@ -5,7 +5,7 @@ PCA, a sparse dictionary -- wants every node of every time, which is a million
 vectors and does not need to be in memory: moments accumulate, and batches are
 drawn a time at a time.
 
-The two rules of ``diagnostics.grid`` hold here as well, and are as easy to forget:
+The two rules of ``latents.grid`` hold here as well, and are as easy to forget:
 
 - **Area.** A 1-degree grid has as many nodes in its last row as on the equator,
   covering 1/115 of the area. Nodes are therefore weighted by area in the
@@ -26,13 +26,13 @@ from typing import Any
 
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.diagnostics.latent.basis import PCA, fix_signs
-from xaig.diagnostics.latent.source import LatentSource
+from xaig.latents.basis import PCA, fix_signs
+from xaig.latents.source import LatentSource
 
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 _BLOCK = 8192
 

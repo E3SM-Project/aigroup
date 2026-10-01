@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-LATENTS_ENV = "XAIG_WIDGETS_LATENTS"
+LATENTS_ENV = "XAIG_APP_LATENTS"
 
 
 def configured_latents() -> list[str]:

@@ -1,12 +1,12 @@
-# widgets — the web app
+# app — the web app
 
-A local Streamlit app over `diagnostics`. Optional, and downstream of everything: it may
-import `core`, `diagnostics` and `figures`; **nothing may import it**.
+A local Streamlit app over `latents`. Optional, and downstream of everything: it may
+import `core`, `latents` and `figures`; **nothing may import it**.
 
 ## Rules
 
 - **Presentation only.** No science here: if a number is computed in this package, it
-  belongs in `diagnostics`, where a notebook can reach it and a test can check it without
+  belongs in `latents`, where a notebook can reach it and a test can check it without
   a browser. Figures come from `xaig.figures`.
 - **Everything on screen is reproducible off screen.** A view that shows an analysis
   also shows the settings, the command and the code that produce it.
@@ -15,11 +15,11 @@ import `core`, `diagnostics` and `figures`; **nothing may import it**.
   `cache_resource`; results and rendered maps in `cache_data`; whole layers nowhere.
 - **A method is a choice, not a page.** Features come from whatever `Decomposition` the
   sidebar names — a PCA fitted in the region, a basis file — through the one `basis=`
-  argument of the `diagnostics` routines. A new method needs no new view.
+  argument of the `latents` routines. A new method needs no new view.
 - **Name models, not paths.** The archive drop-down is labelled from each manifest's model
   and component; `--latents` takes a directory of archives as readily as one.
 - **Catch `RequestError`, nothing wider.** It becomes a warning on the page. A bare
-  `ValueError` is a bug in `diagnostics` and has to surface as one.
+  `ValueError` is a bug in `latents` and has to surface as one.
 - **Listen on localhost.** Streamlit's default is every interface, and the app opens any
   path typed into it. The launcher passes `--server.address localhost`; widening it is
   the user's explicit `--address`.
@@ -28,16 +28,16 @@ import `core`, `diagnostics` and `figures`; **nothing may import it**.
 - `cli.py` and `config.py` must import on a base install (`xaig --help` imports every
   cli module): standard library and click only. Streamlit is found, not imported, there.
 - The framework is an adapter-grade choice. Keeping pages this thin is what makes
-  replacing Streamlit a rewrite of `widgets/` and nothing else.
+  replacing Streamlit a rewrite of `app/` and nothing else.
 
 ## Layout
 
-- `cli.py` — `xaig widgets …`; passes paths to the app through the environment
+- `cli.py` — `xaig app …`; passes paths to the app through the environment
   (`config.py`)
-- `app.py` — the script Streamlit runs: page configuration and navigation only
+- `main.py` — the script Streamlit runs: page configuration and navigation only
 - `latent.py` — a view, as a `page()` function
 
-Adding a view is a module with a `page()` and a line in `app.py`.
+Adding a view is a module with a `page()` and a line in `main.py`.
 
 ## Testing
 

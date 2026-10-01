@@ -1,4 +1,4 @@
-"""A sparse autoencoder over a model's latents, as plain torch blocks.
+"""A sparse autoencoder over a model's latents, as plain torch modules.
 
 One node's vector of channels goes in; a wide, mostly-zero vector of *features*
 comes out, from which the input is rebuilt. The hope is the usual one: channels
@@ -9,7 +9,7 @@ arXiv:2512.24440) trained on GraphCast's node embeddings; with ``relu`` and an L
 penalty, the standard one.
 
 Blocks take and return tensors and know nothing of archives, grids or training
-loops (``xaig.blocks.train`` has those), so they can be lifted into any harness.
+loops (``xaig.nn.train`` has those), so they can be lifted into any harness.
 Inputs are expected standardised; that is the caller's business.
 
 Trained against another layer instead of its own input, the same block is a
@@ -26,9 +26,9 @@ try:
     import torch
     from torch import nn
 except ImportError as exc:
-    raise missing_extra("torch", "blocks") from exc
+    raise missing_extra("torch", "nn") from exc
 
-from xaig.diagnostics.latent.basis import ACTIVATIONS, Dictionary, spline_knots
+from xaig.latents.basis import ACTIVATIONS, Dictionary, spline_knots
 
 
 class BSplineActivation(nn.Module):
@@ -44,7 +44,7 @@ class BSplineActivation(nn.Module):
     Greville abscissae is the identity -- and training bends each feature's own
     curve from there: a threshold, a saturation, a dead zone. The hard zero is
     kept whatever is learned, so the code stays sparse. This is the twin of
-    ``xaig.diagnostics.latent.bspline_activation``, which evaluates a trained one with
+    ``xaig.latents.bspline_activation``, which evaluates a trained one with
     numpy; the two are tested to agree.
     """
 
@@ -72,7 +72,7 @@ class BSplineActivation(nn.Module):
 
 def topk_mask(z: torch.Tensor, k: int) -> torch.Tensor:
     """True at each row's ``k`` largest entries -- exactly ``k``, a tie at the cut
-    going to the lowest index. The twin of ``xaig.diagnostics.latent.basis.topk_mask``,
+    going to the lowest index. The twin of ``xaig.latents.basis.topk_mask``,
     spelt the same way on purpose; ``torch.topk`` alone leaves ties unspecified."""
     cut = z.topk(k, dim=-1).values[..., -1:]
     above, tied = z > cut, z == cut
@@ -168,7 +168,7 @@ class SparseAutoencoder(nn.Module):
         output_scale: float | None = None,
         **meta,
     ) -> Dictionary:
-        """The trained block as plain arrays, for ``xaig.diagnostics`` to use without
+        """The trained block as plain arrays, for ``xaig.latents`` to use without
         torch. The standardisation the inputs were given travels with it."""
 
         def array(tensor: torch.Tensor):

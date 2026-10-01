@@ -2,10 +2,10 @@
 
 Domains, and the presentation downstream of them:
 
-- ``xaig.diagnostics``  what emulators hold inside: the latent space, on a grid
-- ``xaig.blocks``       neural blocks trained on those latents: a sparse autoencoder
-- ``xaig.figures``      figures of what ``diagnostics`` computes, with no web framework
-- ``xaig.widgets``      a local web app over all of the above; nothing imports it
+- ``xaig.latents``  what emulators hold inside: the latent space, on a grid
+- ``xaig.nn``       torch modules trained on those latents: a sparse autoencoder
+- ``xaig.figures``  figures of what ``latents`` computes, with no web framework
+- ``xaig.app``      a local web app over all of the above; nothing imports it
 
 Everything framework-specific lives in ``xaig.adapters``. See ``AGENTS.md``.
 """

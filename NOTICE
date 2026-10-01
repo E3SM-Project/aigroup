@@ -6,7 +6,7 @@ This product is licensed under the BSD 3-Clause License; see LICENSE.
 Third-party notices
 -------------------
 
-xaig.diagnostics.latent, xaig.figures and xaig.widgets grew out of the latent space
+xaig.latents, xaig.figures and xaig.app grew out of the latent space
 visualiser for weather models,
 
     https://github.com/ktempestuous/latent_space_visualiser_weather_models

@@ -32,7 +32,7 @@ from typing import Any, Protocol
 
 from xaig.core.extras import missing_extra
 
-# Checked before anything of xaig.diagnostics is imported: whoever wants figures should be
+# Checked before anything of xaig.latents is imported: whoever wants figures should be
 # pointed at the one extra that brings everything, not at numpy's and then ours.
 try:
     import numpy as np
@@ -40,7 +40,7 @@ try:
 except ImportError as exc:
     raise missing_extra(exc.name or "matplotlib", "figures") from exc
 
-from xaig.diagnostics.grid import Grid
+from xaig.latents.grid import Grid
 
 log = logging.getLogger(__name__)
 

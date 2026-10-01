@@ -18,7 +18,7 @@ One thing is planted, so that an analysis has a known right answer: channel
 precipitation is read off it. ``OFFSET_CHANNEL`` sits on a constant, which is
 what centring is for. The rest is seeded noise.
 
-    from xaig.diagnostics.latent.toy import write_toy
+    from xaig.latents.toy import write_toy
 
     write_toy("scratch/toy/control")
     write_toy("scratch/toy/steered", steer=(2, 7, 3.0))   # +3 on channel 7 of layer 2, every step
@@ -37,12 +37,12 @@ from xaig import __version__
 from xaig.core import registry
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.diagnostics.grid import Grid, great_circle_km
+from xaig.latents.grid import Grid, great_circle_km
 
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 MODEL = "xaig-toy"
 WIDTH = 16

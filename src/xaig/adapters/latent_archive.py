@@ -35,13 +35,13 @@ from typing import Any
 
 from xaig.core.errors import AdapterError, RequestError
 from xaig.core.extras import missing_extra, require
-from xaig.diagnostics.grid import Grid
-from xaig.diagnostics.latent.source import LatentInfo, LayerInfo
+from xaig.latents.grid import Grid
+from xaig.latents.source import LatentInfo, LayerInfo
 
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 HF_PREFIX = "hf://datasets/"
 MANIFEST = "manifest.json"
@@ -257,7 +257,7 @@ class LatentArchive:
             raise AdapterError(f"{self.path}: {wanted_for} needs a reference file, and has none")
         # Undecoded times: emulators run on calendars (no-leap, year 425) that would
         # otherwise have to be understood just to be thrown away.
-        return path, require("xarray", "diagnostics").open_dataset(path, decode_times=False)
+        return path, require("xarray", "latents").open_dataset(path, decode_times=False)
 
     def _mask_from_reference(self, variable: str) -> np.ndarray:
         path, dataset = self._open_reference("mask_variable")
@@ -521,7 +521,7 @@ def write_archive(
 
 
 def _write_reference(file: Path, grid: Grid, fields: Mapping[str, np.ndarray]) -> None:
-    xarray = require("xarray", "diagnostics")
+    xarray = require("xarray", "latents")
     n_times = next(iter(fields.values())).shape[0]
     if grid.shape is not None:
         dims: tuple[str, ...] = ("time", "lat", "lon")

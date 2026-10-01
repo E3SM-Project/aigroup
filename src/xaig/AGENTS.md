@@ -6,10 +6,10 @@ adding subpackages and adapters rather than by widening what exists.
 | Subpackage | Scope | Needs |
 |---|---|---|
 | `core` | errors, adapter registry, the hint for a missing extra | stdlib |
-| `diagnostics` | what emulators hold inside: the latent space, on a grid | `xaig[diagnostics]` (numpy, xarray) |
-| `blocks` | neural blocks trained on those latents: a sparse autoencoder | `xaig[blocks]` (torch, and `diagnostics`') |
+| `latents` | what emulators hold inside: the latent space, on a grid | `xaig[latents]` (numpy, xarray) |
+| `nn` | torch modules trained on those latents: a sparse autoencoder | `xaig[nn]` (torch, and `latents`') |
 | `figures` | figures, with no web framework in them | `xaig[figures]` (matplotlib, cartopy) |
-| `widgets` | a local web app: presentation only | `xaig[widgets]` (streamlit, and `figures`') |
+| `app` | a local web app: presentation only | `xaig[app]` (streamlit, and `figures`') |
 | `adapters` | everything that knows a framework or a file layout | per adapter |
 
 ## Three concerns, kept apart
@@ -34,18 +34,17 @@ answer.
 ```
 core        <-  everything; imports nothing of xaig, and no third party
 adapters    ->  core, and the domain contract each one implements
-diagnostics ->  core (and _render, for its cli)
-blocks      ->  core, diagnostics
-figures     ->  core, diagnostics
-widgets     ->  core, diagnostics, figures;  nothing imports widgets
+latents     ->  core (and _render, for its cli)
+nn          ->  core, latents
+figures     ->  core, latents
+app         ->  core, latents, figures;  nothing imports app
 ```
 
-Domains never import `adapters` — they ask `core.registry` for one by name. `blocks`
-reads `diagnostics` and is read by nothing: it trains on `diagnostics.latent`'s batches
-and hands back a `diagnostics.latent.Dictionary`, so what it learns is used wherever a
-PCA is, by code that has never heard of torch. Presentation sits downstream of the
-science: `figures` draws what `diagnostics` computes, and `widgets` puts controls on
-both.
+Domains never import `adapters` — they ask `core.registry` for one by name. `nn` reads
+`latents` and is read by nothing: it trains on the batches of `latents` and hands back a
+`latents.Dictionary`, so what it learns is used wherever a PCA is, by code that has never
+heard of torch. Presentation sits downstream of the science: `figures` draws what
+`latents` computes, and `app` puts controls on both.
 
 The authoritative version is the `ALLOWED` and `THIRD_PARTY` tables in
 `tests/test_purity.py`. Adding a subpackage without declaring its edges there fails the
@@ -54,7 +53,7 @@ suite, so the decision is always made on purpose.
 ## Contracts
 
 Keep shared contracts few and small. A contract whose consumers all sit on one subpackage
-lives in it — `diagnostics.latent.LatentSource`, `ReferenceFields`, `Decomposition` — and
+lives in it — `latents.LatentSource`, `ReferenceFields`, `Decomposition` — and
 is promoted to core when something that does not import that subpackage needs it, not
 before.
 
@@ -82,10 +81,10 @@ so heavy imports happen inside the command that needs them.
 | To add | Do |
 |---|---|
 | support for a framework | a module in `adapters/` + an entry point in `pyproject.toml` |
-| a diagnostic | a module in `diagnostics/`, on `diagnostics.grid` |
-| a way of finding features | something satisfying `diagnostics.latent.Decomposition`; if torch finds it, the block and its loop in `blocks/` |
+| a diagnostic | a module in `latents/`, on `latents.grid` |
+| a way of finding features | something satisfying `latents.Decomposition`; if torch finds it, the module and its loop in `nn/` |
 | a figure | a function in `figures/` that returns a `Figure` |
-| a view in the app | a module with a `page()` in `widgets/`, and a line in `widgets/app.py` |
+| a view in the app | a module with a `page()` in `app/`, and a line in `app/main.py` |
 | a command | a `cli.py`, named in `_cli._COMMANDS` (or the `xaig.commands` entry-point group, from another distribution) |
 | a subpackage | the directory, an extra, its row in `tests/test_purity.py`, an `AGENTS.md` |
 

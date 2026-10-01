@@ -7,7 +7,7 @@ is made of, push a model along it. ``Decomposition`` is that shared part, so an
 analysis and the CLI take "the method" as a value.
 
 A basis is fitted once, often somewhere else (a dictionary is trained with torch,
-in ``xaig.blocks``), and used many times, so it has a file of its own: one ``.npz``
+in ``xaig.nn``), and used many times, so it has a file of its own: one ``.npz``
 holding plain arrays and a JSON record of how it was made. It is xaig's own
 interchange format, written and read here and nowhere else. It is also the
 hand-off *back* to the model's environment, which needs nothing but numpy to read
@@ -28,7 +28,7 @@ from xaig.core.extras import missing_extra
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 ACTIVATIONS = ("relu", "topk", "bspline")
 FORMAT = 1
@@ -218,7 +218,7 @@ def bspline_activation(z: np.ndarray, coefficients: np.ndarray, upper: float) ->
     ``spline_knots`` it is a ReLU, and training bends it from there (a threshold,
     a saturation). Only four basis functions are non-zero anywhere, so they are
     evaluated in closed form rather than by recursion. The torch twin in
-    ``xaig.blocks`` is tested to agree with this to float precision.
+    ``xaig.nn`` is tested to agree with this to float precision.
     """
     n_intervals = coefficients.shape[1] - 3
     step = upper / n_intervals
@@ -243,7 +243,7 @@ def topk_mask(z: np.ndarray, k: int) -> np.ndarray:
     go to the entries *equal* to it in order of index. "At least the k-th value"
     keeps every tie instead, so four equal activations would all survive a top-1.
     The rule is spelt with comparisons and a running count so that the torch twin
-    in ``xaig.blocks`` can spell it identically: the two must never disagree about
+    in ``xaig.nn`` can spell it identically: the two must never disagree about
     which feature of a tie fired.
     """
     cut = np.partition(z, -k, axis=1)[:, -k][:, None]

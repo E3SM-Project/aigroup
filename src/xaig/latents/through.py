@@ -25,10 +25,10 @@ from typing import Any
 from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.diagnostics.latent.analysis import AnyRegion, ChannelRanking
-from xaig.diagnostics.latent.basis import Decomposition
-from xaig.diagnostics.latent.samples import _time_labels
-from xaig.diagnostics.latent.source import (
+from xaig.latents.analysis import AnyRegion, ChannelRanking
+from xaig.latents.basis import Decomposition
+from xaig.latents.samples import _time_labels
+from xaig.latents.source import (
     LatentSource,
     check_basis_fits,
     check_comparable,
@@ -38,7 +38,7 @@ from xaig.diagnostics.latent.source import (
 try:
     import numpy as np
 except ImportError as exc:
-    raise missing_extra("numpy", "diagnostics") from exc
+    raise missing_extra("numpy", "latents") from exc
 
 _BLOCK = 8192
 
@@ -466,7 +466,7 @@ def rank_by_field(
     A forward pass reads the state at its own time and writes the next, so an
     output the pass produces -- precipitation, say -- is at ``lead=1``; at 0 it is
     the previous pass's, which this one never saw."""
-    from xaig.diagnostics.latent.source import ReferenceFields
+    from xaig.latents.source import ReferenceFields
 
     info, grid = source.info(), source.grid()
     if not isinstance(source, ReferenceFields):
@@ -522,7 +522,7 @@ def _field_with_values(source: LatentSource, field: str, label: str, lead: int =
 
 
 def _reference_fields(source: LatentSource, field: str):
-    from xaig.diagnostics.latent.source import ReferenceFields
+    from xaig.latents.source import ReferenceFields
 
     info = source.info()
     if not isinstance(source, ReferenceFields):

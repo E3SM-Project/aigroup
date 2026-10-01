@@ -15,7 +15,7 @@ from click.testing import CliRunner  # noqa: E402
 from conftest import BUMP, LATENT_TIMES, N_LAT, N_LON, write_latent_archive  # noqa: E402
 from xaig._cli import cli  # noqa: E402
 from xaig.core.errors import AdapterError, RequestError  # noqa: E402
-from xaig.diagnostics.latent import (  # noqa: E402
+from xaig.latents import (  # noqa: E402
     ReferenceFields,
     Region,
     accumulate_moments,
@@ -162,7 +162,7 @@ def test_runs_that_cannot_be_set_against_each_other_are_refused(pair, tmp_path):
 
 
 def test_the_experiment_and_the_way_it_was_read_travel_with_every_result(tmp_path):
-    from xaig.diagnostics.latent import analyse_region
+    from xaig.latents import analyse_region
 
     mask = np.arange(N_LAT * N_LON) % 3 != 0
     path = write_latent_archive(tmp_path / "a", mask=mask, experiment={"seed": 7})
@@ -253,7 +253,7 @@ def test_the_channel_that_tracks_a_field_is_found(with_fields, latent_archive):
 
 
 def _invoke(*args):
-    result = CliRunner().invoke(cli, ["diagnostics", "latent", *(str(a) for a in args)])
+    result = CliRunner().invoke(cli, ["latents", *(str(a) for a in args)])
     assert "Traceback" not in result.output
     return result
 
@@ -387,8 +387,8 @@ def test_a_channels_offset_takes_nothing_from_its_correlation(offset):
 
 def test_an_anonymous_basis_needs_the_override_through_time_and_against_fields(tmp_path):
     """The same rule as in a region: what is missing may be allowed, what is wrong may not."""
-    from xaig.diagnostics.latent import fit_pca
-    from xaig.diagnostics.latent.toy import STORM_CHANNEL, write_toy
+    from xaig.latents import fit_pca
+    from xaig.latents.toy import STORM_CHANNEL, write_toy
 
     source = open_source(write_toy(tmp_path / "toy"), mask_variable="sst")
     layer = source.info().last_layer
@@ -420,8 +420,8 @@ def test_an_anonymous_basis_needs_the_override_through_time_and_against_fields(t
 
 
 def test_cli_series_and_fields_take_the_override(tmp_path):
-    from xaig.diagnostics.latent import fit_pca, save_basis
-    from xaig.diagnostics.latent.toy import write_toy
+    from xaig.latents import fit_pca, save_basis
+    from xaig.latents.toy import write_toy
 
     archive = write_toy(tmp_path / "toy")
     basis = save_basis(
@@ -432,10 +432,8 @@ def test_cli_series_and_fields_take_the_override(tmp_path):
         ["series", str(archive), *where, "--feature", "0", "--basis", str(basis)],
         ["fields", str(archive), "--field", "precipitation", "--basis", str(basis)],
     ):
-        refused = CliRunner().invoke(cli, ["diagnostics", "latent", *args])
+        refused = CliRunner().invoke(cli, ["latents", *args])
         assert refused.exit_code == 1 and "--allow-unverified-basis" in refused.output
-        allowed = CliRunner().invoke(
-            cli, ["diagnostics", "latent", *args, "--allow-unverified-basis", "--json"]
-        )
+        allowed = CliRunner().invoke(cli, ["latents", *args, "--allow-unverified-basis", "--json"])
         assert allowed.exit_code == 0, allowed.output
         assert json.loads(allowed.output)["settings"]["allow_unverified_basis"] is True
