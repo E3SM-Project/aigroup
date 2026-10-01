@@ -16,7 +16,7 @@
         <link rel="prev" href="../">
       
       
-        <link rel="next" href="../blocks/">
+        <link rel="next" href="../nn/">
       
       
         
@@ -1019,7 +1019,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../blocks/" class="md-nav__link">
+      <a href="../nn/" class="md-nav__link">
         
   
   
@@ -1047,7 +1047,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../widgets/" class="md-nav__link">
+      <a href="../app/" class="md-nav__link">
         
   
   
@@ -1345,7 +1345,7 @@
 
 
 <h1 id="latent-diagnostics">Latent diagnostics</h1>
-<p><code>xaig.diagnostics.latent</code> asks what a model's internal channels respond to: which ones
+<p><code>xaig.latents</code> asks what a model's internal channels respond to: which ones
 light up over a region, where else the model looks the same, what the main patterns are,
 how they evolve from one physics step to the next, and what a perturbation did to them.
 It grew out of the <a href="https://github.com/ktempestuous/latent_space_visualiser_weather_models">latent space visualiser</a>
@@ -1364,10 +1364,10 @@ other's stack.</p>
 </div>
 <h2 id="install">Install</h2>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">                      </span><span class="c1"># in a checkout: everything</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[diagnostics]'</span><span class="w">   </span><span class="c1"># elsewhere, from PyPI</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[latents]'</span><span class="w">   </span><span class="c1"># elsewhere, from PyPI</span>
 </span></code></pre></div>
 <h2 id="what-is-in-an-archive">What is in an archive</h2>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">source      latents/atmosphere</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">model       SamudrACE-E3SMv3</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">component   atmosphere</span>
@@ -1387,7 +1387,7 @@ other's stack.</p>
 <h2 id="what-responds-in-a-region">What responds in a region</h2>
 <p>Rank channels by their peak absolute activation within 1500 km of a point in the
 equatorial Pacific, and fit three principal components there:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--centred<span class="w"> </span>--top<span class="w"> </span><span class="m">6</span><span class="w"> </span>--pcs<span class="w"> </span><span class="m">3</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">572 node(s) at layer 8, time 0425-01-03T18:00:00</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
@@ -1455,20 +1455,20 @@ agrees.</p>
 </table>
 <h2 id="methods-a-basis-is-a-value">Methods: a basis is a value</h2>
 <p>A PCA fitted in the region is one way to turn channels into features. A PCA fitted over
-the whole globe and every time is another, and a <a href="../blocks/">sparse autoencoder</a> a third.
+the whole globe and every time is another, and a <a href="../nn/">sparse autoencoder</a> a third.
 They differ in how they are found and agree in what is done with them afterwards, so all
 of them are a <code>Decomposition</code> — <code>transform</code>, <code>directions</code>, <code>describe</code> — and every analysis,
-the CLI and the <a href="../widgets/">web app</a> take one wherever they take another.</p>
+the CLI and the <a href="../app/">web app</a> take one wherever they take another.</p>
 <p>A basis is fitted once and used many times, so it has a file: one <code>.npz</code> of plain arrays
 and a JSON record of how it was made.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>pca<span class="w"> </span>latents/atmosphere<span class="w"> </span>--components<span class="w"> </span><span class="m">32</span><span class="w"> </span>--out<span class="w"> </span>pca8.npz
+<div class="language-console highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>pca<span class="w"> </span>latents/atmosphere<span class="w"> </span>--components<span class="w"> </span><span class="m">32</span><span class="w"> </span>--out<span class="w"> </span>pca8.npz
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">wrote pca8.npz: 32 component(s) of layer 8 over 17 time(s), 69.1% of the variance</span>
 </span></code></pre></div>
 <p>That is an area-weighted PCA over all 1.1 million node-times of the layer, from moments
 accumulated a block at a time: 2.9 s, and the sums are 384 × 384 however many times there
 are. It is the baseline a learned dictionary has to beat — on this layer, 32 components
-hold 69.1% of the variance, and <a href="../blocks/">a top-32 sparse autoencoder</a> 82.1%.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
+hold 69.1% of the variance, and <a href="../nn/">a top-32 sparse autoencoder</a> 82.1%.</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>--centred<span class="w"> </span>--top<span class="w"> </span><span class="m">6</span><span class="w"> </span>--features<span class="w"> </span><span class="m">3</span><span class="w"> </span>--basis<span class="w"> </span>sae8.npz
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">...</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">F676  peak 27.5  45(-0.18)  107(+0.14)  351(-0.13)  124(+0.13)  129(+0.13)  326(+0.13)</span>
@@ -1485,7 +1485,7 @@ direction — because a dictionary is free to trade one for the other.</p>
 <p>Every layer of this model is 384 channels wide, and so is every seed of a campaign, so
 a basis <em>fits</em> anywhere and means something in one place. Its file records the
 network and layer it was fitted on, and it is refused anywhere else:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--rank-layer<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>region<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--rank-layer<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--features<span class="w"> </span><span class="m">3</span><span class="w"> </span>--basis<span class="w"> </span>sae8.npz
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">Error: the basis (sae8.npz) was not fitted here: layer 4 against the layer 8 it was fitted on</span>
 </span></code></pre></div>
@@ -1506,7 +1506,7 @@ and the file's <code>record</code> says which archive, layer and times it was fi
 </div>
 <h2 id="through-time">Through time</h2>
 <p><code>analyse_region</code> is a snapshot. To follow a region from one physics step to the next:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>series<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>series<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat<span class="w"> </span><span class="m">5</span><span class="w"> </span>--lon<span class="w"> </span>-140<span class="w"> </span>--radius-km<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>--channel<span class="w"> </span><span class="m">45</span><span class="w"> </span>--channel<span class="w"> </span><span class="m">107</span>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">TIME                 HOURS  45        107</span>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">0425-01-03T18:00:00  0      0.04793   4.694</span>
@@ -1527,8 +1527,8 @@ seed is not channel 42 of this one, whatever number it carries — unless <code>
 says the index does carry over (a fine-tune of the same weights); comparing networks
 trained apart needs a different tool altogether. Only nodes valid in <em>both</em> runs are
 weighed: a node one of them masks holds whatever it holds there.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--growth
+<div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--growth
 </span></code></pre></div>
 <p>The first ranks channels by the area-weighted RMS of <code>steered − control</code> at one time —
 which channels the change reached. <code>--growth</code> follows its size through every layer and
@@ -1539,7 +1539,7 @@ comparison mean something only when both runs drew the <em>same</em> noise: give
 seed for the control and every experiment. Even then, a perturbation grows as the runs
 drift apart, and some of what <code>--growth</code> shows after a few steps is that drift. The
 yardstick is a third run: the control again, with another seed.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--growth<span class="w"> </span>--noise<span class="w"> </span>latents/control-seed1
+<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--growth<span class="w"> </span>--noise<span class="w"> </span>latents/control-seed1
 </span></code></pre></div>
 <p>The second table it prints is the experiment's difference as a multiple of the one a new
 noise draw makes, layer by layer and time by time: above 1, the intervention moved the
@@ -1547,20 +1547,20 @@ layer more than chance does. From Python, <code>difference_growth(control, steer
 noise=reseeded)</code> returns the same as <code>noise_rms</code> and <code>signal_to_noise</code>.</p>
 <p>For two archives to be told apart at all, the exporter has to say what it did. Anything
 under <code>experiment</code> in the <a href="#the-latent-archive">manifest</a> — a seed, a perturbed input, a
-steered channel — is shown by <code>latent info</code> and carried into the provenance of every
+steered channel — is shown by <code>latents info</code> and carried into the provenance of every
 result, as is the way the archive was read (a mask variable).</p>
 <h2 id="feature-finding">Feature-finding</h2>
 <p>An archive that keeps physical fields beside its latents (<code>reference.nc</code>) can say which
 channels, or which features of a basis, track one of them:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w">          </span><span class="c1"># the 62 fields this archive keeps</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w">          </span><span class="c1"># the 62 fields this archive keeps</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">channels of layer 8 against surface_precipitation_rate at 0425-01-03T18:00:00</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">RANK  CHANNEL  CORRELATION</span>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">1     45       -0.588</span>
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">2     248      -0.540</span>
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">3     224      +0.509</span>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>fields<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">    </span>--basis<span class="w"> </span>sae8.npz
 </span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="go">features of layer 8 against surface_precipitation_rate at 0425-01-03T18:00:00</span>
 </span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
@@ -1570,7 +1570,7 @@ channels, or which features of a basis, track one of them:</p>
 </span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="go">3     360      +0.469</span>
 </span></code></pre></div>
 <p>No single channel of this layer follows precipitation better than |r| = 0.59; one feature
-of a <a href="../blocks/">sparse autoencoder trained in eleven seconds</a> follows it at 0.97 — the
+of a <a href="../nn/">sparse autoencoder trained in eleven seconds</a> follows it at 0.97 — the
 same feature 676 that answered most strongly in the equatorial Pacific above, built mostly
 from the same channel 45. Correlation is area-weighted over valid nodes, leaves out nodes
 where the field is missing, is taken at one time, and says nothing about cause: it is
@@ -1584,7 +1584,7 @@ features instead.</p>
 <p>A <strong>census</strong> lists every channel of a layer at one time, or every feature of a basis, with
 how much of the area it is active over, its mean, its mean where active (<em>strength</em>), and
 where it peaks. It is a catalogue to browse:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>census<span class="w"> </span>latents/atmosphere<span class="w"> </span>--time<span class="w"> </span><span class="m">4</span><span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--basis<span class="w"> </span>bases/sae_L04.npz<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>census<span class="w"> </span>latents/atmosphere<span class="w"> </span>--time<span class="w"> </span><span class="m">4</span><span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--basis<span class="w"> </span>bases/sae_L04.npz<span class="w"> </span>--top<span class="w"> </span><span class="m">3</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">features of layer 4 at 2015-01-04T12:00:00, by coverage</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="go">FEATURE  COVERAGE  MEAN   STRENGTH  PEAK  AT</span>
@@ -1596,7 +1596,7 @@ where it peaks. It is a catalogue to browse:</p>
 is active against where it is not, as a difference in units of each field's own spread, so
 fields of any unit share one axis. Here is the feature that followed sunlight at layer 4
 with |r| = 0.42 only:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>profile<span class="w"> </span>latents/atmosphere<span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--basis<span class="w"> </span>bases/sae_L04.npz<span class="w"> </span>--feature<span class="w"> </span><span class="m">883</span><span class="w"> </span><span class="se">\</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>profile<span class="w"> </span>latents/atmosphere<span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--basis<span class="w"> </span>bases/sae_L04.npz<span class="w"> </span>--feature<span class="w"> </span><span class="m">883</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span>--time<span class="w"> </span><span class="m">1</span><span class="w"> </span>--time<span class="w"> </span><span class="m">6</span><span class="w"> </span>--time<span class="w"> </span><span class="m">11</span><span class="w"> </span>--time<span class="w"> </span><span class="m">16</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="go">feature 883 of layer 4: active over 4.3% of the area and 4 time(s)</span>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
@@ -1622,8 +1622,8 @@ goes with, not what it does.</p>
 time: the best absolute correlation any channel reaches (or any feature, for layers given
 a basis). Bright at the first layer means the field comes in with the inputs; bright only
 deep in the network means the network builds it.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>storyline<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>storyline<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span><span class="se">\</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>storyline<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>storyline<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span>--bases<span class="w"> </span><span class="s1">'bases/sae_L{layer:02d}.npz'</span>
 </span></code></pre></div>
 <p>A time at which the field has no values -- a diagnostic output, before the model's first
@@ -1635,7 +1635,7 @@ input such as sunlight -- but for an output it is the <em>previous</em> pass's, 
 saw. <code>--lead 1</code> (<code>lead=1</code> in Python) sets the latents against the field one reference time
 later, what the pass itself produced; <code>fields</code>, <code>storyline</code> and <code>profile</code> all take it.
 Precipitation, the best SAE feature per layer:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>storyline<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span><span class="se">\</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>storyline<span class="w"> </span>latents/atmosphere<span class="w"> </span>--field<span class="w"> </span>surface_precipitation_rate<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">    </span>--layer<span class="w"> </span><span class="m">0</span><span class="w"> </span>--layer<span class="w"> </span><span class="m">4</span><span class="w"> </span>--layer<span class="w"> </span><span class="m">6</span><span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span><span class="w"> </span>--time<span class="w"> </span><span class="m">4</span><span class="w"> </span>--time<span class="w"> </span><span class="m">7</span><span class="w"> </span>--time<span class="w"> </span><span class="m">19</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span>--bases<span class="w"> </span><span class="s1">'bases/sae_L{layer:02d}.npz'</span><span class="w"> </span>--lead<span class="w"> </span><span class="m">1</span>
 </span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="go">best |r| of any feature (basis) with surface_precipitation_rate, by layer and time</span>
@@ -1652,15 +1652,15 @@ there too. Which fields are inputs a manifest does not say; the exporter that wr
 <p>A <strong>Hovmoller diagram</strong> averages one quantity over a latitude band, per longitude and
 time: anything that travels draws tilted stripes, whose slope is its speed. The quantity
 is a field, one channel of a layer, or one feature of a basis.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>hovmoller<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat-min<span class="w"> </span><span class="m">40</span><span class="w"> </span>--lat-max<span class="w"> </span><span class="m">60</span><span class="w"> </span>--field<span class="w"> </span>V_3
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>hovmoller<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat-min<span class="w"> </span><span class="m">40</span><span class="w"> </span>--lat-max<span class="w"> </span><span class="m">60</span><span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span><span class="w"> </span>--channel<span class="w"> </span><span class="m">45</span><span class="w"> </span><span class="se">\</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>hovmoller<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat-min<span class="w"> </span><span class="m">40</span><span class="w"> </span>--lat-max<span class="w"> </span><span class="m">60</span><span class="w"> </span>--field<span class="w"> </span>V_3
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>hovmoller<span class="w"> </span>latents/atmosphere<span class="w"> </span>--lat-min<span class="w"> </span><span class="m">40</span><span class="w"> </span>--lat-max<span class="w"> </span><span class="m">60</span><span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span><span class="w"> </span>--channel<span class="w"> </span><span class="m">45</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span>--out<span class="w"> </span>hovmoller.npz
 </span></code></pre></div>
 <p>The command prints the diagram in coarse longitude bins; <code>--out</code> keeps it whole, and
 <code>xaig.figures.hovmoller_figure</code> draws it. <code>xaig.figures.layer_time_figure</code> draws a
 storyline, or a <code>--growth</code> table: anything that is layers against time.</p>
 <h2 id="python-api">Python API</h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.diagnostics.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyse_region</span><span class="p">,</span> <span class="n">open_source</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyse_region</span><span class="p">,</span> <span class="n">open_source</span>
 </span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
 </span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
 </span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyse_region</span><span class="p">(</span>
@@ -1681,13 +1681,13 @@ storyline, or a <code>--growth</code> table: anything that is layers against tim
 </span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="n">first_pc</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">to_map</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">scores</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (n_lat, n_lon), NaN where invalid</span>
 </span></code></pre></div>
 <p>To draw any of it, <code>xaig.figures.map_figure(grid, values, region=...)</code> returns a
-matplotlib figure, and <a href="../widgets/"><code>xaig widgets</code></a> puts the whole routine behind
+matplotlib figure, and <a href="../app/"><code>xaig app</code></a> puts the whole routine behind
 widgets.</p>
 <p>The pieces are plain functions over <code>(n_nodes, n_channels)</code> arrays — <code>rank_channels</code>,
 <code>cosine_similarity</code>, <code>fit_pca</code>, <code>correlate_field</code> — for when the routine above is not the
 question being asked. <code>source.load(time, layer, channels=..., nodes=...)</code> reads only what
 it is asked for. The rest of what this page shows:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.diagnostics.latent</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 </span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">accumulate_moments</span><span class="p">,</span>
 </span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">difference</span><span class="p">,</span>
 </span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">difference_growth</span><span class="p">,</span>
@@ -1714,7 +1714,7 @@ it is asked for. The rest of what this page shows:</p>
 </span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a><span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iter_batches</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4096</span><span class="p">):</span>  <span class="c1"># to train on</span>
 </span><span id="__span-16-26"><a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a>    <span class="o">...</span>  <span class="c1"># float32 (4096, 384): valid nodes only, drawn in proportion to area</span>
 </span><span id="__span-16-27"><a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a>
-</span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.diagnostics.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">field_storyline</span><span class="p">,</span> <span class="n">hovmoller</span>
+</span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="n">field_storyline</span><span class="p">,</span> <span class="n">hovmoller</span>
 </span><span id="__span-16-29"><a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a>
 </span><span id="__span-16-30"><a id="__codelineno-16-30" name="__codelineno-16-30" href="#__codelineno-16-30"></a><span class="n">story</span> <span class="o">=</span> <span class="n">field_storyline</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s2">"SOLIN"</span><span class="p">,</span> <span class="n">bases</span><span class="o">=</span><span class="p">{</span><span class="mi">8</span><span class="p">:</span> <span class="n">basis</span><span class="p">})</span>
 </span><span id="__span-16-31"><a id="__codelineno-16-31" name="__codelineno-16-31" href="#__codelineno-16-31"></a><span class="n">story</span><span class="o">.</span><span class="n">best</span>  <span class="c1"># (n_times, n_layers): the best |r| of any channel, or of layer 8's features</span>
@@ -1723,7 +1723,7 @@ it is asked for. The rest of what this page shows:</p>
 </span><span id="__span-16-34"><a id="__codelineno-16-34" name="__codelineno-16-34" href="#__codelineno-16-34"></a><span class="n">growth</span> <span class="o">=</span> <span class="n">difference_growth</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">steered</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/control-seed1"</span><span class="p">))</span>
 </span><span id="__span-16-35"><a id="__codelineno-16-35" name="__codelineno-16-35" href="#__codelineno-16-35"></a><span class="n">growth</span><span class="o">.</span><span class="n">signal_to_noise</span>  <span class="c1"># (n_times, n_layers)</span>
 </span><span id="__span-16-36"><a id="__codelineno-16-36" name="__codelineno-16-36" href="#__codelineno-16-36"></a>
-</span><span id="__span-16-37"><a id="__codelineno-16-37" name="__codelineno-16-37" href="#__codelineno-16-37"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.diagnostics.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">feature_census</span><span class="p">,</span> <span class="n">feature_profile</span>
+</span><span id="__span-16-37"><a id="__codelineno-16-37" name="__codelineno-16-37" href="#__codelineno-16-37"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="n">feature_census</span><span class="p">,</span> <span class="n">feature_profile</span>
 </span><span id="__span-16-38"><a id="__codelineno-16-38" name="__codelineno-16-38" href="#__codelineno-16-38"></a>
 </span><span id="__span-16-39"><a id="__codelineno-16-39" name="__codelineno-16-39" href="#__codelineno-16-39"></a><span class="n">census</span> <span class="o">=</span> <span class="n">feature_census</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">)</span>
 </span><span id="__span-16-40"><a id="__codelineno-16-40" name="__codelineno-16-40" href="#__codelineno-16-40"></a><span class="n">census</span><span class="o">.</span><span class="n">ranked</span><span class="p">(</span><span class="s2">"coverage"</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>  <span class="c1"># or "mean", "strength", "peak"</span>
@@ -1764,7 +1764,7 @@ flip colour between two runs of the same analysis.</p>
 <p>A grid's mask travels in <code>grid.npz</code> when the archive carries one. For an archive that
 does not, name a variable of its reference file that is missing exactly where nodes mean
 nothing — <code>sst</code> for the ocean:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/ocean<span class="w"> </span>--mask-variable<span class="w"> </span>sst
+<div class="language-console highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>latents/ocean<span class="w"> </span>--mask-variable<span class="w"> </span>sst
 </span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="go">...</span>
 </span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="go">grid        180x360, 64800 nodes, 44892 valid</span>
 </span></code></pre></div>
@@ -1799,7 +1799,7 @@ nothing — <code>sst</code> for the ocean:</p>
 </tr>
 <tr>
 <td><code>bases/</code></td>
-<td>optional: basis files fitted on this archive (<code>xaig diagnostics latent pca</code>, <code>xaig blocks sae</code>), under any names. <code>source.files("bases")</code> lists them and <code>source.file(name)</code> reads one; the <a href="../widgets/">app</a> offers every one that fits the layer shown</td>
+<td>optional: basis files fitted on this archive (<code>xaig latents pca</code>, <code>xaig nn sae</code>), under any names. <code>source.files("bases")</code> lists them and <code>source.file(name)</code> reads one; the <a href="../app/">app</a> offers every one that fits the layer shown</td>
 </tr>
 </tbody>
 </table>
@@ -1839,7 +1839,7 @@ the manifest is refused rather than misread.</p>
 <p>An archive kept in a Hugging Face dataset repository opens in place, with the <code>hf</code>
 extra:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[hf]'</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>hf://datasets/&lt;owner&gt;/&lt;repo&gt;/&lt;folder&gt;
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>hf://datasets/&lt;owner&gt;/&lt;repo&gt;/&lt;folder&gt;
 </span></code></pre></div>
 <p>Nothing is downloaded until something needs it, and then one file at a time, into the
 Hugging Face cache: opening an archive fetches its manifest, a map its grid, a layer its
@@ -1928,7 +1928,7 @@ like any other:</p>
         
         
           
-          <a href="../blocks/" class="md-footer__link md-footer__link--next" aria-label="Next: Sparse autoencoders">
+          <a href="../nn/" class="md-footer__link md-footer__link--next" aria-label="Next: Sparse autoencoders">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next

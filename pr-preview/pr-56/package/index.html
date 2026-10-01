@@ -762,7 +762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="blocks/" class="md-nav__link">
+      <a href="nn/" class="md-nav__link">
         
   
   
@@ -790,7 +790,7 @@
   
   
     <li class="md-nav__item">
-      <a href="widgets/" class="md-nav__link">
+      <a href="app/" class="md-nav__link">
         
   
   
@@ -966,20 +966,20 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>diagnostics</code></td>
+<td><code>latents</code></td>
 <td><a href="latents/">what emulators hold inside</a></td>
 </tr>
 <tr>
-<td><code>blocks</code></td>
-<td>neural blocks trained on those latents: <a href="blocks/">sparse autoencoders</a></td>
+<td><code>nn</code></td>
+<td>torch modules trained on those latents: <a href="nn/">sparse autoencoders</a></td>
 </tr>
 <tr>
 <td><code>figures</code></td>
 <td>figures, with no web framework in them</td>
 </tr>
 <tr>
-<td><code>widgets</code></td>
-<td><a href="widgets/">a local web app</a> over <code>diagnostics</code></td>
+<td><code>app</code></td>
+<td><a href="app/">a local web app</a> over <code>latents</code></td>
 </tr>
 </tbody>
 </table>
@@ -991,19 +991,19 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>run<span class="w"> </span>xaig<span class="w"> </span>--help
 </span></code></pre></div>
-<p>In a checkout, <code>uv sync</code> (or the first <code>uv run</code>) installs every extra below but <code>blocks</code>,
+<p>In a checkout, <code>uv sync</code> (or the first <code>uv run</code>) installs every extra below but <code>nn</code>,
 plus pytest and ruff. Torch is large, and whether it should be a CPU or a CUDA build is the
-machine's business: ask for it with <code>uv sync --extra blocks</code>. To use it from another
+machine's business: ask for it with <code>uv sync --extra nn</code>. To use it from another
 project, install it from <a href="https://pypi.org/project/xaig/">PyPI</a>, asking for the extras you
 need:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[diagnostics]'</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[diagnostics] @ git+https://github.com/E3SM-Project/aigroup'</span><span class="w">   </span><span class="c1"># what main holds and no release does yet</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[latents]'</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[latents] @ git+https://github.com/E3SM-Project/aigroup'</span><span class="w">   </span><span class="c1"># what main holds and no release does yet</span>
 </span></code></pre></div>
 <p>The base install pulls only Click. Anything heavier sits behind an extra named after the
 subpackage that needs it. A missing one says so, with the command that fits how this
 <code>xaig</code> was installed:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">Error: numpy is not installed; it comes with the 'diagnostics' extra: uv pip install -e '/path/to/aigroup[diagnostics]'  (in that checkout: `uv sync --extra diagnostics`)</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>latents/atmosphere
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">Error: numpy is not installed; it comes with the 'latents' extra: uv pip install -e '/path/to/aigroup[latents]'  (in that checkout: `uv sync --extra latents`)</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -1015,29 +1015,29 @@ subpackage that needs it. A missing one says so, with the command that fits how 
 </thead>
 <tbody>
 <tr>
-<td><code>diagnostics</code></td>
+<td><code>latents</code></td>
 <td>numpy, xarray, netCDF4</td>
-<td><code>xaig.diagnostics</code></td>
+<td><code>xaig.latents</code></td>
 </tr>
 <tr>
 <td><code>figures</code></td>
 <td>matplotlib, cartopy</td>
-<td><code>xaig.figures</code>: maps and figures (brings <code>diagnostics</code>)</td>
+<td><code>xaig.figures</code>: maps and figures (brings <code>latents</code>)</td>
 </tr>
 <tr>
-<td><code>widgets</code></td>
+<td><code>app</code></td>
 <td>streamlit</td>
-<td><a href="widgets/"><code>xaig widgets</code></a> (brings <code>figures</code>)</td>
+<td><a href="app/"><code>xaig app</code></a> (brings <code>figures</code>)</td>
 </tr>
 <tr>
-<td><code>blocks</code></td>
+<td><code>nn</code></td>
 <td>torch</td>
-<td><a href="blocks/"><code>xaig.blocks</code></a> and <code>xaig blocks</code> (not part of a plain <code>uv sync</code>)</td>
+<td><a href="nn/"><code>xaig.nn</code></a> and <code>xaig nn</code> (not part of a plain <code>uv sync</code>)</td>
 </tr>
 <tr>
 <td><code>hf</code></td>
 <td>huggingface_hub</td>
-<td><a href="latents/#from-a-hugging-face-repository">archives read from a Hugging Face repository</a> (brings <code>diagnostics</code>)</td>
+<td><a href="latents/#from-a-hugging-face-repository">archives read from a Hugging Face repository</a> (brings <code>latents</code>)</td>
 </tr>
 </tbody>
 </table>
@@ -1067,15 +1067,15 @@ another. These rules are enforced by <code>tests/test_purity.py</code>, not by c
 <p>Errors xaig raises on purpose are <code>XaigError</code>s and reach a terminal as one line; anything
 else is a bug and keeps its traceback, as does everything under <code>xaig --debug</code>.</p>
 <h2 id="looking-inside-a-model">Looking inside a model</h2>
-<p><code>diagnostics.latent</code> reads activations recorded from inside a model, through an adapter,
+<p><code>latents</code> reads activations recorded from inside a model, through an adapter,
 and analyses them; <a href="latents/">latent diagnostics</a> is the guide to it.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>/path/to/latents/atmosphere
+<div class="language-console highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>/path/to/latents/atmosphere
 </span></code></pre></div>
 <p>With no model and no data to hand, make an archive with the toy emulator — an MLP with a
 residual stream on a small Gaussian grid, in numpy, in a few seconds — and read it back:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>toy<span class="w"> </span>scratch/toy/control
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>toy<span class="w"> </span>scratch/toy/steered<span class="w"> </span>--steer<span class="w"> </span><span class="m">2</span>:7:3<span class="w">     </span><span class="c1"># +3 on channel 7 of layer 2, every step</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>scratch/toy/steered<span class="w"> </span>--mask-variable<span class="w"> </span>sst
+<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>toy<span class="w"> </span>scratch/toy/control
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>toy<span class="w"> </span>scratch/toy/steered<span class="w"> </span>--steer<span class="w"> </span><span class="m">2</span>:7:3<span class="w">     </span><span class="c1"># +3 on channel 7 of layer 2, every step</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>scratch/toy/steered<span class="w"> </span>--mask-variable<span class="w"> </span>sst
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">model                  xaig-toy</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">calendar               noleap</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">grid                   24x48, 1152 nodes, 1062 valid</span>
@@ -1088,7 +1088,7 @@ gap between them, fields that begin one step before the latents, a continent the
 to come from, a calendar without leap days. One channel is planted to follow its storm, so
 an analysis has a right answer to find.</p>
 <p>The CLI is a thin client of the API; anything it can do, a notebook can.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.diagnostics.latent</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_source</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_source</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">source</span><span class="o">.</span><span class="n">info</span><span class="p">()</span><span class="o">.</span><span class="n">layers</span>  <span class="c1"># what was recorded, without loading any of it</span>
@@ -1115,7 +1115,7 @@ Register it, from this repo or any other package:</p>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">myframework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"mypkg.adapter:MyAdapter"</span>
 </span></code></pre></div>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">   </span><span class="c1"># entry points are read from installed metadata</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>diagnostics<span class="w"> </span>latent<span class="w"> </span>info<span class="w"> </span>/path/to/export<span class="w"> </span>--adapter<span class="w"> </span>myframework
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>/path/to/export<span class="w"> </span>--adapter<span class="w"> </span>myframework
 </span></code></pre></div>
 <h2 id="where-this-comes-from">Where this comes from</h2>
 <p>Three papers are behind what is here, and behind what comes next. Cite them if you use it.</p>
@@ -1124,27 +1124,27 @@ Register it, from this repo or any other package:</p>
   (<a href="https://doi.org/10.1007/978-3-032-29915-4_10">doi:10.1007/978-3-032-29915-4_10</a>;
   <a href="https://github.com/ktempestuous/latent_space_visualiser_weather_models">code</a>). Its
   workflow — a region, the channels that respond there, cosine similarity, a PCA fitted
-  in the region and mapped everywhere — is what <a href="latents/"><code>diagnostics.latent</code></a>
-  reimplements as a library, and what <a href="widgets/">the app</a> puts widgets on.</li>
+  in the region and mapped everywhere — is what <a href="latents/"><code>latents</code></a>
+  reimplements as a library, and what <a href="app/">the app</a> puts widgets on.</li>
 <li><a href="https://arxiv.org/abs/2512.24440">MacMillan &amp; Ouellette (2025)</a>, <em>Towards mechanistic understanding in a data-driven weather model:
   internal activations reveal interpretable physical features</em>
   (<a href="https://github.com/theodoremacmillan/graphcast-interpretability">code</a>). Sparse
   autoencoders on GraphCast's node embeddings, and interventions on the features they
-  find. The TopK autoencoder in <a href="blocks/"><code>blocks</code></a> is theirs in form; their auxiliary
+  find. The TopK autoencoder in <a href="nn/"><code>nn</code></a> is theirs in form; their auxiliary
   loss for dead features, their held-out evaluation and their steering are not here yet.</li>
 <li><a href="https://arxiv.org/abs/2605.17493">Cheon (2026)</a>, <em>Beyond Linear Superposition: Discovering Climate Features in AI Weather
   Models with KAN-SAE</em>. A sparse autoencoder whose ReLU is replaced by a learnable
-  B-spline per feature. <strong>Not implemented here yet</strong>: the <code>bspline</code> activation in <code>blocks</code>
-  predates our reading of it and is a different thing (<a href="blocks/">see there</a>).</li>
+  B-spline per feature. <strong>Not implemented here yet</strong>: the <code>bspline</code> activation in <code>nn</code>
+  predates our reading of it and is a different thing (<a href="nn/">see there</a>).</li>
 </ul>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>diagnostics</code>: bias and time-mean maps, spectra, zonal means (a <code>FieldSource</code> beside
-      <code>LatentSource</code>, on the same <code>diagnostics.grid</code>)</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>diagnostics.latent</code>: a GraphCast mesh adapter; the activation exporter as an
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>latents</code>: bias and time-mean maps, spectra, zonal means (a <code>FieldSource</code> beside
+      <code>LatentSource</code>, on the same <code>latents.grid</code>)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>latents</code>: a GraphCast mesh adapter; the activation exporter as an
       adapter, with a steering hook</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>blocks</code>: the B-spline autoencoder as its paper has it, held-out evaluation and an
-      auxiliary loss for dead features, steering — in that order (<a href="blocks/#remaining-tasks">the list</a>)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>nn</code>: the B-spline autoencoder as its paper has it, held-out evaluation and an
+      auxiliary loss for dead features, steering — in that order (<a href="nn/#remaining-tasks">the list</a>)</li>
 </ul>
 
 
