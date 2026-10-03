@@ -32,7 +32,7 @@ $ xaig nn sae scratch/toy/control --layer 2 --features 64 --k 8 --epochs 30 \
   step     25  reconstruction 10.28
   step    300  reconstruction 0.9374
   step    600  reconstruction 0.2854
-wrote scratch/toy/sae.npz: 64 feature(s) of layer 2; 98.6% of the variance explained, 8.0 active per node, 14.1% dead
+wrote scratch/toy/sae.npz: 64 feature(s) of layer 2; 98.6% of the variance explained, 8.0 active per node, 14.1% dead; --basis-sha256 <sha256 of scratch/toy/sae.npz>
 ```
 
 That is the [toy system](index.md) (1,152 nodes, a few seconds on a CPU), not a real
@@ -100,6 +100,11 @@ so an activation is in the same units for every feature — how much of the stan
 layer it accounts for at that node — and two features can be compared by it. Batches come from
 [`iter_batches`](latents.md#python-api) — valid nodes only, drawn in proportion to area —
 so the plain mean the loop takes is already the area-weighted loss.
+
+The file carries a content hash, checked whenever it is loaded, and the line ends with it:
+`--basis-sha256` hands it back to any command that takes `--basis`, which then refuses a
+file that is not this one. What a result used is recorded under its provenance; see
+[Provenance](latents.md#provenance-what-a-result-was-made-from).
 
 ## Python API
 

@@ -102,8 +102,11 @@ and a JSON record of how it was made.
 
 ```console
 $ xaig latents pca latents/atmosphere --components 32 --out pca8.npz
-wrote pca8.npz: 32 component(s) of layer 8 over 17 time(s), 69.1% of the variance
+wrote pca8.npz: 32 component(s) of layer 8 over 17 time(s), 69.1% of the variance; --basis-sha256 <sha256 of pca8.npz>
 ```
+
+The line ends with the file's content hash, in the form a later command takes it
+([below](#provenance-what-a-result-was-made-from)).
 
 That is an area-weighted PCA over all 1.1 million node-times of the layer, from moments
 accumulated a block at a time: 2.9 s, and the sums are 384 × 384 however many times there
@@ -358,6 +361,63 @@ The command prints the diagram in coarse longitude bins; `--out` keeps it whole,
 `xaig.figures.hovmoller_figure` draws it. `xaig.figures.layer_time_figure` draws a
 storyline, or a `--growth` table: anything that is layers against time.
 
+## Provenance: what a result was made from
+
+A result that cannot be traced to its inputs cannot be rerun, and a branch name or a file
+path is not an input: both move. Everything a result was computed from is therefore
+pinned by content, and written into the `provenance` of its `--json` and `summary()`.
+
+**A hub archive is a commit.** Opening `hf://…` resolves the revision to a commit SHA
+through the hub, *every* time: the default branch, a branch, a tag, even a SHA
+(`LatentInfo.revision`). What was asked and what it became are both kept, and the files are
+fetched by the commit, so a tag moved halfway through a session changes nothing already
+open:
+
+```console
+$ xaig latents region hf://datasets/<owner>/<repo>/control --revision v1 --json …
+"revision": {"requested": "v1", "commit": "5b0e…"}
+```
+
+A comparison (`diff`, `growth`) says it for each side, under `control`, `experiment` and
+`noise`, since the sides need not be the same revision. `--revision` applies to every
+`hf://` source of a command, and is ignored by local ones; from Python, give each
+`open_source` its own. A local archive has no revision and its provenance says none.
+
+**A basis is a hash.** `save_basis` writes a `sha256` into the file's record: over the
+kind, every array (name, dtype, shape and bytes), the scalars, and what the basis says it
+was fitted on — which includes the commit of the archive it was fitted from, so the same
+arrays fitted at another commit are another basis. Paths, metrics and notes are about the
+file, not the basis, and stay out. `load_basis` recomputes it, and a mismatch is a
+`RequestError` that says the file changed after it was written. A result that used a basis
+carries `{"path", "sha256", "status"}` under `provenance.basis` (and `provenance.bases`,
+by layer, for a storyline):
+
+```console
+$ xaig latents region scratch/prov/control --time 0 --lat 7.5 --lon 45 --radius-km 2500 \
+    --features 2 --basis scratch/prov/pca3.npz --json
+  "basis": {
+    "path": "scratch/prov/pca3.npz",
+    "sha256": "0843ad5199ac1109f52de93e3f362b28ba53dfb2a653789a8cbc7d526be008eb",
+    "status": "verified"
+  }
+```
+
+`status` is `verified` for a file that carried its hash and matched it, `computed` for a
+basis that never was a file (one fitted in the session), and `unhashed` for a file written
+before hashes existed. Those still load, and their `sha256` is still the hash of the
+arrays, so they can be pinned, but they are not vouched for: they need the same explicit
+acceptance as a basis of unverified identity (`--allow-unverified-basis`,
+`allow_unverified_basis=True`), and the result says `unhashed`. Resaving one with
+`save_basis` hashes it.
+
+**Reproduction pins both.** The [app](app.md)'s *Reproduce* tab and the commands above give
+`--revision <commit>` (never the tag) and `--basis-sha256 <hash>`; the Python gives
+`open_source(path, revision=<commit>)` and `load_basis(path, sha256=<hash>)`. Either refuses
+a basis whose content is not the one named. Rerunning a pinned command gives the same
+numbers; its provenance then reads `requested` = the commit, which is what was asked this
+time. `--basis-sha256` goes with `--basis`; the per-layer `--bases` of `storyline` are
+hashed into the result but not pinned on the command line.
+
 ## Python API
 
 ```python
@@ -561,8 +621,10 @@ $ xaig latents info hf://datasets/<owner>/<repo>/<folder>
 Nothing is downloaded until something needs it, and then one file at a time, into the
 Hugging Face cache: opening an archive fetches its manifest, a map its grid, a layer its
 one `step_XX.npy`. A notebook that looks at one layer of a nine-layer archive downloads
-one layer. Every file comes from the revision the repository was at when the archive was
-opened; `open_source(url, revision="v1")` pins one. `source.file("bases/sae_L08.npz")`
+one layer. Every file comes from the one commit the repository was at when the archive was
+opened: a revision you name (`open_source(url, revision="v1")`, `--revision v1`) is
+resolved to its commit then, and so is the default, and
+[both are recorded](#provenance-what-a-result-was-made-from). `source.file("bases/sae_L08.npz")`
 fetches any other file kept in the folder, and says None when there is none. A private or
 gated repository reads the token `huggingface_hub` finds (`HF_TOKEN`, or `hf auth login`).
 

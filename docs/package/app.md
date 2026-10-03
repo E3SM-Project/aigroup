@@ -97,7 +97,10 @@ told apart — then a time, a layer and a region. The view is
   steps looks like one. On request, since centred it reads every time once.
 - **Reproduce** — the settings, the `xaig latents region` command and the
   Python that produce exactly what is on screen, and a JSON download of all three. The
-  test suite runs that command and that code and checks they agree with the app.
+  test suite runs that command and that code and checks they agree with the app. For an
+  archive on the hub they name the commit it was opened at, and for a basis its content
+  hash, so they rerun the same inputs
+  ([provenance](latents.md#provenance-what-a-result-was-made-from)).
 
 Maps follow the page's theme. Signed quantities use a diverging blue–red scale symmetric
 about zero — with a light midpoint on a light page and a dark one on a dark page, so that
