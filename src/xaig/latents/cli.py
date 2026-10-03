@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import functools
 import json
+import shlex
+from pathlib import Path
 
 import click
 
@@ -765,6 +767,197 @@ def profile_cmd(
         )
     ]
     click.echo(_render.table(rows))
+
+
+def _ints(text: str) -> list[int]:
+    try:
+        return [int(part) for part in text.split(",") if part.strip()]
+    except ValueError as exc:
+        raise click.BadParameter(f"{text!r} is not a comma-separated list of integers") from exc
+
+
+def _percent(value: float | None) -> str:
+    return "-" if value is None or value != value else f"{100 * value:.1f}%"
+
+
+@latents.command("evaluate")
+@click.argument("source", type=click.Path())
+@_adapter_option
+@_mask_option
+@click.option("--layer", type=int, help="Layer the bases were fitted to.  [default: the last]")
+@click.option("--blocks", type=int, default=5, show_default=True, help="Contiguous time blocks.")
+@click.option(
+    "--test-block", "test_blocks", type=int, multiple=True,
+    help="Block to hold out; repeatable.  [default: the last]",
+)  # fmt: skip
+@click.option(
+    "--gap", type=int, default=1, show_default=True,
+    help="Training times dropped beside each held-out block.",
+)  # fmt: skip
+@click.option("--split-only", is_flag=True, help="Print the split (to fit on) and stop.")
+@click.option(
+    "--basis", "basis_paths", type=click.Path(dir_okay=False), multiple=True,
+    help="A basis file fitted on the training times (see --split-only); repeatable.",
+)  # fmt: skip
+@click.option(
+    "--basis-sha256", "basis_hashes", multiple=True, metavar="HASH",
+    help="Refuse the --basis file in the same position unless its content has this sha256; "
+    "give one per --basis, or none (the printed reproduce line gives them).",
+)  # fmt: skip
+@click.option(
+    "--pca", "pca_text", metavar="K,K,...",
+    help="Fit a PCA on the training times at these ranks, and set the bases against it.",
+)  # fmt: skip
+@click.option("--stability", is_flag=True, help="Match the features of the bases to each other.")
+@click.option("--recur-above", type=float, default=0.9, show_default=True,
+              help="Cosine at which a matched feature recurs.")  # fmt: skip
+@click.option("--active-above", type=float, default=0.0, show_default=True,
+              help="An activation above this magnitude is active.")  # fmt: skip
+@click.option("--duplicate-above", type=float, default=0.95, show_default=True,
+              help="Cosine at which two decoder directions are near-duplicates.")  # fmt: skip
+@click.option("--out", type=click.Path(dir_okay=False), help="Also write the results (JSON).")
+@_unverified_option
+@_json_option
+def evaluate_cmd(
+    source, adapter, mask_variable, layer, blocks, test_blocks, gap, split_only, basis_paths,
+    basis_hashes, pca_text, stability, recur_above, active_above, duplicate_above, out,
+    allow_unverified_basis, as_json,
+):  # fmt: skip
+    """Score frozen bases on times they were not fitted on.
+
+    Times are cut into contiguous blocks, the last held out by default, with a buffer.
+    Each --basis (fit it with `--time` on the training times: `--split-only` lists
+    them) is scored on both sides: explained variance, active features, dead and
+    near-duplicate features. --pca sets them against a PCA fitted here, on the
+    training times only; --stability matches the bases to each other.
+    """
+    from xaig.core.errors import RequestError
+    from xaig.latents import (
+        Dictionary,
+        basis_hash,
+        evaluate_basis,
+        fidelity_curve,
+        load_basis,
+        result_provenance,
+        seed_stability,
+        split_time_blocks,
+    )
+    from xaig.latents.evaluate import jsonable
+
+    if basis_hashes and len(basis_hashes) != len(basis_paths):
+        raise RequestError(
+            f"{len(basis_hashes)} --basis-sha256 for {len(basis_paths)} --basis: "
+            "give one per --basis, in the same order, or none"
+        )
+    opened = open_for_cli(source, adapter, mask_variable)
+    info = opened.info()
+    layer = info.last_layer if layer is None else layer
+    split = split_time_blocks(
+        info.times, n_blocks=blocks, test_blocks=tuple(test_blocks) or (-1,), gap=gap
+    )
+    payload: dict = {
+        "layer": layer,
+        "split": split.to_dict(),
+        "provenance": result_provenance(info),
+    }
+    bases = [
+        load_basis(path, sha256=basis_hashes[i] if basis_hashes else None)
+        for i, path in enumerate(basis_paths)
+    ]
+    ranks = _ints(pca_text) if pca_text else []
+    if not split_only:
+        if not bases and not ranks:
+            raise click.UsageError(
+                "give --basis FILE (repeatable) or --pca K,K,..., or --split-only"
+            )
+        common = {"layer": layer, "active_above": active_above,
+                  "allow_unverified_basis": allow_unverified_basis}  # fmt: skip
+        evaluations = [
+            evaluate_basis(b, opened, split, duplicate_threshold=duplicate_above, **common)
+            for b in bases
+        ]
+        payload["evaluations"] = [e.to_dict() for e in evaluations]
+        if ranks:
+            autoencoders = [
+                (b, Path(p).stem)
+                for b, p in zip(bases, basis_paths, strict=True)
+                if isinstance(b, Dictionary)
+            ]
+            curve = fidelity_curve(
+                opened, split, pca_components=ranks, duplicate_threshold=duplicate_above,
+                dictionaries=[b for b, _ in autoencoders], labels=[n for _, n in autoencoders],
+                **common,
+            )  # fmt: skip
+            payload["curve"] = curve.to_dict()
+        if stability:
+            payload["stability"] = seed_stability(
+                bases, threshold=recur_above, allow_unverified=allow_unverified_basis
+            ).to_dict()
+    payload = jsonable(payload)
+    if out:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(payload, indent=2) + "\n")
+    if as_json:
+        click.echo(json.dumps(payload, indent=2))
+        return
+    click.echo(
+        f"layer {layer}: fit on {len(split.train)} time(s), hold out {len(split.test)} "
+        f"({', '.join(split.test)}), {len(split.buffer)} in the buffer"
+    )
+    if split_only:
+        click.echo("\ntrain  " + "\n       ".join(split.train))
+        return
+    reproduce = ["xaig latents evaluate", shlex.quote(source)]
+    if adapter != "latent-archive":
+        reproduce.append(f"--adapter {shlex.quote(adapter)}")
+    if mask_variable:
+        reproduce.append(f"--mask-variable {shlex.quote(mask_variable)}")
+    if _remembered("revision"):
+        reproduce.append(f"--revision {shlex.quote(_remembered('revision'))}")
+    reproduce.append(f"--layer {layer} --blocks {blocks} --gap {gap}")
+    reproduce += [f"--test-block {b}" for b in test_blocks]
+    for path, b in zip(basis_paths, bases, strict=True):
+        reproduce.append(f"--basis {shlex.quote(path)} --basis-sha256 {basis_hash(b)}")
+    if pca_text:
+        reproduce.append(f"--pca {pca_text}")
+    if stability:
+        reproduce.append(f"--stability --recur-above {recur_above:g}")
+    reproduce.append(f"--active-above {active_above:g} --duplicate-above {duplicate_above:g}")
+    if allow_unverified_basis:
+        reproduce.append("--allow-unverified-basis")
+    rows = [
+        {
+            "basis": Path(p).name, "features": e["n_features"], "fitted": e["fitted_on"],
+            "ev_train": _percent(e["train"]["explained_variance"]),
+            "ev_test": _percent(e["test"]["explained_variance"]),
+            "active_train": f"{e['train']['mean_active_features']:.2f}",
+            "active_test": f"{e['test']['mean_active_features']:.2f}",
+            "dead_test": _percent(e["test"]["dead_fraction"]),
+            "duplicates": e["redundancy"]["n_near_duplicates"],
+        }
+        for p, e in zip(basis_paths, payload["evaluations"], strict=True)
+    ]  # fmt: skip
+    if rows:
+        click.echo("\n" + _render.table(rows))
+    if "curve" in payload:
+        rows = [
+            {
+                "point": p["label"], "active": f"{p['mean_active_features']:.2f}",
+                "ev_test": _percent(p["explained_variance"]),
+                "pca_there": _percent(p["pca_at_same_sparsity"]),
+            }
+            for p in payload["curve"]["points"]
+        ]  # fmt: skip
+        click.echo("\nheld out, against mean active features\n" + _render.table(rows))
+    if "stability" in payload:
+        s = payload["stability"]
+        click.echo(
+            f"\nstability of {s['n_dictionaries']} bases: {_percent(s['fraction_recurring'])} of "
+            f"matched features at cosine >= {s['threshold']:g} "
+            f"(median {s['matched_similarity']['median']:.3f}; random directions "
+            f"{s['chance_similarity']['median']:.3f})"
+        )
+    click.echo("\nreproduce: " + " ".join(reproduce))
 
 
 __all__ = ["latents"]

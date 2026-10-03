@@ -6,7 +6,7 @@ this repo alongside the guides, as a peer rather than an appendix.
 | Subpackage | Scope |
 | --- | --- |
 | `latents` | [what emulators hold inside](latents.md) |
-| `nn` | torch modules trained on those latents: [sparse autoencoders](nn.md) |
+| `nn` | torch modules trained on those latents: [sparse autoencoders](nn.md), [evaluated held out](evaluation.md) |
 | `figures` | figures, with no web framework in them |
 | `app` | [a local web app](app.md) over `latents` |
 
@@ -165,7 +165,8 @@ Three papers are behind what is here, and behind what comes next. Cite them if y
   ([code](https://github.com/theodoremacmillan/graphcast-interpretability)). Sparse
   autoencoders on GraphCast's node embeddings, and interventions on the features they
   find. The TopK autoencoder in [`nn`](nn.md) is theirs in form; their auxiliary
-  loss for dead features, their held-out evaluation and their steering are not here yet.
+  loss for dead features and their steering are not here yet; held-out
+  [evaluation](evaluation.md) is.
 - [Cheon (2026)](https://arxiv.org/abs/2605.17493), *Beyond Linear Superposition: Discovering Climate Features in AI Weather
   Models with KAN-SAE*. A sparse autoencoder whose ReLU is replaced by a learnable
   B-spline per feature. **Not implemented here yet**: the `bspline` activation in `nn`
@@ -177,5 +178,5 @@ Three papers are behind what is here, and behind what comes next. Cite them if y
       `LatentSource`, on the same `latents.grid`)
 - [ ] `latents`: a GraphCast mesh adapter; the activation exporter as an
       adapter, with a steering hook
-- [ ] `nn`: the B-spline autoencoder as its paper has it, held-out evaluation and an
+- [ ] `nn`: the B-spline autoencoder as its paper has it, an
       auxiliary loss for dead features, steering — in that order ([the list](nn.md#remaining-tasks))

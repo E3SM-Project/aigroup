@@ -11,6 +11,7 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
 | `analysis.py` | one region at one time: ranking, similarity, a decomposition |
 | `samples.py` | many times at once: moments, a global PCA, batches to train on |
 | `through.py` | through time and between runs: series, differences, field correlation |
+| `evaluate.py` | a frozen basis on held-out times: time-block splits, fidelity and sparsity, dead and redundant features, stability across seeds, PCA against a dictionary |
 | `features.py` | a feature without a field in mind: a census of a layer, one feature's profile |
 | `cli.py` | `xaig latents …`, a thin client of the above |
 | `__init__.py` | the public names, re-exported lazily (see the first rule) |
@@ -48,6 +49,12 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   `fitted_on`; a file without one is `unhashed` and needs `allow_unverified_basis`.
   Whatever a client prints to reproduce a result pins both (`--revision`,
   `--basis-sha256`).
+- **A held-out number is of a frozen basis on times it was not fitted on.** Splits are
+  contiguous time blocks with a buffer, never nodes or adjacent steps, and are written into
+  the result as labels. Normalisation, PCA and dictionary are fitted on `split.train` only;
+  `evaluate_basis` refuses a basis whose `fitted_on.times` includes a held-out time, and
+  marks one that says nothing `unknown`. A result is built with `result_provenance`; this
+  package does not train (seeds and sweeps are `nn`'s, handed in as `Dictionary`s).
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
   product. `nn` keeps directions at unit length so that the two agree.

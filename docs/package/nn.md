@@ -88,9 +88,10 @@ the loop's own, taken while the weights were changing.
 
 !!! warning "a toy loop, on purpose"
 
-    Adam, a fixed learning rate, no resampling of dead features, no held-out times. It
-    trains a useful dictionary on a laptop in seconds and says how good it is; making it
-    better is what the modules being separate is for.
+    Adam, a fixed learning rate, no resampling of dead features, and its own metrics are
+    in-sample (the [evaluation](evaluation.md) holds times out). It trains a useful
+    dictionary on a laptop in seconds and says how good it is; making it better is what
+    the modules being separate is for.
 
 Inputs are centred on the layer's area-weighted mean over the times used and divided by
 one number, so a node's vector has unit mean square per channel and the channels keep
@@ -123,6 +124,11 @@ save_basis("sae8.npz", dictionary)
 epoch's batches with the final weights frozen; quote it, and use `training_metrics` only to
 watch a run. A layer with no variance to standardise by (every channel constant) is a
 `RequestError`, not a NaN loss.
+
+`metrics` are in-sample. To score a dictionary on times it was not fitted to, fit it on
+the training side of a split (`fit_sae(..., times=split.train)`) and hand it to
+[the evaluation](evaluation.md). A list of such fits over settings, or over seeds, is what
+`latents.fidelity_curve` and `latents.seed_stability` take.
 
 The modules are plain `nn.Module`s that take and return tensors and know nothing of
 archives, grids or loops, so they can be lifted into any harness:
@@ -164,14 +170,12 @@ In the order we mean to take them, and after whom:
       features alive and dead, mean L1 norm, redundancy between features. Two things its
       text leaves open need an answer first: what a spline does outside its knots, and
       whether the knot vector is extended past the measured range
-- [ ] Held-out times: fit on some, report on others. Every number on this page is in-sample
 - [ ] An auxiliary loss that revives dead features (MacMillan & Ouellette 2025, after
       [Gao et al. 2024](https://arxiv.org/abs/2406.04093)): what has not fired in a long while is made to rebuild the residual
 - [ ] Steering a feature as MacMillan & Ouellette do it: keep the autoencoder's
       reconstruction error, scale one feature's activation, add the error back and let the
       model run on. The [toy emulator](latents.md) can do this in numpy today; a real model
       needs a hook in its exporter
-- [ ] A sweep over `k` and the number of features, for the trade between sparsity and fidelity
 - [ ] A cross-layer transcoder (several decoders on one encoder), and tracing a
       feature to its antecedents in an earlier layer, as Cheon (2026) does by correlation
 - [ ] Features compared across seeds of the ablation campaign
