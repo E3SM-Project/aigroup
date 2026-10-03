@@ -4,8 +4,8 @@ Everything in `xaig` so far *reads*: an adapter hands over activations a model p
 and the package computes on them. A steering experiment asks a different question, "what
 does the model do if this feature is changed?", and answering it means the first time an
 adapter **writes into** the model. This page is the design note for that, written before
-the code and kept as its record, then updated as it shipped. Each section says what is **implemented** and what is
-**planned**.
+the code and kept as its record, then updated as it shipped. Each section says what is
+**implemented** and what is **planned**.
 
 !!! note "status"
     Implemented: the protocol (`Intervenable`, `Hook`, `Intervention`), the runner
@@ -48,7 +48,7 @@ happens to the latents at a point inside it. Three consequences:
    time it is read. A run is the same only if the adapter makes its noise a function of a
    seed it is given, which the paired design below needs.
 
-Proposed protocol (`latents.Intervenable`; its consumers all sit on `latents`, so by the
+The protocol (`latents.Intervenable`; its consumers all sit on `latents`, so by the
 rule in `src/xaig/AGENTS.md` it lives there and moves to `core` only when something
 outside needs it):
 
@@ -82,10 +82,6 @@ returns what it continues with. `Rollout` holds the physical fields each step wr
 `(layer, time)` pairs, taken *after* any hook there. The initial state is opaque to xaig:
 it is whatever the adapter's `initial_state` returned.
 
-Implemented as `xaig.latents.Intervenable`, `Hook` and `Rollout`, with `open_intervenable`
-to reach one through the registry. The factory contract is unchanged; an adapter that reads nothing declares its
-options keyword-only, as the synthetic one does.
-
 ## The four arms
 
 Each is one run from the same initial state, with the same noise.
@@ -118,22 +114,23 @@ depend on what the hooks did (the noise is drawn from the seed, not from the sta
 ## What is measured
 
 - **Latent differences**: per arm, the area-weighted RMS of `latents - control latents`
-  (over nodes and channels) at every recorded `(layer, time)`, so the spread of an edit through the layers and steps is
-  visible, not just its outcome.
+  (over nodes and channels) at every recorded `(layer, time)`, so the spread of an edit
+  through the layers and steps is visible, not just its outcome.
 - **Physical outcomes**: the fields the model writes (`Rollout.fields`), reduced to an
   area-weighted, mask-aware global mean per step. The *response* of an arm is the mean of
   its paired difference over the steps from the first edit on. The feature's `|response|`
   is set against the `|response|` of each random draw.
 
-Nonfinite latents or fields on a valid node, a hook that changes the shape or returns a nonfinite value, and empty
-selections (no seeds, no fields, no steps, no draws) are `RequestError`s, as for every
-other read in the package.
+Nonfinite latents or fields on a valid node, a hook that changes the shape or returns a
+nonfinite value, and empty selections (no seeds, no fields, no steps, no draws) are
+`RequestError`s, as for every other read in the package. An edit never changes a masked
+node.
 
 Implemented: `run_steering` returns a `SteeringResult` holding every `Run` (arm, seed,
 draw, outcome series, latent RMS), every `Pairing` against the control of its seed, and
 an `Effect` per field: the feature's signed response and its standard error across
 seeds, the reconstruction arm's, the random draws', and the feature's `effect_size`,
-`rank` (1 is a larger magnitude than every draw), `percentile` and `p_value` among them.
+`rank` (1 is a larger magnitude than every draw) and `p_value` among them.
 The edit's size is worked out once per seed from the control's latents, so every arm of a
 seed changes the same nodes by the same amounts however the runs drift apart; `scale` and
 `clamp` are therefore relative to the control, not to the arm's own activations.

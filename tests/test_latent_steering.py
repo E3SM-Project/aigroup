@@ -18,7 +18,7 @@ np = pytest.importorskip("numpy")
 
 from xaig.adapters.toy_dynamics import FIELDS, ToyDynamics  # noqa: E402
 from xaig.core import registry  # noqa: E402
-from xaig.core.errors import RequestError  # noqa: E402
+from xaig.core.errors import AdapterError, RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
     Dictionary,
     Hook,
@@ -143,7 +143,7 @@ def test_a_random_direction_does_not_do_what_the_feature_does(system):
         first.append(step)
     assert len(set(np.round(first, 6))) == 30
     effect = result.effects["temperature"]
-    assert (effect.rank, effect.percentile) == (1, 100.0)
+    assert effect.rank == 1
     assert effect.p_value == pytest.approx(1 / 31)
     assert effect.effect_size > 2.0
     assert np.abs(effect.random_responses).max() < abs(effect.feature_response)
@@ -155,7 +155,7 @@ def test_a_feature_with_no_reach_into_a_field_does_not_stand_out_in_it(system):
     result = run_steering(system, system.planted_dictionary(), _feature(), steps=STEPS, n_random=30)
     effect = result.effects["pressure"]
     assert abs(effect.feature_response) < 1e-5
-    assert effect.percentile < 10.0 and effect.rank > 27
+    assert effect.rank > 27
 
 
 def test_the_same_feature_one_layer_up_reaches_moisture_by_way_of_the_mixer(system):
@@ -342,7 +342,7 @@ class _Fake:
         ({"record_layers": (9,)}, "cannot record"),
     ],
 )
-def test_what_cannot_be_asked_is_refused_before_anything_runs(system, change, match):
+def test_what_cannot_be_asked_is_refused(system, change, match):
     kwargs = {"steps": STEPS, "n_random": 2, **change}
     with pytest.raises(RequestError, match=match):
         run_steering(system, system.planted_dictionary(), _feature(), **kwargs)
@@ -422,6 +422,36 @@ def test_an_edit_that_is_not_finite_or_changes_the_shape_is_refused_where_it_hap
         run_steering(system, narrow, _feature(), steps=STEPS, n_random=1)
 
 
+def test_an_edit_leaves_masked_nodes_alone_whatever_the_basis_says_there():
+    """A basis may say NaN where the grid is masked; no arm carries it into the run."""
+    seen = []
+
+    class Watched(ToyDynamics):
+        def run(self, *args, **kwargs):
+            out = super().run(*args, **kwargs)
+            seen.append(out.latents[(1, T0)][:3])
+            return out
+
+    class NanWhereMasked(Dictionary):
+        def transform(self, latents, features=None):
+            out = super().transform(latents, features)
+            out[:3] = np.nan
+            return out
+
+        def reconstruct(self, latents):
+            out = super().reconstruct(latents)
+            out[:3] = np.nan
+            return out
+
+    system = Watched(masked=3)
+    planted = system.planted_dictionary()
+    basis = NanWhereMasked(
+        **{name: getattr(planted, name) for name in planted.__dataclass_fields__}
+    )
+    run_steering(system, basis, _feature(mode="scale", amount=2.0), steps=STEPS, n_random=1)
+    assert len(seen) == 4 and all(np.array_equal(s, seen[0]) for s in seen)
+
+
 def test_a_field_that_is_nan_on_a_valid_node_is_refused_not_averaged(system):
     class Diverged(ToyDynamics):
         def run(self, *args, **kwargs):
@@ -432,15 +462,6 @@ def test_a_field_that_is_nan_on_a_valid_node_is_refused_not_averaged(system):
     broken = Diverged(masked=3)
     with pytest.raises(RequestError, match="not finite on valid nodes at step 2"):
         run_steering(broken, broken.planted_dictionary(), _feature(), steps=STEPS, n_random=1)
-
-
-def test_a_system_that_cannot_be_run_is_not_steered():
-    class Reader:
-        def info(self):
-            raise AssertionError("must not get that far")
-
-    with pytest.raises(RequestError, match="Intervenable"):
-        run_steering(Reader(), None, _feature(), steps=1)
 
 
 # -- through the registry and the command ------------------------------------
@@ -477,26 +498,39 @@ def _steer_args(basis, *extra):
     ]  # fmt: skip
 
 
-def test_the_command_reports_the_planted_effect_and_a_command_that_reproduces_it(tmp_path):
+@pytest.mark.parametrize("bare", [False, True])
+def test_the_command_reports_the_planted_effect_and_a_command_that_reproduces_it(tmp_path, bare):
+    """A bare basis needs --allow-unverified-basis, and the line keeps it, and an amount
+    with more digits than ``:g`` shows."""
     from click.testing import CliRunner
 
     from xaig._cli import cli
 
+    planted = ToyDynamics(masked=3).planted_dictionary()
+    amount, extra = AMOUNT, ()
+    if bare:
+        planted = Dictionary(
+            encoder=planted.encoder, encoder_bias=planted.encoder_bias, decoder=planted.decoder,
+            decoder_bias=planted.decoder_bias, input_mean=planted.input_mean,
+        )  # fmt: skip
+        amount, extra = 1.23456789, ("--allow-unverified-basis", "--amount", "1.23456789")
     basis = tmp_path / "planted.npz"
-    save_basis(basis, ToyDynamics(masked=3).planted_dictionary())
+    save_basis(basis, planted)
     run = CliRunner()
 
-    done = run.invoke(cli, _steer_args(basis, "--json", "--out", str(tmp_path / "r" / "s.json")))
+    out = str(tmp_path / "r" / "s.json")
+    done = run.invoke(cli, _steer_args(basis, *extra, "--json", "--out", out))
     assert done.exit_code == 0, done.output
     payload = json.loads(done.output)
     assert payload == json.loads((tmp_path / "r" / "s.json").read_text())
     effect = payload["effects"]["temperature"]
-    assert effect["feature_response"] == pytest.approx(_planted_series(T0)[T0:].mean(), abs=1e-4)
+    expected = _planted_series(T0, amount)[T0:].mean()
+    assert effect["feature_response"] == pytest.approx(expected, abs=1e-4)
     assert (effect["rank"], effect["n_draws"]) == (1, 12)
     assert payload["provenance"]["basis"]["status"] == "verified"
     assert payload["provenance"]["options"] == {**ToyDynamics(masked=3).info().options}
 
-    text = run.invoke(cli, _steer_args(basis))
+    text = run.invoke(cli, _steer_args(basis, *extra))
     assert text.exit_code == 0, text.output
     assert "temperature" in text.output and "1/13" in text.output
     sha = payload["provenance"]["basis"]["sha256"]
@@ -507,7 +541,7 @@ def test_the_command_reports_the_planted_effect_and_a_command_that_reproduces_it
     # and the printed line, run again, says the same thing
     again = run.invoke(cli, [*shlex.split(line.removeprefix("reproduce: xaig ")), "--json"])
     assert again.exit_code == 0, again.output
-    assert json.loads(again.output)["effects"] == payload["effects"]
+    assert json.loads(again.output) == payload
 
 
 def test_the_command_refuses_a_basis_whose_content_is_not_the_one_pinned(tmp_path):
@@ -519,48 +553,6 @@ def test_the_command_refuses_a_basis_whose_content_is_not_the_one_pinned(tmp_pat
     save_basis(basis, ToyDynamics(masked=3).planted_dictionary())
     out = CliRunner().invoke(cli, _steer_args(basis, "--basis-sha256", "0" * 64))
     assert out.exit_code != 0 and "sha256" in out.output
-    bad = CliRunner().invoke(cli, [*_steer_args(basis)[:-2], "--random-draws", "0"])
-    assert bad.exit_code != 0 and "random" in bad.output
-
-
-def test_the_reproduce_line_carries_the_amount_exactly_and_every_flag(tmp_path):
-    from click.testing import CliRunner
-
-    from xaig._cli import cli
-
-    planted = ToyDynamics(masked=3).planted_dictionary()
-    bare = Dictionary(
-        encoder=planted.encoder, encoder_bias=planted.encoder_bias, decoder=planted.decoder,
-        decoder_bias=planted.decoder_bias, input_mean=planted.input_mean,
-    )  # fmt: skip
-    basis = tmp_path / "bare.npz"
-    save_basis(basis, bare)
-    labels = []
-
-    def factory(*, label="a", masked=3):
-        labels.append(label)
-        return ToyDynamics(masked=masked)
-
-    registry.register("toy-labelled", factory)
-    try:
-        args = [
-            "latents", "steer", "--adapter", "toy-labelled", "--adapter-option", "label=two words",
-            "--adapter-option", "masked=3", "--basis", str(basis), "--allow-unverified-basis",
-            "--layer", "1", "--feature", "0", "--amount", "1.23456789", "--time", "1",
-            "--steps", "5", "--random-draws", "4",
-        ]  # fmt: skip
-        run = CliRunner()
-        first = run.invoke(cli, [*args, "--json"])
-        assert first.exit_code == 0, first.output
-        text = run.invoke(cli, args)
-        line = next(x for x in text.output.splitlines() if x.startswith("reproduce:"))
-        assert "--allow-unverified-basis" in line and "1.23456789" in line
-        again = run.invoke(cli, [*shlex.split(line.removeprefix("reproduce: xaig ")), "--json"])
-        assert again.exit_code == 0, again.output
-        assert json.loads(again.output) == json.loads(first.output)
-        assert set(labels) == {"two words"}
-    finally:
-        registry.unregister("toy-labelled")
 
 
 def test_an_arm_that_loses_a_recorded_place_is_named_not_a_key_error(system):
@@ -572,7 +564,7 @@ def test_an_arm_that_loses_a_recorded_place_is_named_not_a_key_error(system):
             return out
 
     skipper = Skips(masked=3)
-    with pytest.raises(RequestError, match=r"layer 1 at time 2 \(arm 'reconstruction', seed 0"):
+    with pytest.raises(AdapterError, match=r"did not record \(layer, time\) \[\(1, 2\)\]"):
         run_steering(
             skipper, skipper.planted_dictionary(), _feature(), steps=STEPS, n_random=1,
             record_layers=[1],

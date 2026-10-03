@@ -1048,14 +1048,14 @@ def steer_cmd(
             "recon_only": f"{e.reconstruction_response:.4g}",
             "random_|resp|": f"{float(abs(e.random_responses).mean()):.4g}",
             "effect_size": "-" if e.effect_size is None else f"{e.effect_size:.2f}",
-            "rank": f"{e.rank}/{e.random_responses.size + 1}", "percentile": f"{e.percentile:.0f}",
+            "rank": f"{e.rank}/{e.random_responses.size + 1}", "p": f"{e.p_value:.2g}",
         }
         for name, e in result.effects.items()
     ]  # fmt: skip
     click.echo("\n" + _render.table(rows))
     provenance = result.provenance
     pinned = ["xaig", "latents", "steer"] + ([shlex.quote(source)] if source else [])
-    pinned += ["--adapter", adapter]
+    pinned.append(f"--adapter {shlex.quote(adapter)}")
     for key, value in options.items():
         pinned.append(f"--adapter-option {shlex.quote(f'{key}={json.dumps(value)}')}")
     pinned += [f"--basis {shlex.quote(basis_path)}"]
@@ -1066,7 +1066,7 @@ def steer_cmd(
     pinned += [f"--time {t}" for t in spec["intervention"]["times"]]
     pinned += [f"--steps {steps}", f"--seeds {','.join(map(str, spec['seeds']))}"]
     pinned += [f"--random-draws {random_draws}", f"--random-seed {random_seed}"]
-    pinned += [f"--field {name}" for name in fields]
+    pinned += [f"--field {shlex.quote(name)}" for name in fields]
     pinned += [f"--record-layer {r}" for r in record_layers]
     click.echo(f"\nreproduce: {' '.join(pinned)}")
 

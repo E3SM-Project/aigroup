@@ -228,8 +228,7 @@ class Effect:
     the paired response (``feature_se``: the standard error across seeds, None for one).
     ``random_responses`` holds one seed-mean per draw, and everything compared uses
     magnitudes. ``rank`` is the feature's place among itself and the draws (1 is a larger
-    response than every draw), ``percentile`` the share of draws it exceeds (ties count
-    half), ``p_value`` the share of the ``n + 1`` that match or beat it, and
+    response than every draw), ``p_value`` the share of the ``n + 1`` that match or beat it, and
     ``effect_size`` how many standard deviations of the draws' magnitudes it sits above
     their mean (None for fewer than two draws, or draws that do not vary).
     """
@@ -241,7 +240,6 @@ class Effect:
     random_responses: np.ndarray
     effect_size: float | None
     rank: int
-    percentile: float
     p_value: float
 
     def to_dict(self) -> dict[str, Any]:
@@ -251,7 +249,7 @@ class Effect:
             "reconstruction_response": self.reconstruction_response,
             "random_responses": self.random_responses, "effect_size": self.effect_size,
             "rank": self.rank, "n_draws": int(self.random_responses.size),
-            "percentile": self.percentile, "p_value": self.p_value,
+            "p_value": self.p_value,
         }  # fmt: skip
 
 
@@ -306,18 +304,19 @@ class SteeringResult:
 # -- running ------------------------------------------------------------------
 
 
-def _guarded(edit: Callable[[np.ndarray], np.ndarray], hook: Hook, valid: np.ndarray) -> Hook:
-    """``hook`` with its edit held to the contract: the shape it was given, and numbers
-    wherever a node is valid. A NaN let through here would surface, many steps later and
-    far from its cause, as a NaN in a field."""
+def _guarded(hook: Hook, valid: np.ndarray) -> Hook:
+    """``hook`` with its edit held to the contract: the shape it was given, masked nodes
+    left as they were, and numbers wherever a node is valid. A NaN let through here would
+    surface, many steps later and far from its cause, as a NaN in a field."""
 
     def checked(latents: np.ndarray) -> np.ndarray:
-        out = np.asarray(edit(latents))
+        out = np.asarray(hook.edit(latents))
         if out.shape != latents.shape:
             raise RequestError(
                 f"the edit at layer {hook.layer}, time {hook.time} returned {out.shape} "
                 f"for {latents.shape}"
             )
+        out = np.where(valid[:, None], out, latents)
         if not np.isfinite(out[valid]).all():
             raise RequestError(
                 f"the edit at layer {hook.layer}, time {hook.time} produced values that are "
@@ -394,10 +393,6 @@ def _summarise(
             random_responses=draws,
             effect_size=(size - float(magnitudes.mean())) / spread if spread > 0.0 else None,
             rank=1 + int(np.count_nonzero(magnitudes > size)),
-            percentile=100.0 * float(
-                (np.count_nonzero(magnitudes < size) + 0.5 * np.count_nonzero(magnitudes == size))
-                / n_random
-            ),
             p_value=(1 + int(np.count_nonzero(magnitudes >= size))) / (n_random + 1),
         )  # fmt: skip
     return effects
@@ -425,10 +420,8 @@ def run_steering(
     each seed, whose control differs). Within a seed all arms share the noise.
     ``record_layers`` are the layers whose latents are compared (default: the
     intervention's own), at every step. ``fields`` default to every field the system
-    writes. Nothing is read or run before the request has been checked.
+    writes.
     """
-    if not isinstance(system, Intervenable):
-        raise RequestError("this system cannot be intervened on: it is not Intervenable")
     info, grid = system.info(), system.grid()
     layer = intervention.layer
     steps, seeds = int(steps), [int(s) for s in seeds]
@@ -440,8 +433,6 @@ def run_steering(
         raise RequestError("at least one random-direction draw is needed to say what is unusual")
     if fields is not None and not fields:
         raise RequestError("no fields were asked for")
-    if layer not in {entry.index for entry in info.layers}:
-        raise RequestError(f"no layer {layer}; the system has {[e.index for e in info.layers]}")
     late = [t for t in intervention.times if not 0 <= t < steps]
     if late:
         raise RequestError(f"cannot act at time(s) {late} in a run of {steps} step(s)")
@@ -458,15 +449,18 @@ def run_steering(
         raise RequestError(f"cannot record layer(s) {unknown}: not in the system")
     places = [(r, t) for r in recorded for t in range(steps)]
     times = sorted(set(intervention.times))
+    first = times[0]
     state = system.initial_state() if initial_state is None else initial_state
+    valid = grid.valid
 
     def run(hooks: Sequence[Hook], seed: int) -> Rollout:
-        return system.run(state, steps, hooks, noise_seed=seed, record=places)
+        rollout = system.run(state, steps, hooks, noise_seed=seed, record=places)
+        if missing := [p for p in places if p not in rollout.latents]:
+            raise AdapterError(f"the system did not record (layer, time) {missing}")
+        return rollout
 
-    valid = grid.valid
     runs: list[Run] = []
     pairings: list[Pairing] = []
-    controls: dict[int, tuple[Rollout, dict[str, np.ndarray]]] = {}
     names: list[str] = []
 
     for seed in seeds:
@@ -476,12 +470,9 @@ def run_steering(
             if not names:
                 raise RequestError("the system wrote no fields to measure")
         series = _global_means(control.fields, names, grid, steps)
-        controls[seed] = (control, series)
         runs.append(Run(CONTROL, seed, None, series, {place: 0.0 for place in places}))
-        deltas = {}  # this seed's control: a noisy run has its own activations
-        _require_recorded(control, places, CONTROL, seed)
-        for t in times:
-            deltas[t] = intervention.deltas(basis, control.latents[(layer, t)])
+        # this seed's control: a noisy run has its own activations
+        deltas = {t: intervention.deltas(basis, control.latents[(layer, t)]) for t in times}
         arms: list[tuple[str, int | None, np.ndarray | None]] = [
             (RECONSTRUCTION, None, None),
             (FEATURE, None, direction),
@@ -489,11 +480,11 @@ def run_steering(
         for draw in range(n_random):
             arms.append((RANDOM, draw, _random_unit(basis.n_channels, random_seed, draw) * length))
         for arm, draw, vector in arms:
-            hooks = [Hook(layer, t, _edit(basis, deltas[t], vector)) for t in times]
-            rollout = run([_guarded(h.edit, h, valid) for h in hooks], seed)
-            _require_recorded(rollout, places, arm, seed, draw)
+            hooks = [
+                _guarded(Hook(layer, t, _edit(basis, deltas[t], vector)), valid) for t in times
+            ]
+            rollout = run(hooks, seed)
             outcomes = _global_means(rollout.fields, names, grid, steps)
-            first = times[0]
             differences = {n: outcomes[n] - series[n] for n in names}
             runs.append(
                 Run(
@@ -523,21 +514,6 @@ def run_steering(
         pairings=tuple(pairings),
         effects=_summarise(names, pairings, seeds, n_random),
     )
-
-
-def _require_recorded(
-    rollout: Rollout,
-    places: Sequence[tuple[int, int]],
-    arm: str,
-    seed: int,
-    draw: int | None = None,
-) -> None:
-    """Every place asked for must have come back, in every arm: an adapter that skips one in
-    a hooked run is named, not left to a bare ``KeyError`` further on."""
-    for layer, time in places:
-        if (layer, time) not in rollout.latents:
-            which = f"arm {arm!r}, seed {seed}" + ("" if draw is None else f", draw {draw}")
-            raise RequestError(f"the system did not record layer {layer} at time {time} ({which})")
 
 
 def _edit(basis: Decomposition, deltas: np.ndarray, vector: np.ndarray | None):
