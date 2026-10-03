@@ -88,10 +88,10 @@ the loop's own, taken while the weights were changing.
 
 !!! warning "a toy loop, on purpose"
 
-    Adam, a fixed learning rate, no resampling of dead features, and its own metrics are in-sample (the
-    [evaluation](evaluation.md) holds times out). It
-    trains a useful dictionary on a laptop in seconds and says how good it is; making it
-    better is what the modules being separate is for.
+    Adam, a fixed learning rate, no resampling of dead features, and its own metrics are
+    in-sample (the [evaluation](evaluation.md) holds times out). It trains a useful
+    dictionary on a laptop in seconds and says how good it is; making it better is what
+    the modules being separate is for.
 
 Inputs are centred on the layer's area-weighted mean over the times used and divided by
 one number, so a node's vector has unit mean square per channel and the channels keep
@@ -127,9 +127,8 @@ watch a run. A layer with no variance to standardise by (every channel constant)
 
 `metrics` are in-sample. To score a dictionary on times it was not fitted to, fit it on
 the training side of a split (`fit_sae(..., times=split.train)`) and hand it to
-[the evaluation](evaluation.md). `fit_sweep(source, [{"k": 8}, {"k": 32}], **fit)` trains one
-dictionary per setting, and `fit_seeds(source, [0, 1, 2], **fit)` the same one under several
-seeds: the inputs of `latents.fidelity_curve` and `latents.seed_stability`.
+[the evaluation](evaluation.md). A list of such fits over settings, or over seeds, is what
+`latents.fidelity_curve` and `latents.seed_stability` take.
 
 The modules are plain `nn.Module`s that take and return tensors and know nothing of
 archives, grids or loops, so they can be lifted into any harness:

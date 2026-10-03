@@ -64,12 +64,9 @@ features active rebuilds 93% of a held-out layer where two principal components 
 Nothing is hidden by the training columns being higher: that gap is what a held-out
 split is for. `--out FILE` (and `--json`) write all of it with its provenance.
 
-**Pinning what was scored.** Each `--basis` may be followed by a `--basis-sha256 HASH` (the
-`xaig nn sae` and `latents pca` commands print it when they write a file): give one per
-`--basis`, matched by position, or none; a different count is refused, and a file whose
-content has another hash is refused when it is loaded. The command ends with a
-`reproduce:` line that repeats the whole invocation with the hash of every basis scored,
-so a reader can assert which file produced a table.
+**Pinning what was scored.** Give one `--basis-sha256 HASH` per `--basis`, in the same
+order, or none; a file whose content has another hash is refused. The command ends with a
+`reproduce:` line that repeats the invocation with the hash of every basis it scored.
 
 ## What each number tells you, and what it does not
 
@@ -84,11 +81,8 @@ number is undefined and the JSON says `null`.
 
 **Sparsity** is the area-weighted mean number of features active at a node, and `l0_fraction`
 that over the width. *Active* means an activation of magnitude above `--active-above`
-(zero: anything at all). A relu or top-k dictionary writes exact zeros, but float32
-arithmetic leaves 1e-8 where a feature is "off" in a rotated frame, so a threshold of
-1e-4 is the honest setting for a hand-built fixture; for a trained one, read the
-`firing_rate` summary before choosing. A PCA has every component active wherever its score
-clears the threshold, so its sparsity is its rank.
+(zero: anything at all); read the `firing_rate` summary before choosing. A PCA has every
+component active wherever its score clears the threshold, so its sparsity is its rank.
 
 **Dead features** never exceed the threshold at any valid node of that side. On a short
 held-out stretch a feature can be dead for want of an occasion: `dormant` lists those
@@ -112,20 +106,11 @@ matched cosines and the share at or above `--recur-above`. Read it against
 unrelated unit vectors in few channels find high cosines by luck. On the toy, two seeds of
 the same dictionary (`--seed 0` and `--seed 1` of the `xaig nn sae` command above, `--k 4`)
 give a median matched cosine of 0.585 where random directions give 0.488 (chance), so the
-real seeds are only a little above chance and 6.2% of their features recur at 0.9:
-
-```console
-$ xaig latents evaluate scratch/ev/control --blocks 4 \
-    --basis scratch/ev/seed0.npz --basis scratch/ev/seed1.npz --stability
-...
-stability of 2 bases: 6.2% of matched features at cosine >= 0.9 (median 0.585; random directions 0.488)
-```
-
-The bases must say they were
-fitted to one place in one network, and `same_training_times` says whether they saw the
-same data. A feature that does not recur may still be a good one: a dictionary has many
-equally good bases, and a seed that finds another is not a failure. A feature that does
-recur is not thereby *right*, only reproducible.
+real seeds are only a little above chance and 6.2% of their features recur at 0.9. The
+bases must say they were fitted to one place in one network, and `same_training_times`
+says whether they saw the same data. A feature that does not recur may still be a good
+one: a dictionary has many equally good bases, and a seed that finds another is not a
+failure. A feature that does recur is not thereby *right*, only reproducible.
 
 **The fidelity-sparsity curve** (`fidelity_curve`, `--pca`) puts a PCA at each `k` (fitted
 here, on the training times) beside the dictionaries you supply, as held-out explained
@@ -146,17 +131,17 @@ from xaig.latents import (
     seed_stability,
     split_time_blocks,
 )
-from xaig.nn.train import fit_seeds, fit_sweep
+from xaig.nn.train import fit_sae
 
 source = open_source("latents/atmosphere")
 split = split_time_blocks(source.info().times, n_blocks=5, test_blocks=[-1], gap=1)
 
 fit = dict(layer=8, n_features=4096, activation="topk", times=list(split.train))
-sweep = fit_sweep(source, [{"k": 8}, {"k": 32}, {"k": 128}], **fit)
+sweep = [fit_sae(source, k=k, **fit) for k in (8, 32, 128)]
 curve = fidelity_curve(source, split, layer=8, pca_components=[8, 32, 128, 384], dictionaries=sweep)
 save_result("curve.json", curve)
 
-seeds = fit_seeds(source, [0, 1, 2], k=32, **fit)
+seeds = [fit_sae(source, k=32, seed=seed, **fit) for seed in (0, 1, 2)]
 seed_stability(seeds).fraction_recurring
 evaluate_basis(seeds[0], source, split, layer=8).test.explained_variance
 ```

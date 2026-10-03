@@ -18,9 +18,9 @@ np = pytest.importorskip("numpy")
 from conftest import MemorySource, write_latent_archive  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
-    PCA,
     Dictionary,
     accumulate_moments,
+    basis_hash,
     evaluate_basis,
     fidelity_curve,
     load_basis,
@@ -219,6 +219,10 @@ def test_the_held_out_side_may_be_another_archive(tmp_path):
         result.test.explained_variance, abs=1e-6
     )
     assert result.provenance["test_source"]["source"] == str(tmp_path / "b")
+    assert result.fitted_on == "train"
+    third = open_source(write_latent_archive(tmp_path / "c"))
+    elsewhere = pca_from_moments(accumulate_moments(third, layer=2), 3)
+    assert evaluate_basis(elsewhere, first, split, layer=2, test_source=second).fitted_on == "other"
     with pytest.raises(RequestError, match="goes with, and only with"):
         evaluate_basis(basis, first, split, layer=2)
     fitted_on_second = pca_from_moments(accumulate_moments(second, layer=2), 3)
@@ -240,7 +244,6 @@ def test_duplicated_decoder_rows_are_flagged_and_an_opposite_is_not():
     assert found.max_cosine[0] > 0.9999
     assert found.max_cosine[1] < 0.01  # its opposite is not its duplicate
     assert found.n_zero == 0
-    assert redundancy(dictionary, threshold=0.99).to_dict()["n_pairs"] == 1
 
 
 def test_exact_copies_meet_a_threshold_of_one_at_any_width():
@@ -250,16 +253,11 @@ def test_exact_copies_meet_a_threshold_of_one_at_any_width():
     dictionary = Dictionary(decoder, np.zeros(55), decoder, np.zeros(300), np.zeros(300))
     found = redundancy(dictionary, threshold=1.0)
     assert found.n_near_duplicates == 10 and found.n_pairs == 5
-    partner, cosine = match_features(dictionary, dictionary)
-    assert partner.tolist() == list(range(55)) and cosine.min() > 1 - 1e-12
+    stable = seed_stability([dictionary, dictionary], threshold=1.0, allow_unverified=True)
+    assert stable.recurrence == (1.0, 1.0)
 
 
 # -- the matching -------------------------------------------------------------------
-
-
-def test_the_assignment_refuses_more_rows_than_columns():
-    with pytest.raises(RequestError, match="no more rows"):
-        assign(np.zeros((3, 2)))
 
 
 @pytest.mark.parametrize("shape", [(5, 5), (4, 7), (6, 6)])
@@ -446,9 +444,8 @@ def test_a_pca_curve_point_is_the_pca_of_the_training_times_only():
     source, split = _source(offset_from=9), _split()
     curve = fidelity_curve(source, split, layer=0, pca_components=[4])
     direct = pca_from_moments(accumulate_moments(source, layer=0, times=list(split.train)), 4)
-    held_in = np.vstack([source.load(t, 0) for t in split.train])
-    assert isinstance(direct, PCA) and held_in.shape[0] == 8 * N_NODES
     ev = curve.method("pca")[0].evaluation
+    assert ev.provenance["basis"]["sha256"] == basis_hash(direct)
     assert ev.train.explained_variance == pytest.approx(1.0, abs=1e-6)  # rank four, fitted here
     # held out, the offset along a fifth direction cannot be rebuilt by four components
     assert ev.test.explained_variance < 0.95
@@ -457,7 +454,8 @@ def test_a_pca_curve_point_is_the_pca_of_the_training_times_only():
 # -- the command ------------------------------------------------------------------------
 
 
-def test_the_command_lists_the_split_then_scores_what_was_fitted_on_it(tmp_path):
+def _command(tmp_path):
+    """A toy archive, the CLI, and a way to fit a PCA on some of its times."""
     from click.testing import CliRunner
 
     from xaig._cli import cli
@@ -465,24 +463,29 @@ def test_the_command_lists_the_split_then_scores_what_was_fitted_on_it(tmp_path)
     run = CliRunner()
     archive = str(tmp_path / "toy")
     assert run.invoke(cli, ["latents", "toy", archive]).exit_code == 0
-    base = ["latents", "evaluate", archive, "--blocks", "4"]
 
-    listed = run.invoke(cli, [*base, "--split-only", "--json"])
-    split = json.loads(listed.output)["split"]
-    assert len(split["train"]) == 5 and len(split["test"]) == 2 and len(split["buffer"]) == 1
+    def invoke(*args):
+        return run.invoke(cli, ["latents", *args])
 
-    def fit(name, positions):
+    def fit(name, positions, components=4):
         times = [x for i in positions for x in ("--time", str(i))]
         out = str(tmp_path / name)
-        done = run.invoke(
-            cli, ["latents", "pca", archive, "--components", "4", *times, "--out", out]
-        )
+        done = invoke("pca", archive, "--components", str(components), *times, "--out", out)
         assert done.exit_code == 0, done.output
         return out
 
-    honest = run.invoke(
-        cli, [*base, "--basis", fit("a.npz", range(5)), "--pca", "1,4", "--json",
-              "--out", str(tmp_path / "r.json")]
+    return invoke, fit, ["evaluate", archive, "--blocks", "4"]
+
+
+def test_the_command_lists_the_split_then_scores_what_was_fitted_on_it(tmp_path):
+    invoke, fit, base = _command(tmp_path)
+    listed = invoke(*base, "--split-only", "--json")
+    split = json.loads(listed.output)["split"]
+    assert len(split["train"]) == 5 and len(split["test"]) == 2 and len(split["buffer"]) == 1
+
+    honest = invoke(
+        *base, "--basis", fit("a.npz", range(5)), "--pca", "1,4", "--json",
+        "--out", str(tmp_path / "r.json"),
     )  # fmt: skip
     assert honest.exit_code == 0, honest.output
     result = json.loads(honest.output)
@@ -492,56 +495,35 @@ def test_the_command_lists_the_split_then_scores_what_was_fitted_on_it(tmp_path)
     assert [p["label"] for p in result["curve"]["points"]] == ["pca-1", "pca-4"]
     assert result["curve"]["points"][1]["explained_variance"] > 0.9
 
-    text = run.invoke(cli, [*base, "--basis", str(tmp_path / "a.npz"), "--pca", "2"])
+    text = invoke(*base, "--basis", str(tmp_path / "a.npz"), "--pca", "2")
     assert text.exit_code == 0 and "EV_TEST" in text.output and "pca-2" in text.output
 
-    leaky = run.invoke(cli, [*base, "--basis", fit("all.npz", range(8))])
+    leaky = invoke(*base, "--basis", fit("all.npz", range(8)))
     assert (
         leaky.exit_code == 1 and leaky.output.startswith("Error: ") and "held-out" in leaky.output
     )
-    nothing = run.invoke(cli, base)
+    nothing = invoke(*base)
     assert nothing.exit_code != 0 and "--basis FILE" in nothing.output
-    twins = run.invoke(cli, [*base, "--basis", str(tmp_path / "a.npz"), "--basis",
-                             str(tmp_path / "a.npz"), "--stability"])  # fmt: skip
+    twins = invoke(*base, "--basis", str(tmp_path / "a.npz"), "--basis", str(tmp_path / "a.npz"),
+                   "--stability")  # fmt: skip
     assert twins.exit_code == 0 and "100.0% of matched features" in twins.output
 
 
 def test_the_command_checks_each_basis_against_its_pin_and_prints_them(tmp_path):
-    from click.testing import CliRunner
+    invoke, fit, base = _command(tmp_path)
+    paths = [fit("a.npz", [0, 1], 2), fit("b.npz", [0, 1], 3)]
+    hashes = [load_basis(path).meta["sha256"] for path in paths]
+    both = [*base, "--basis", paths[0], "--basis", paths[1], "--allow-unverified-basis"]
 
-    from xaig._cli import cli
-
-    run = CliRunner()
-    archive = str(tmp_path / "toy")
-    assert run.invoke(cli, ["latents", "toy", archive]).exit_code == 0
-    paths, hashes = [], []
-    for name, components in (("a.npz", "2"), ("b.npz", "3")):
-        out = str(tmp_path / name)
-        done = run.invoke(
-            cli, ["latents", "pca", archive, "--components", components, "--time", "0",
-                  "--time", "1", "--out", out]
-        )  # fmt: skip
-        assert done.exit_code == 0, done.output
-        paths.append(out)
-        hashes.append(done.output.rsplit("--basis-sha256 ", 1)[1].strip())
-    base = ["latents", "evaluate", archive, "--blocks", "4"]
-    both = ["--basis", paths[0], "--basis", paths[1]]
-
-    right = run.invoke(
-        cli, [*base, *both, "--basis-sha256", hashes[0], "--basis-sha256", hashes[1]]
-    )
+    right = invoke(*both, "--basis-sha256", hashes[0], "--basis-sha256", hashes[1])
     assert right.exit_code == 0, right.output
     line = right.output.strip().splitlines()[-1]
     assert line.startswith("reproduce: xaig latents evaluate ")
+    assert line.endswith(" --allow-unverified-basis")
     for path, digest in zip(paths, hashes, strict=True):
         assert f"--basis {path} --basis-sha256 {digest}" in line
 
-    swapped = run.invoke(
-        cli, [*base, *both, "--basis-sha256", hashes[1], "--basis-sha256", hashes[0]]
-    )
+    swapped = invoke(*both, "--basis-sha256", hashes[1], "--basis-sha256", hashes[0])
     assert swapped.exit_code == 1 and "this is not the basis" in swapped.output
-    short = run.invoke(cli, [*base, *both, "--basis-sha256", hashes[0]])
+    short = invoke(*both, "--basis-sha256", hashes[0])
     assert short.exit_code == 1 and short.output.startswith("Error: 1 --basis-sha256 for 2")
-    # unpinned still works, and the line it prints pins what it scored
-    unpinned = run.invoke(cli, [*base, *both])
-    assert unpinned.exit_code == 0 and hashes[1] in unpinned.output

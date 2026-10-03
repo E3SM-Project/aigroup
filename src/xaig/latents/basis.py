@@ -355,11 +355,8 @@ class Dictionary:
         for a transcoder."""
         mean = self.input_mean if self.output_mean is None else self.output_mean
         scale = self.input_scale if self.output_scale is None else self.output_scale
-        out = np.empty((np.shape(active)[0], self.decoder.shape[1]), dtype=np.float32)
-        for start in range(0, out.shape[0], _BLOCK):
-            block = np.asarray(active[start : start + _BLOCK]).astype(np.float32)
-            out[start : start + _BLOCK] = (block @ self.decoder + self.decoder_bias) * scale
-        return out + mean.astype(np.float32)
+        out = (np.asarray(active, dtype=np.float32) @ self.decoder + self.decoder_bias) * scale
+        return out.astype(np.float32) + mean.astype(np.float32)
 
     def reconstruct(self, latents: np.ndarray) -> np.ndarray:
         """What the dictionary makes of ``latents``, back in the units of the layer

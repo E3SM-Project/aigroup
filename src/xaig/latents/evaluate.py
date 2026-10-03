@@ -382,11 +382,11 @@ class Redundancy:
         }
 
 
-_ROUNDING = 1e-9  # a copy's cosine is 1 only to within float64 rounding
+_ROUNDING = 1e-6  # a copy's cosine is 1 only to within float32 rounding
 
 
 def _unit_rows(directions: np.ndarray) -> tuple[np.ndarray, int]:
-    rows = np.asarray(directions, dtype=np.float64)  # float32 puts a copy's cosine under 1
+    rows = np.asarray(directions, dtype=np.float32)
     norm = np.linalg.norm(rows, axis=1, keepdims=True)
     return np.divide(rows, norm, out=np.zeros_like(rows), where=norm > 0.0), int(
         np.count_nonzero(norm == 0.0)
@@ -429,9 +429,9 @@ class Evaluation:
     """A frozen basis, measured on the times it was fitted on and the times it was not.
 
     ``fitted_on`` says how the basis relates to the split: ``"train"`` (it was fitted on
-    exactly the training times), ``"other"`` (on other times, none of them held out) or
-    ``"unknown"`` (it does not say, so the split cannot vouch that the test is held
-    out).
+    exactly the training times, or the training archive), ``"other"`` (on other times or
+    another archive, none of them held out) or ``"unknown"`` (it does not say, so the
+    split cannot vouch that the test is held out).
     """
 
     kind: str
@@ -467,7 +467,7 @@ class Evaluation:
         }
 
 
-def _check_leak(basis: Decomposition, split: Split) -> str:
+def _check_leak(basis: Decomposition, split: Split, source: str) -> str:
     """How the basis relates to the split, or a ``RequestError`` if it saw the held-out
     side. Said by the basis's own record, which is all there is to go on."""
     fitted = basis.meta.get("fitted_on") or {}
@@ -478,7 +478,9 @@ def _check_leak(basis: Decomposition, split: Split) -> str:
             raise RequestError(
                 f"the basis was fitted on {from_source}, which is the held-out archive"
             )
-        return "train" if from_source is not None else "unknown"
+        if from_source is None:
+            return "unknown"
+        return "train" if from_source == source else "other"
     if seen is None:
         return "unknown"
     leaked = sorted(set(map(str, seen)) & set(split.test))
@@ -513,7 +515,7 @@ def evaluate_basis(
     info = source.info()
     check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
     target_layer = _target_layer(basis, target_layer)
-    fitted_on = _check_leak(basis, split)
+    fitted_on = _check_leak(basis, split, info.source)
     provenance = result_provenance(info, basis=basis)
     if test_source is not None:
         provenance["test_source"] = result_provenance(test_source.info())
@@ -542,7 +544,7 @@ def assign(cost: np.ndarray) -> np.ndarray:
     cost = np.asarray(cost, dtype=np.float64)
     n, m = cost.shape
     if n > m:
-        raise RequestError("assign wants no more rows than columns")
+        raise ValueError("assign wants no more rows than columns")
     u, v = np.zeros(n + 1), np.zeros(m + 1)
     owner, way = np.zeros(m + 1, dtype=np.intp), np.zeros(m + 1, dtype=np.intp)
     for row in range(1, n + 1):
@@ -589,8 +591,8 @@ def _best_match(ua: np.ndarray, ub: np.ndarray) -> tuple[np.ndarray, np.ndarray]
             f"cannot match {ua.shape[0]}x{ua.shape[1]} to {ub.shape[0]}x{ub.shape[1]}"
         )
     cosine = ua @ ub.T
-    partner = assign(-cosine.astype(np.float64))
-    return partner, cosine[np.arange(ua.shape[0]), partner].astype(np.float64)
+    partner = assign(-cosine)
+    return partner, cosine[np.arange(ua.shape[0]), partner]
 
 
 @dataclass(frozen=True, eq=False)
@@ -619,7 +621,7 @@ class Stability:
     @property
     def fraction_recurring(self) -> float:
         """Of every matched feature, in every pair, the share at or above threshold."""
-        return float(np.mean(self.matched >= self.threshold))
+        return float(np.mean(self.matched >= self.threshold - _ROUNDING))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -630,7 +632,7 @@ class Stability:
             "matched_similarity": _summary(self.matched),
             "pairs": {
                 f"{i}-{j}": {
-                    "fraction_recurring": float(np.mean(s >= self.threshold)),
+                    "fraction_recurring": float(np.mean(s >= self.threshold - _ROUNDING)),
                     "matched_similarity": _summary(s),
                 }
                 for (i, j), s in self.similarity.items()
@@ -691,10 +693,9 @@ def seed_stability(
         for j in range(n)
         if i != j
     }
+    floor = threshold - _ROUNDING
     recurrence = tuple(
-        float(
-            np.mean(np.all([similarity[(i, j)] >= threshold for j in range(n) if j != i], axis=0))
-        )
+        float(np.mean(np.all([similarity[(i, j)] >= floor for j in range(n) if j != i], axis=0)))
         for i in range(n)
     )
     random = np.random.default_rng(0).normal(size=first.directions().shape)

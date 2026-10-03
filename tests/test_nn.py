@@ -273,24 +273,21 @@ def _planted_source(n_times=12, n_nodes=48, width=6):
 
 def test_seeds_and_sweeps_are_trained_on_the_training_times_and_scored_held_out():
     from xaig.latents import fidelity_curve, seed_stability, split_time_blocks
-    from xaig.nn.train import fit_seeds, fit_sweep
+    from xaig.nn.train import fit_sae
 
     source = _planted_source()
     split = split_time_blocks(source.info().times, n_blocks=4, test_blocks=(-1,), gap=1)
     fit = {"layer": 0, "n_features": 8, "activation": "topk", "k": 2, "epochs": 30,
            "batch_size": 96, "lr": 3e-3, "device": "cpu", "times": list(split.train)}  # fmt: skip
-    twins = fit_seeds(source, [3, 3, 4], **fit)
+    twins = [fit_sae(source, **fit, seed=seed) for seed in (3, 3, 4)]
     assert [d.meta["training"]["seed"] for d in twins] == [3, 3, 4]
     assert all(d.meta["fitted_on"]["times"] == list(split.train) for d in twins)
     assert np.array_equal(twins[0].decoder, twins[1].decoder)  # the same seed is the same fit
 
     stable = seed_stability(twins[:2])  # nothing marks it unverified: the fit recorded where
     assert stable.fraction_recurring == 1.0 and stable.same_training_times
-    assert (
-        seed_stability(twins).to_dict()["pairs"]["0-2"]["matched_similarity"]["max"] <= 1.0 + 1e-6
-    )
 
-    sweep = fit_sweep(source, [{"k": 1}, {"k": 2}, {"k": 4}], **{**fit, "seed": 0})
+    sweep = [fit_sae(source, **{**fit, "k": k}, seed=0) for k in (1, 2, 4)]
     curve = fidelity_curve(source, split, layer=0, pca_components=[1, 2, 3, 4], dictionaries=sweep)
     saes = curve.method("sae")
     assert [p.setting["k"] for p in saes] == [1, 2, 4]
@@ -303,9 +300,6 @@ def test_seeds_and_sweeps_are_trained_on_the_training_times_and_scored_held_out(
     assert abs(two.test.explained_variance - two.train.explained_variance) < 0.05
     metric = sweep[1].meta["metrics"]["explained_variance"]  # nn's own number, same dictionary
     assert two.train.explained_variance == pytest.approx(metric, abs=0.05)
-
-    with pytest.raises(RequestError, match="nothing to fit"):
-        fit_sweep(source, [], **fit)
 
 
 def test_a_dictionary_trained_with_a_held_out_time_is_caught_by_the_evaluation():

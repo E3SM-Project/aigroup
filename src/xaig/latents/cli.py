@@ -800,13 +800,13 @@ def _percent(value: float | None) -> str:
     help="A basis file fitted on the training times (see --split-only); repeatable.",
 )  # fmt: skip
 @click.option(
-    "--pca", "pca_text", metavar="K,K,...",
-    help="Fit a PCA on the training times at these ranks, and set the bases against it.",
-)  # fmt: skip
-@click.option(
     "--basis-sha256", "basis_hashes", multiple=True, metavar="HASH",
     help="Refuse the --basis file in the same position unless its content has this sha256; "
     "give one per --basis, or none (the printed reproduce line gives them).",
+)  # fmt: skip
+@click.option(
+    "--pca", "pca_text", metavar="K,K,...",
+    help="Fit a PCA on the training times at these ranks, and set the bases against it.",
 )  # fmt: skip
 @click.option("--stability", is_flag=True, help="Match the features of the bases to each other.")
 @click.option("--recur-above", type=float, default=0.9, show_default=True,
@@ -834,8 +834,10 @@ def evaluate_cmd(
     from xaig.core.errors import RequestError
     from xaig.latents import (
         Dictionary,
+        basis_hash,
         evaluate_basis,
         fidelity_curve,
+        load_basis,
         result_provenance,
         seed_stability,
         split_time_blocks,
@@ -858,8 +860,6 @@ def evaluate_cmd(
         "split": split.to_dict(),
         "provenance": result_provenance(info),
     }
-    from xaig.latents import basis_hash, load_basis
-
     bases = [
         load_basis(path, sha256=basis_hashes[i] if basis_hashes else None)
         for i, path in enumerate(basis_paths)
@@ -923,6 +923,8 @@ def evaluate_cmd(
     if stability:
         reproduce.append(f"--stability --recur-above {recur_above:g}")
     reproduce.append(f"--active-above {active_above:g} --duplicate-above {duplicate_above:g}")
+    if allow_unverified_basis:
+        reproduce.append("--allow-unverified-basis")
     rows = [
         {
             "basis": Path(p).name, "features": e["n_features"], "fitted": e["fitted_on"],
