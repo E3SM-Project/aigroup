@@ -301,17 +301,20 @@ def check_comparable(
         )
 
 
-def shared_grid(a: LatentSource, b: LatentSource) -> Grid:
-    """The first source's grid, valid only where both are: what a comparison of
-    the two may weigh and map. A node one run marks invalid holds whatever it
+def shared_grid(a: LatentSource, b: LatentSource, *more: LatentSource) -> Grid:
+    """The first source's grid, valid only where all are: what a comparison of
+    them may weigh and map. A node one run marks invalid holds whatever it
     holds there -- NaN, or a number that means nothing -- and one such node would
     otherwise decide the whole difference."""
-    grid_a, grid_b = a.grid(), b.grid()
+    grid_a = a.grid()
+    valid = grid_a.valid & b.grid().valid
+    for other in more:
+        valid = valid & other.grid().valid
     return Grid(
         lat=grid_a.lat,
         lon=grid_a.lon,
         shape=grid_a.shape,
-        mask=grid_a.valid & grid_b.valid,
+        mask=valid,
         area=grid_a.area,
     )
 

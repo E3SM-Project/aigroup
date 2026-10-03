@@ -299,8 +299,8 @@ def difference_growth(
 ) -> DifferenceGrowth:
     """Follow a perturbation through the network and through time: the size of
     ``experiment - control`` at every layer and every time the two share, over
-    the nodes valid in both. ``noise``, a rerun of the control with another seed,
-    adds the baseline a stochastic model's differences have to clear."""
+    the nodes valid in both (and in ``noise``, if given). ``noise``, a rerun of the
+    control with another seed, adds the baseline a stochastic model's differences have to clear."""
     chosen = tuple(x.index for x in control.info().layers) if layers is None else tuple(layers)
     for layer in chosen:
         check_comparable(control, experiment, layer=layer, across_models=across_models)
@@ -309,9 +309,7 @@ def difference_growth(
     labels = _common_times(control, experiment, times)
     if noise is not None:
         labels = _common_times(control, noise, labels)
-    grid = shared_grid(control, experiment)
-    if noise is not None:
-        shared_grid(control, noise)
+    grid = shared_grid(control, experiment, *(() if noise is None else (noise,)))
     weights = grid.weights()
     rms = np.zeros((len(labels), len(chosen)))
     relative = np.zeros_like(rms)
