@@ -957,6 +957,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Masks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#values-that-are-not-numbers-and-selections-that-are-empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Values that are not numbers, and selections that are empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1265,6 +1282,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Masks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#values-that-are-not-numbers-and-selections-that-are-empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Values that are not numbers, and selections that are empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1525,8 +1559,14 @@ channel, so the two must be one network on one grid; that is checked, not assume
 archives that declare different models or checkpoints are refused — channel 42 of another
 seed is not channel 42 of this one, whatever number it carries — unless <code>--across-models</code>
 says the index does carry over (a fine-tune of the same weights); comparing networks
-trained apart needs a different tool altogether. Only nodes valid in <em>both</em> runs are
-weighed: a node one of them masks holds whatever it holds there.</p>
+trained apart needs a different tool altogether. The layer is matched by its place in the
+network (<code>network_layer</code> in the manifest, else its index), so a run whose layer 0 is
+network layer 2 is not set against one whose layer 0 is network layer 8 (when both declare
+one), and nothing lifts that refusal. Where either run leaves out its model, component, checkpoint or layer
+placement the comparison cannot be verified, and is refused until you pass
+<code>--allow-unverified-sources</code> (<code>allow_unverified=True</code> from Python; the result's settings
+record that you did). Only nodes valid in <em>all</em> the runs compared — control, experiment and
+any noise run — are weighed: a node one of them masks holds whatever it holds there.</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--growth
 </span></code></pre></div>
@@ -1769,6 +1809,21 @@ nothing — <code>sst</code> for the ocean:</p>
 </span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="go">grid        180x360, 64800 nodes, 44892 valid</span>
 </span></code></pre></div>
 <p>That is 30.7% of points over land, excluded from everything that follows.</p>
+<h3 id="values-that-are-not-numbers-and-selections-that-are-empty">Values that are not numbers, and selections that are empty</h3>
+<p>Both are refused everywhere with a one-line error that says what and where, never with a
+NaN that turns up three steps later.</p>
+<ul>
+<li><strong>A valid node whose activations are NaN or infinite.</strong> What a masked node holds is
+  never looked at, but a node the mask says is valid has to hold numbers. Every analysis
+  and the training loop read latents through <code>read_latents</code>, which raises
+  <code>layer 8 at 0425-01-03T18:00:00 holds 12 valid node(s) with activations that are not finite
+  (channel 41, 77) in latents/atmosphere; a node the source cannot supply belongs in its
+  mask, not left NaN</code>. The remedy is the mask (<code>--mask-variable</code>, or <code>mask</code> in <code>grid.npz</code>).
+  Fields are different: a reference field is NaN where it is missing, and stays so.</li>
+<li><strong>An empty selection.</strong> No times, a region or box with no valid node in it, or a mask
+  (or the runs compared) that leaves no node: each is a <code>RequestError</code> naming what was
+  empty (<code>no times selected</code>, <code>no valid nodes within 1 km of (0, 0)</code>), not an empty result.</li>
+</ul>
 <h2 id="the-latent-archive">The latent archive</h2>
 <p>A directory per model component. Any exporter that writes this layout can be read by the
 <code>latent-archive</code> adapter; the SamudrACE one is the visualiser's

@@ -1087,15 +1087,21 @@ is the machine's business.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">$ </span>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'xaig[nn]'</span><span class="w">   </span><span class="c1"># elsewhere, from PyPI</span>
 </span></code></pre></div>
 <h2 id="fit-one">Fit one</h2>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>nn<span class="w"> </span>sae<span class="w"> </span>latents/atmosphere<span class="w"> </span>--layer<span class="w"> </span><span class="m">8</span><span class="w"> </span>--features<span class="w"> </span><span class="m">1024</span><span class="w"> </span>--out<span class="w"> </span>sae8.npz
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">  step     25  reconstruction 153.5</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">  step    250  reconstruction 78.66</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">  step    500  reconstruction 68.42</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">wrote sae8.npz: 1024 feature(s) of layer 8; 82.1% of the variance explained, 32.0 active per node, 0.0% dead</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>toy<span class="w"> </span>scratch/toy/control
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>nn<span class="w"> </span>sae<span class="w"> </span>scratch/toy/control<span class="w"> </span>--layer<span class="w"> </span><span class="m">2</span><span class="w"> </span>--features<span class="w"> </span><span class="m">64</span><span class="w"> </span>--k<span class="w"> </span><span class="m">8</span><span class="w"> </span>--epochs<span class="w"> </span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span>--batch-size<span class="w"> </span><span class="m">512</span><span class="w"> </span>--out<span class="w"> </span>scratch/toy/sae.npz
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">  step     25  reconstruction 10.28</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">  step    300  reconstruction 0.9374</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">  step    600  reconstruction 0.2854</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">wrote scratch/toy/sae.npz: 64 feature(s) of layer 2; 98.6% of the variance explained, 8.0 active per node, 14.1% dead</span>
 </span></code></pre></div>
-<p>That is 11 s on an Apple M1 Max (MPS), over the layer's 1.1 million node-times, twice. Set
-against the <a href="../latents/#methods-a-basis-is-a-value">global PCA</a> of the same layer, where
-32 components hold 69.1% of the variance, 32 active features out of 1,024 hold 82.1%.</p>
+<p>That is the <a href="../">toy system</a> (1,152 nodes, a few seconds on a CPU), not a real
+model: its numbers show what the output looks like and say nothing about what a dictionary
+will explain on a real layer. The defaults (1,024 features, <code>k</code> of 32, two epochs) are
+sized for a layer of a million node-times, and on a toy this small they underfit; the
+options above are the ones used here. The percentage, the active count and the dead
+fraction describe the dictionary that is written; the running <code>reconstruction</code> lines are
+the loop's own, taken while the weights were changing.</p>
 <table>
 <thead>
 <tr>
@@ -1194,8 +1200,13 @@ so the plain mean the loop takes is already the area-weighted loss.</p>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">dictionary</span> <span class="o">=</span> <span class="n">fit_sae</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s2">"topk"</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">dictionary</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">"metrics"</span><span class="p">]</span>  <span class="c1"># explained_variance, mean_active_features, dead_fraction</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">save_basis</span><span class="p">(</span><span class="s2">"sae8.npz"</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">dictionary</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">"training_metrics"</span><span class="p">]</span>  <span class="c1"># the loop's running tally, a monitor</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">save_basis</span><span class="p">(</span><span class="s2">"sae8.npz"</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">)</span>
 </span></code></pre></div>
+<p><code>metrics</code> describes the dictionary you were given, measured in one more pass over the last
+epoch's batches with the final weights frozen; quote it, and use <code>training_metrics</code> only to
+watch a run. A layer with no variance to standardise by (every channel constant) is a
+<code>RequestError</code>, not a NaN loss.</p>
 <p>The modules are plain <code>nn.Module</code>s that take and return tensors and know nothing of
 archives, grids or loops, so they can be lifted into any harness:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.nn.sae</span><span class="w"> </span><span class="kn">import</span> <span class="n">BSplineActivation</span><span class="p">,</span> <span class="n">SparseAutoencoder</span>
