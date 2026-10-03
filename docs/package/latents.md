@@ -378,10 +378,13 @@ $ xaig latents region hf://datasets/<owner>/<repo>/control --revision v1 --json 
 "revision": {"requested": "v1", "commit": "5b0e…"}
 ```
 
-A comparison (`diff`, `growth`) says it for each side, under `control`, `experiment` and
+A comparison (`diff` and `diff --growth`) says it for each side, under `control`, `experiment` and
 `noise`, since the sides need not be the same revision. `--revision` applies to every
-`hf://` source of a command, and is ignored by local ones; from Python, give each
-`open_source` its own. A local archive has no revision and its provenance says none.
+`hf://` source of a command and is passed over for a local one in a mixed command; a
+command with no `hf://` source refuses it. A full 40-character commit is taken as given,
+without asking the hub, so a rerun pinned to one works offline from a warm cache; a branch,
+a tag or the default is resolved when opened. From Python, give each `open_source` its
+own. A local archive has no revision and its provenance says none.
 
 **A basis is a hash.** `save_basis` writes a `sha256` into the file's record: over the
 kind, every array (name, dtype, shape and bytes), the scalars, and what the basis says it
@@ -415,8 +418,10 @@ acceptance as a basis of unverified identity (`--allow-unverified-basis`,
 `open_source(path, revision=<commit>)` and `load_basis(path, sha256=<hash>)`. Either refuses
 a basis whose content is not the one named. Rerunning a pinned command gives the same
 numbers; its provenance then reads `requested` = the commit, which is what was asked this
-time. `--basis-sha256` goes with `--basis`; the per-layer `--bases` of `storyline` are
-hashed into the result but not pinned on the command line.
+time. `--basis-sha256` goes with `--basis` (alone it is refused), and is compared without regard
+to case or surrounding whitespace. **Known limitation:** the per-layer `--bases` of
+`storyline` are hashed into the result but cannot be pinned by a flag; pin those from
+Python with `load_basis(path, sha256=...)`.
 
 ## Python API
 

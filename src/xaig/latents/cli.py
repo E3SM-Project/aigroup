@@ -8,6 +8,7 @@ prints as one line.
 
 from __future__ import annotations
 
+import functools
 import json
 
 import click
@@ -36,13 +37,35 @@ def _remembered(key: str):
     return click.get_current_context().meta.get(f"xaig.{key}")
 
 
-revision_option = click.option(
+_revision_click_option = click.option(
     "--revision",
     expose_value=False,
     callback=_remember("revision"),
     help="For hf:// sources: the branch, tag or commit to read. Resolved to a commit when "
-    "opened, and recorded; applies to every hf:// source of the command.",
+    "opened (a full 40-character commit is taken as it is), and recorded; applies to every "
+    "hf:// source of the command.",
 )
+
+
+def revision_option(command):
+    """``--revision``, refused by a command none of whose sources is on the hub: it would
+    be silently ignored, and a reproduction that believed it was pinned would not be."""
+
+    @functools.wraps(command)
+    def checked(*args, **kwargs):
+        if _remembered("revision") and not any(
+            isinstance(value, str) and value.startswith("hf://") for value in kwargs.values()
+        ):
+            from xaig.core.errors import RequestError
+
+            raise RequestError(
+                "--revision applies to hf:// sources, and none of this command's sources is one"
+            )
+        return command(*args, **kwargs)
+
+    return _revision_click_option(checked)
+
+
 _mask_click_option = click.option(
     "--mask-variable",
     help="Reference-file variable that is missing where nodes mean nothing (e.g. sst).",
@@ -69,7 +92,15 @@ def _mask_option(command):
 
 
 def _basis_option(command):
-    return _basis_sha_option(_basis_click_option(command))
+    @functools.wraps(command)
+    def checked(*args, **kwargs):
+        if _remembered("basis_sha256") is not None and kwargs.get("basis_path") is None:
+            from xaig.core.errors import RequestError
+
+            raise RequestError("--basis-sha256 pins the --basis file, and no --basis is given")
+        return command(*args, **kwargs)
+
+    return _basis_sha_option(_basis_click_option(checked))
 
 
 _unverified_option = click.option(

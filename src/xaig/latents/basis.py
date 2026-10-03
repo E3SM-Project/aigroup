@@ -485,6 +485,8 @@ def load_basis(path: str | Path, *, sha256: str | None = None) -> PCA | Dictiona
             f"{path}: the content hash does not match (file says {recorded[:12]}, content is "
             f"{actual[:12]}); the file was changed or damaged after it was written"
         )
+    if sha256 is not None:
+        sha256 = sha256.strip().lower()
     if sha256 is not None and sha256 != actual:
         raise RequestError(
             f"{path}: expected content sha256 {sha256[:12]}, found {actual[:12]}; "

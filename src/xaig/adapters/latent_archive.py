@@ -26,6 +26,7 @@ and the reader are tested against each other rather than against a description.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import tempfile
 import warnings
@@ -49,6 +50,9 @@ GRID = "grid.npz"
 REFERENCE = "reference.nc"
 
 
+_COMMIT = re.compile(r"[0-9a-fA-F]{40}")
+
+
 class _HubFolder:
     """One folder of a Hugging Face dataset repository, fetched a file at a time."""
 
@@ -62,14 +66,20 @@ class _HubFolder:
         self.folder = "/".join(parts[2:])
         hub = require("huggingface_hub", "hf")
         self._api = hub.HfApi()
-        # Every revision is resolved, an explicit one too: a branch or a tag moves, and a
-        # result that names one cannot be reproduced. Files are fetched by the commit.
-        try:
-            commit = self._api.repo_info(self.repo_id, repo_type="dataset", revision=revision).sha
-        except Exception as exc:  # the hub's own errors: no network, no such repo, no access
-            raise AdapterError(f"{url}: cannot reach the dataset repository ({exc})") from exc
-        if not commit:
-            raise AdapterError(f"{url}: the hub named no commit for revision {revision!r}")
+        # A branch, a tag or the default moves, and a result that names one cannot be
+        # reproduced: each is resolved to a commit. A full commit already names itself,
+        # so it is not asked of the hub, and a pinned rerun works from a warm cache offline.
+        if revision is not None and _COMMIT.fullmatch(revision):
+            commit = revision.lower()
+        else:
+            try:
+                commit = self._api.repo_info(
+                    self.repo_id, repo_type="dataset", revision=revision
+                ).sha
+            except Exception as exc:  # the hub's own errors: no network, no such repo, no access
+                raise AdapterError(f"{url}: cannot reach the dataset repository ({exc})") from exc
+            if not commit:
+                raise AdapterError(f"{url}: the hub named no commit for revision {revision!r}")
         self.requested = revision
         self.revision = str(commit)
         self._download = hub.hf_hub_download

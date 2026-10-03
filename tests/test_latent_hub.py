@@ -70,7 +70,18 @@ def test_a_tag_is_resolved_to_its_commit_and_both_are_recorded(hub):
 def test_a_commit_given_as_the_revision_names_itself(hub):
     info = open_source(URL, revision="ghi").info()
     assert info.provenance()["revision"] == {"requested": "ghi", "commit": "ghi"}
-    assert hub.asked["lookups"] == ["ghi"]  # even a commit is asked of the hub, never assumed
+    assert hub.asked["lookups"] == ["ghi"]  # a short name is not a full commit: asked
+
+
+def test_a_full_commit_is_not_asked_of_the_hub(hub):
+    sha = "0123456789abcdef0123456789ABCDEF01234567"
+    source = open_source(URL, revision=sha)
+    source.grid()  # still readable: the files come from that commit
+    assert hub.asked["lookups"] == []
+    assert source.info().provenance()["revision"] == {"requested": sha, "commit": sha.lower()}
+    assert hub.asked["revisions"] == {sha.lower()}
+    open_source(URL, revision="v1")
+    assert hub.asked["lookups"] == ["v1"]  # a branch or a tag still is
 
 
 def test_a_revision_the_hub_does_not_know_is_refused(hub):
@@ -138,3 +149,27 @@ def test_a_local_archive_is_unchanged(latent_archive):
     (latent_archive / "bases" / "old").mkdir(parents=True)
     (latent_archive / "bases" / "sae_L02.npz").write_bytes(b"")
     assert source.files("bases") == ("bases/sae_L02.npz",) and source.files("nothing") == ()
+
+
+def test_a_revision_needs_a_hub_source_on_the_command(hub, latent_archive):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    run = CliRunner().invoke(cli, ["latents", "info", str(latent_archive), "--revision", "v1"])
+    assert run.exit_code != 0 and "--revision" in run.output and "hf://" in run.output
+    diff = ["latents", "diff", URL, str(latent_archive), "--layer", "2", "--time", "0"]
+    diff += ["--revision", "v1"]
+    run = CliRunner().invoke(cli, diff)
+    assert "--revision applies to hf://" not in run.output  # one hub source is enough
+
+
+def test_a_basis_hash_needs_a_basis(latent_archive):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    region = ["latents", "region", str(latent_archive), "--time", "0", "--layer", "2"]
+    region += ["--lat", "7.5", "--lon", "45", "--radius-km", "2500", "--basis-sha256", "ab"]
+    run = CliRunner().invoke(cli, region)
+    assert run.exit_code != 0 and "--basis-sha256" in run.output and "--basis" in run.output
