@@ -26,7 +26,7 @@ from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.analysis import AnyRegion, ChannelRanking
-from xaig.latents.basis import Decomposition
+from xaig.latents.basis import Decomposition, result_provenance
 from xaig.latents.samples import _time_labels
 from xaig.latents.source import (
     LatentSource,
@@ -137,7 +137,7 @@ def region_series(
     }
     return RegionSeries(
         settings=settings,
-        provenance={**info.provenance(), "xaig": __version__},
+        provenance=result_provenance(info, basis=basis),
         times=tuple(labels),
         elapsed_seconds=_elapsed(source, labels),
         columns=columns,
@@ -516,7 +516,7 @@ def rank_by_field(
             "basis": None if basis is None else basis.meta.get("path"),
             "allow_unverified_basis": allow_unverified_basis,
         },
-        provenance={**info.provenance(), "xaig": __version__},
+        provenance=result_provenance(info, basis=basis),
         ranking=ChannelRanking(chosen, correlation[chosen]),
         correlation=correlation,
     )
@@ -646,7 +646,7 @@ def field_storyline(
             "bases": {int(k): v.meta.get("path") for k, v in bases.items()},
             "allow_unverified_basis": allow_unverified_basis,
         },
-        provenance={**info.provenance(), "xaig": __version__},
+        provenance=result_provenance(info, bases=bases),
         times=tuple(labels),
         elapsed_seconds=_elapsed(source, labels),
         layers=chosen,
@@ -762,7 +762,7 @@ def hovmoller(
             "basis": None if basis is None else basis.meta.get("path"),
             "columns_without_nodes": int((column_weight == 0).sum()),
         },
-        provenance={**info.provenance(), "xaig": __version__},
+        provenance=result_provenance(info, basis=basis),
         times=tuple(labels),
         elapsed_seconds=_elapsed(source, labels),
         lon=np.asarray(lon, dtype=np.float64),

@@ -59,6 +59,9 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 - Carry what the exporter said. A latent adapter puts the manifest's free-form
   `experiment` block, and the options it was opened with, into `LatentInfo`, so they
   reach the provenance of every result.
+- Resolve what moves. A source in a versioned store resolves every requested revision to
+  an immutable commit when it is opened, reads every file at that commit, and puts both
+  what was asked and what it became into `LatentInfo.revision`.
 - Read selectively. A `LatentSource` asked for a region must not load the layer.
 
 ## Present adapters

@@ -95,6 +95,11 @@ class LatentInfo:
     ``options`` is how the adapter was told to read it (a mask variable). Both are
     free-form, JSON-ready, and carried into the provenance of every result: two
     archives of the same checkpoint are otherwise indistinguishable.
+
+    ``revision`` is what a source that lives in a versioned store resolved to: the
+    ``requested`` name (None for the default) and the ``commit`` it named when the
+    source was opened. A branch or tag moves; a commit does not, so a command that
+    reproduces a result pins ``commit``. Local sources have none.
     """
 
     source: str
@@ -109,6 +114,12 @@ class LatentInfo:
     off_grid_layers: tuple[LayerInfo, ...] = ()
     experiment: Mapping[str, Any] = field(default_factory=dict)
     options: Mapping[str, Any] = field(default_factory=dict)
+    revision: Mapping[str, Any] = field(default_factory=dict)
+
+    @property
+    def commit(self) -> str | None:
+        """The commit SHA the source was opened at, if it is versioned."""
+        return self.revision.get("commit")
 
     def provenance(self) -> dict[str, Any]:
         """What a result must carry to be traceable to the run that produced it."""
@@ -118,6 +129,8 @@ class LatentInfo:
             "component": self.component,
             "checkpoint": self.checkpoint,
         }
+        if self.revision:
+            out["revision"] = dict(self.revision)
         if self.options:
             out["options"] = dict(self.options)
         if self.experiment:
@@ -438,6 +451,8 @@ def check_basis_fits(
     ]
     if fitted_at is None:
         missing.append("layer")
+    if basis.meta.get("hash_status") == "unhashed":
+        missing.append("content hash")
     if missing and not allow_unverified:
         raise RequestError(
             f"basis compatibility is unverified (missing {', '.join(missing)}); "

@@ -17,16 +17,61 @@ from xaig import _render
 _adapter_option = click.option(
     "--adapter", default="latent-archive", show_default=True, help="How SOURCE is read."
 )
-_mask_option = click.option(
+
+
+def _remember(key: str):
+    """An option no command takes as a parameter: it is kept on the click context, where
+    ``open_for_cli`` and ``_basis`` find it. Pinning a source or a basis is a way of
+    reading one, so it need not widen the signature of every command."""
+
+    def callback(ctx, param, value):
+        if value is not None:
+            ctx.meta[f"xaig.{key}"] = value
+        return value
+
+    return callback
+
+
+def _remembered(key: str):
+    return click.get_current_context().meta.get(f"xaig.{key}")
+
+
+revision_option = click.option(
+    "--revision",
+    expose_value=False,
+    callback=_remember("revision"),
+    help="For hf:// sources: the branch, tag or commit to read. Resolved to a commit when "
+    "opened, and recorded; applies to every hf:// source of the command.",
+)
+_mask_click_option = click.option(
     "--mask-variable",
     help="Reference-file variable that is missing where nodes mean nothing (e.g. sst).",
 )
-_basis_option = click.option(
+_basis_click_option = click.option(
     "--basis",
     "basis_path",
     type=click.Path(dir_okay=False),
     help="A basis file (from `latents pca` or `xaig nn sae`) whose features to use.",
 )
+_basis_sha_option = click.option(
+    "--basis-sha256",
+    expose_value=False,
+    callback=_remember("basis_sha256"),
+    metavar="HASH",
+    help="Refuse the --basis file unless its content has this sha256 (reproduction commands "
+    "give it).",
+)
+
+
+def _mask_option(command):
+    """``--mask-variable``, and ``--revision`` beside it: every command that opens a source."""
+    return revision_option(_mask_click_option(command))
+
+
+def _basis_option(command):
+    return _basis_sha_option(_basis_click_option(command))
+
+
 _unverified_option = click.option(
     "--allow-unverified-basis",
     is_flag=True,
@@ -45,19 +90,23 @@ _json_option = click.option(
 )
 
 
-def _open(source: str, adapter: str, mask_variable: str | None):
+def open_for_cli(source: str, adapter: str, mask_variable: str | None):
+    """Open SOURCE as the command line asks, ``--revision`` included."""
     from xaig.latents import open_source
 
     options = {"mask_variable": mask_variable} if mask_variable else {}
+    revision = _remembered("revision")
+    if revision and source.startswith("hf://"):  # a local source has no revision to pin
+        options["revision"] = revision
     return open_source(source, adapter=adapter, **options)
 
 
-def _basis(path: str | None):
+def _basis(path: str | None, pinned: bool = True):
     if path is None:
         return None
     from xaig.latents import load_basis
 
-    return load_basis(path)
+    return load_basis(path, sha256=_remembered("basis_sha256") if pinned else None)
 
 
 def _time(text: str) -> str | int:
@@ -89,12 +138,16 @@ def info_cmd(source, adapter, mask_variable) -> None:
     """Describe what SOURCE holds, without loading it."""
     from xaig.latents import ReferenceFields
 
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     info, grid = opened.info(), opened.grid()
     shape = "x".join(str(n) for n in grid.shape) if grid.shape else "mesh"
     provenance = info.provenance()
     experiment = provenance.pop("experiment", {})
     provenance.pop("options", None)
+    revision = provenance.pop("revision", {})
+    if revision:
+        provenance["requested_revision"] = revision["requested"] or "(default)"
+        provenance["commit"] = revision["commit"]
     click.echo(
         _render.pairs(
             {
@@ -186,7 +239,7 @@ def region_cmd(
     """Rank the channels that respond in a region; optionally map a decomposition."""
     from xaig.latents import Region, analyse_region
 
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     result = analyse_region(
         opened,
         time=_time(time),
@@ -238,7 +291,7 @@ def series_cmd(
 
     if not channels and not (basis_path and features):
         raise click.UsageError("name what to follow: --channel N, or --basis FILE --feature N")
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     result = region_series(
         opened,
         layer=opened.info().last_layer if layer is None else layer,
@@ -278,9 +331,9 @@ def pca_cmd(source, adapter, mask_variable, layer, components, times, out) -> No
     The baseline any learned dictionary has to beat, and usable wherever one is:
     `latents region --basis`, `latents series --basis`.
     """
-    from xaig.latents import accumulate_moments, pca_from_moments, save_basis
+    from xaig.latents import accumulate_moments, basis_hash, pca_from_moments, save_basis
 
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     layer = opened.info().last_layer if layer is None else layer
     moments = accumulate_moments(opened, layer=layer, times=[_time(t) for t in times] or None)
     basis = pca_from_moments(moments, components)
@@ -288,7 +341,8 @@ def pca_cmd(source, adapter, mask_variable, layer, components, times, out) -> No
     explained = 100 * float(basis.explained_variance_ratio.sum())
     click.echo(
         f"wrote {out}: {components} component(s) of layer {layer} over "
-        f"{len(moments.times)} time(s), {explained:.1f}% of the variance"
+        f"{len(moments.times)} time(s), {explained:.1f}% of the variance; "
+        f"--basis-sha256 {basis_hash(basis)}"
     )
 
 
@@ -331,7 +385,8 @@ def diff_cmd(
 
     if noise is not None and not growth:
         raise click.UsageError("--noise goes with --growth")
-    a, b = _open(control, adapter, mask_variable), _open(experiment, adapter, mask_variable)
+    a = open_for_cli(control, adapter, mask_variable)
+    b = open_for_cli(experiment, adapter, mask_variable)
     if growth:
         grown = difference_growth(
             a,
@@ -339,7 +394,7 @@ def diff_cmd(
             layers=None if layer is None else [layer],
             across_models=across_models,
             allow_unverified=allow_unverified_sources,
-            noise=None if noise is None else _open(noise, adapter, mask_variable),
+            noise=None if noise is None else open_for_cli(noise, adapter, mask_variable),
         )
         if as_json:
             click.echo(json.dumps(grown.summary(), indent=2))
@@ -407,14 +462,14 @@ def storyline_cmd(
 
     from xaig.latents import field_storyline
 
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     chosen = list(layers) or [x.index for x in opened.info().layers]
     found = {}
     if bases:
         for layer in chosen:
             path = Path(bases.format(layer=layer))
             if path.is_file():
-                found[layer] = _basis(str(path))
+                found[layer] = _basis(str(path), pinned=False)
         if not found:
             raise click.UsageError(f"no basis file matches {bases!r} for layers {chosen}")
     result = field_storyline(
@@ -458,7 +513,7 @@ def hovmoller_cmd(
 
     from xaig.latents import hovmoller
 
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     result = hovmoller(
         opened,
         lat_min=lat_min,
@@ -512,7 +567,7 @@ def fields_cmd(
     """Which channels (or features) track a physical field kept beside the latents."""
     from xaig.latents import ReferenceFields, rank_by_field
 
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     if field is None:
         names = opened.field_names() if isinstance(opened, ReferenceFields) else ()
         click.echo("\n".join(names) if names else "no reference fields")
@@ -598,7 +653,7 @@ def census_cmd(
     """Every channel (or feature) of a layer: how much of the world it is active over."""
     from xaig.latents import feature_census
 
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     result = feature_census(
         opened,
         time=_time(time),
@@ -654,7 +709,7 @@ def profile_cmd(
     by_feature = channel is None and basis_path is not None and feature is not None
     if not (by_channel or by_feature):
         raise click.UsageError("name one: --channel N, or --basis FILE --feature N")
-    opened = _open(source, adapter, mask_variable)
+    opened = open_for_cli(source, adapter, mask_variable)
     result = feature_profile(
         opened,
         layer=opened.info().last_layer if layer is None else layer,

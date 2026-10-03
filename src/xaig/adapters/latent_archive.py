@@ -15,8 +15,8 @@ when a mask or a field is asked of it.
 An archive can also be read straight from a Hugging Face dataset repository,
 ``hf://datasets/<owner>/<repo>/<folder>`` (``xaig[hf]``). Each file is downloaded
 the first time something needs it and cached, so a notebook that looks at one
-layer downloads one layer. Every file comes from the one revision the archive was
-opened at.
+layer downloads one layer. Every file comes from the one commit the archive was
+opened at: a requested branch or tag is resolved to its SHA, and both are recorded.
 
 ``write_archive`` is the other half: whatever can hand over arrays -- a toy model,
 an exporter hooked into a real one -- writes the layout through it, so the writer
@@ -62,10 +62,16 @@ class _HubFolder:
         self.folder = "/".join(parts[2:])
         hub = require("huggingface_hub", "hf")
         self._api = hub.HfApi()
+        # Every revision is resolved, an explicit one too: a branch or a tag moves, and a
+        # result that names one cannot be reproduced. Files are fetched by the commit.
         try:
-            self.revision = revision or self._api.repo_info(self.repo_id, repo_type="dataset").sha
+            commit = self._api.repo_info(self.repo_id, repo_type="dataset", revision=revision).sha
         except Exception as exc:  # the hub's own errors: no network, no such repo, no access
             raise AdapterError(f"{url}: cannot reach the dataset repository ({exc})") from exc
+        if not commit:
+            raise AdapterError(f"{url}: the hub named no commit for revision {revision!r}")
+        self.requested = revision
+        self.revision = str(commit)
         self._download = hub.hf_hub_download
 
     def fetch(self, name: str) -> Path | None:
@@ -188,6 +194,11 @@ class LatentArchive:
             ),
             experiment=experiment,
             options={"mask_variable": mask_variable} if mask_variable else {},
+            revision=(
+                {"requested": self._hub.requested, "commit": self._hub.revision}
+                if self._hub is not None
+                else {}
+            ),
         )
 
     @staticmethod

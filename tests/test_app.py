@@ -440,3 +440,54 @@ def test_a_field_reproduces_with_an_unverified_basis(monkeypatch, with_fields, t
     argv = shlex.split(command.replace("\\\n", " "))
     rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
     assert rerun.exit_code == 0, rerun.output
+
+
+def test_a_reproduction_pins_the_commit_and_the_basis_it_came_from(hub, tmp_path):
+    """The archive was opened at a tag; what reproduces it names the commit the tag was
+    at then, and the hash of the basis, and both rerun to the same answer."""
+    pytest.importorskip("numpy")
+    from xaig.app.latent import reproduction
+    from xaig.latents import (
+        Region,
+        accumulate_moments,
+        analyse_region,
+        open_source,
+        pca_from_moments,
+        save_basis,
+    )
+
+    url = "hf://datasets/owner/latents/control"
+    source = open_source(url, revision="v1")
+    basis_path = save_basis(
+        tmp_path / "global.npz", pca_from_moments(accumulate_moments(source, layer=2), 2)
+    )
+    from xaig.latents import load_basis
+
+    basis = load_basis(basis_path)
+    here = {"lat": 7.5, "lon": 45.0, "radius_km": 2500.0}
+    result = analyse_region(
+        source, time=0, layer=2, region=Region(**here), n_components=2, basis=basis
+    )
+    settings = result.settings
+    command, python = reproduction(url, None, settings, result.provenance)
+    commit, digest = "def", basis.meta["sha256"]
+    assert f"--revision {commit}" in command and "v1" not in command
+    assert f"--basis-sha256 {digest}" in command
+    assert f"revision='{commit}'" in python and f"sha256='{digest}'" in python
+
+    hub.heads["v1"] = "ghi"  # the tag moves; the reproduction does not
+    argv = shlex.split(command.replace("\\\n", " "))
+    rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
+    assert rerun.exit_code == 0, rerun.output
+    scope: dict = {}
+    exec(python, scope)  # noqa: S102
+    original = json.loads(json.dumps(result.summary()))
+    for again in (json.loads(rerun.output), json.loads(json.dumps(scope["result"].summary()))):
+        # What was asked for is now the commit itself; everything else is as it was.
+        assert again["provenance"]["revision"] == {"requested": commit, "commit": commit}
+        again["provenance"]["revision"] = original["provenance"]["revision"]
+        assert again == original
+
+    # A local archive has no commit to pin, and its reproduction does not claim one.
+    plain, _ = reproduction("/some/archive", None, settings, {"basis": {"sha256": digest}})
+    assert "--revision" not in plain and f"--basis-sha256 {digest}" in plain

@@ -20,11 +20,10 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.analysis import AnyRegion
-from xaig.latents.basis import Decomposition
+from xaig.latents.basis import Decomposition, result_provenance
 from xaig.latents.samples import _time_labels
 from xaig.latents.source import LatentSource, ReferenceFields, check_basis_fits, read_latents
 from xaig.latents.through import _field_at
@@ -168,7 +167,7 @@ def feature_census(
             "threshold": threshold,
             "allow_unverified_basis": allow_unverified_basis,
         },
-        provenance={**info.provenance(), "xaig": __version__},
+        provenance=result_provenance(info, basis=basis),
         coverage=np.clip(coverage, 0.0, 1.0),
         mean=total,
         strength=strength,
@@ -309,7 +308,7 @@ def feature_profile(
             "lead": lead,
             "allow_unverified_basis": allow_unverified_basis,
         },
-        provenance={**info.provenance(), "xaig": __version__},
+        provenance=result_provenance(info, basis=basis),
         times=tuple(labels),
         coverage=active_area / total_area if total_area > 0 else float("nan"),
         fields=tuple(names[k] for k in order),

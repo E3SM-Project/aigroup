@@ -6,6 +6,9 @@ suite has to pass on a laptop with no scratch mounted.
 
 from __future__ import annotations
 
+import shutil
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -138,3 +141,78 @@ class MemorySource:
         if channels is not None:
             out = out[:, list(channels)]
         return out.copy()
+
+
+# -- a fake Hugging Face hub ------------------------------------------------
+
+URL = "hf://datasets/owner/latents/control"
+
+
+class _EntryNotFound(Exception):
+    pass
+
+
+@pytest.fixture
+def hub(tmp_path, monkeypatch):
+    """A fake ``huggingface_hub`` serving ``tmp_path/remote`` as the dataset
+    ``owner/latents``, into a cache under ``tmp_path/cache``. ``heads`` maps the
+    branch and tag names the hub knows to commits: ``main`` and the default are
+    ``abc``, the tag ``v1`` is ``def``; move one, and what a name means moves with it.
+    A commit names itself. Anything else is a 404."""
+    import numpy as np
+
+    remote = tmp_path / "remote"
+    write_latent_archive(remote / "control")
+    (remote / "control" / "bases" / "old").mkdir(parents=True)
+    np.savez(remote / "control" / "bases" / "pca_L02.npz", placeholder=np.zeros(1))
+    cache = tmp_path / "cache"
+    fetched: list[str] = []
+    asked: dict = {"lookups": []}
+    heads = {"main": "abc", "v1": "def"}
+    commits = {"abc", "def", "ghi"}
+
+    class HfApi:
+        def repo_info(self, repo_id, repo_type, revision=None):
+            asked["repo"] = (repo_id, repo_type)
+            asked["lookups"].append(revision)
+            if repo_id != "owner/latents":
+                raise RuntimeError("404 Client Error")
+            name = "main" if revision is None else revision
+            if name in heads:
+                return types.SimpleNamespace(sha=heads[name])
+            if name in commits:
+                return types.SimpleNamespace(sha=name)
+            raise RuntimeError(f"404 Client Error: revision {revision!r} not found")
+
+        def list_repo_tree(self, repo_id, path_in_repo, repo_type, revision):
+            folder = remote / path_in_repo
+            if not folder.is_dir():
+                raise _EntryNotFound(path_in_repo)
+            for entry in sorted(folder.iterdir()):
+                name = f"{path_in_repo}/{entry.name}"
+                if entry.is_file():
+                    yield types.SimpleNamespace(path=name, size=entry.stat().st_size)
+                else:
+                    yield types.SimpleNamespace(path=name, tree_id="t")
+
+    def hf_hub_download(repo_id, filename, repo_type, revision):
+        assert (repo_id, repo_type) == ("owner/latents", "dataset")
+        asked.setdefault("revisions", set()).add(revision)
+        source = remote / filename
+        if not source.is_file():
+            raise _EntryNotFound(filename)
+        target = cache / "snapshots" / revision / filename
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists():
+            shutil.copy(source, target)
+            fetched.append(filename)
+        return str(target)
+
+    module = types.ModuleType("huggingface_hub")
+    module.HfApi, module.hf_hub_download = HfApi, hf_hub_download
+    utils = types.ModuleType("huggingface_hub.utils")
+    utils.EntryNotFoundError = _EntryNotFound
+    module.utils = utils
+    monkeypatch.setitem(sys.modules, "huggingface_hub", module)
+    monkeypatch.setitem(sys.modules, "huggingface_hub.utils", utils)
+    return types.SimpleNamespace(fetched=fetched, asked=asked, heads=heads, remote=remote)

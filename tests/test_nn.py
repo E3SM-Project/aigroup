@@ -39,10 +39,12 @@ from xaig.latents import (  # noqa: E402
     Decomposition,
     Region,
     analyse_region,
+    basis_hash,
     bspline_activation,
     iter_batches,
     load_basis,
     open_source,
+    save_basis,
 )
 from xaig.nn.sae import BSplineActivation, SparseAutoencoder  # noqa: E402
 from xaig.nn.train import fit_sae  # noqa: E402
@@ -219,12 +221,32 @@ def test_cli_fits_and_the_file_is_a_basis_anywhere(latent_archive, tmp_path):
     fitted = CliRunner().invoke(cli, [*args, "--batch-size", "96", "--device", "cpu", "--out", out])
     assert fitted.exit_code == 0, fitted.output
     assert "8 feature(s) of layer 2" in fitted.output and "active per node" in fitted.output
-    assert load_basis(out).meta["training"]["activation"] == "topk"
+    loaded = load_basis(out)
+    assert loaded.meta["training"]["activation"] == "topk"
+    # The line it prints is the pin a later command gives back, and the file verifies.
+    assert loaded.meta["hash_status"] == "verified"
+    assert f"--basis-sha256 {loaded.meta['sha256']}" in fitted.output
     region = ["latents", "region", str(latent_archive), "--lat", "7.5", "--lon", "45"]
     shown = CliRunner().invoke(
         cli, [*region, "--radius-km", "2500", "--features", "2", "--basis", out]
     )
     assert shown.exit_code == 0 and "peak" in shown.output, shown.output
+
+
+def test_a_fitted_dictionary_is_hashed_with_what_it_was_fitted_on(latent_archive, tmp_path):
+    dictionary = fit_sae(
+        open_source(latent_archive),
+        layer=2,
+        n_features=8,
+        activation="topk",
+        k=2,
+        epochs=2,
+        device="cpu",
+    )
+    path = save_basis(tmp_path / "sae.npz", dictionary)
+    back = load_basis(path)
+    assert back.meta["sha256"] == basis_hash(dictionary) == basis_hash(back)
+    assert dictionary.meta["fitted_on"]["provenance"]["source"] == str(latent_archive)
 
 
 def test_torch_and_numpy_break_a_tie_the_same_way():
