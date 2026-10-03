@@ -1,6 +1,6 @@
 """Many times at once: moments of a layer, and batches to train on.
 
-``analyse_region`` looks at one time. Fitting something *to a model* -- a global
+``analyze_region`` looks at one time. Fitting something *to a model* -- a global
 PCA, a sparse dictionary -- wants every node of every time, which is a million
 vectors and does not need to be in memory: moments accumulate, and batches are
 drawn a time at a time.
@@ -64,7 +64,7 @@ class Moments:
 
     @property
     def scale(self) -> float:
-        """One number to divide a centred layer by so that a node's vector has
+        """One number to divide a centered layer by so that a node's vector has
         unit mean square per channel: what a dictionary is trained on, keeping the
         channels' relative sizes (a per-channel scale would not)."""
         return float(np.sqrt(np.trace(self.covariance) / self.covariance.shape[0]))
@@ -77,7 +77,7 @@ def accumulate_moments(
 
     Accumulated in float64 a block of nodes at a time: one layer is in memory,
     and the sums are ``(n_channels, n_channels)`` however many times there are.
-    The covariance is built from centred sums, each block merged into the running
+    The covariance is built from centered sums, each block merged into the running
     mean and scatter as it arrives, rather than as ``E[x x'] - E[x] E[x]'``, which
     loses every digit of a channel whose mean dwarfs its spread.
     """
@@ -87,7 +87,7 @@ def accumulate_moments(
     total = 0.0
     shift = None  # one node's vector, taken off everything: a constant channel is then exactly 0
     mean = np.zeros(n_channels)
-    scatter = np.zeros((n_channels, n_channels))  # weighted sum of centred outer products
+    scatter = np.zeros((n_channels, n_channels))  # weighted sum of centered outer products
     for label in labels:
         latents = read_latents(source, label, layer)
         for start in range(0, latents.shape[0], _BLOCK):

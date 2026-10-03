@@ -131,15 +131,15 @@ def test_a_mask_can_travel_in_the_archive_instead(tmp_path, run):
 # -- what is planted, so that an analysis has a right answer --------------------
 
 
-def test_the_storm_is_found_once_the_layer_is_centred(archive):
+def test_the_storm_is_found_once_the_layer_is_centered(archive):
     source = open_source(archive, mask_variable="sst")
     grid = source.grid()
     time = 2  # kept step 3: the storm has drifted to 114W
     nodes = grid.within(10.0, -150.0 + 12.0 * 3, 1200.0)
     layer = source.load(time, 3).astype(np.float64)
     assert np.abs(layer[nodes]).max(axis=0).argmax() == OFFSET_CHANNEL
-    centred = layer - grid.mean(layer)
-    assert np.abs(centred[nodes]).max(axis=0).argmax() == STORM_CHANNEL
+    centered = layer - grid.mean(layer)
+    assert np.abs(centered[nodes]).max(axis=0).argmax() == STORM_CHANNEL
     rain = source.field("precipitation", time)
     assert np.corrcoef(layer[grid.valid, STORM_CHANNEL], rain[grid.valid])[0, 1] > 0.999
 

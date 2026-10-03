@@ -12,7 +12,7 @@ from xaig.core.errors import RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
     Box,
     Region,
-    analyse_region,
+    analyze_region,
     cosine_similarity,
     fit_pca,
     open_source,
@@ -85,28 +85,28 @@ def test_asking_for_more_components_than_exist_says_what_to_do():
 # -- the routine, on an archive with planted structure ---------------------
 
 
-def test_the_channel_with_a_bump_in_the_region_ranks_first_once_centred(latent_archive):
+def test_the_channel_with_a_bump_in_the_region_ranks_first_once_centered(latent_archive):
     source = open_source(latent_archive)
-    raw = analyse_region(source, time=0, layer=2, region=HERE, top=3)
-    assert raw.ranking.channels[0] == 1  # the constant-offset channel wins uncentred...
-    centred = analyse_region(source, time=0, layer=2, region=HERE, top=3, centred=True)
-    assert centred.ranking.channels[0] == 4  # ...and the real response wins once it is removed
+    raw = analyze_region(source, time=0, layer=2, region=HERE, top=3)
+    assert raw.ranking.channels[0] == 1  # the constant-offset channel wins uncentered...
+    centered = analyze_region(source, time=0, layer=2, region=HERE, top=3, centered=True)
+    assert centered.ranking.channels[0] == 4  # ...and the real response wins once it is removed
 
 
 def test_channels_rank_at_the_last_layer_unless_told_otherwise(latent_archive):
     source = open_source(latent_archive)
-    last = analyse_region(source, time=0, layer=0, region=HERE, centred=True)
-    first = analyse_region(source, time=0, layer=0, region=HERE, centred=True, rank_layer=0)
+    last = analyze_region(source, time=0, layer=0, region=HERE, centered=True)
+    first = analyze_region(source, time=0, layer=0, region=HERE, centered=True, rank_layer=0)
     assert (last.settings["rank_layer"], first.settings["rank_layer"]) == (2, 0)
     assert last.ranking.scores[0] == pytest.approx(3 * first.ranking.scores[0], rel=0.1)
 
 
 def test_similarity_is_highest_where_the_model_looks_like_the_region(latent_archive):
     source = open_source(latent_archive)
-    result = analyse_region(source, time=0, layer=2, region=HERE, centred=True, top=2)
+    result = analyze_region(source, time=0, layer=2, region=HERE, centered=True, top=2)
     grid = source.grid()
-    centre = grid.nearest(*BUMP)
-    assert result.similarity[centre] == pytest.approx(1.0)
+    center = grid.nearest(*BUMP)
+    assert result.similarity[center] == pytest.approx(1.0)
     far = grid.distance_km(*BUMP) > 8000
     assert np.nanmean(result.similarity[far]) < 0.5
     assert result.similarity_top.shape == result.similarity.shape == (grid.n_nodes,)
@@ -115,25 +115,25 @@ def test_similarity_is_highest_where_the_model_looks_like_the_region(latent_arch
 @pytest.mark.parametrize("reference", ["nearest", "mean"])
 def test_the_reference_is_a_stated_policy_not_whichever_node_came_first(latent_archive, reference):
     source = open_source(latent_archive)
-    kwargs = dict(time=0, layer=2, region=HERE, centred=True, reference=reference)
-    a, b = analyse_region(source, **kwargs), analyse_region(source, **kwargs)
+    kwargs = dict(time=0, layer=2, region=HERE, centered=True, reference=reference)
+    a, b = analyze_region(source, **kwargs), analyze_region(source, **kwargs)
     assert a.settings["reference"] == reference
     assert np.array_equal(a.similarity, b.similarity, equal_nan=True)
     with pytest.raises(ValueError, match="nearest, mean"):
-        analyse_region(source, time=0, layer=2, region=HERE, reference="first")
+        analyze_region(source, time=0, layer=2, region=HERE, reference="first")
 
 
 def test_pca_is_fitted_in_the_region_and_projected_everywhere(latent_archive):
     source = open_source(latent_archive)
-    result = analyse_region(source, time=0, layer=2, region=HERE, centred=True, n_components=2)
+    result = analyze_region(source, time=0, layer=2, region=HERE, centered=True, n_components=2)
     assert result.scores.shape == (source.grid().n_nodes, 2)
     assert result.pca.top_loadings(1)[0][0][0] == 4  # the bump is the leading pattern here
-    assert analyse_region(source, time=0, layer=2, region=HERE).scores is None
+    assert analyze_region(source, time=0, layer=2, region=HERE).scores is None
 
 
 def test_a_result_says_how_to_get_it_again(latent_archive):
     source = open_source(latent_archive)
-    result = analyse_region(
+    result = analyze_region(
         source, time=LATENT_TIMES[1], layer=1, region=HERE, pinned=[5], n_components=2
     )
     summary = json.loads(json.dumps(result.summary()))  # plain data, all of it
@@ -153,7 +153,7 @@ def test_invalid_nodes_are_excluded_from_the_region_and_blank_in_the_maps(tmp_pa
     mask = np.ones(n, dtype=bool)
     mask[: n // 2] = False  # the southern half is "land"
     source = open_source(write_latent_archive(tmp_path / "ocean", mask=mask))
-    result = analyse_region(source, time=0, layer=2, region=HERE, centred=True, n_components=1)
+    result = analyze_region(source, time=0, layer=2, region=HERE, centered=True, n_components=1)
     assert mask[result.nodes].all()
     assert np.isnan(result.similarity[~mask]).all() and np.isnan(result.scores[~mask]).all()
     assert np.isfinite(result.similarity[mask]).all()
@@ -162,16 +162,16 @@ def test_invalid_nodes_are_excluded_from_the_region_and_blank_in_the_maps(tmp_pa
 def test_a_mesh_works_like_a_grid_except_for_maps(tmp_path):
     source = open_source(write_latent_archive(tmp_path / "mesh", mesh=True))
     assert source.grid().shape is None
-    result = analyse_region(source, time=0, layer=2, region=HERE, centred=True)
+    result = analyze_region(source, time=0, layer=2, region=HERE, centered=True)
     assert result.ranking.channels[0] == 4
 
 
 def test_an_empty_region_and_an_unknown_layer_are_explained(latent_archive):
     source = open_source(latent_archive)
     with pytest.raises(RequestError, match="widen the region"):
-        analyse_region(source, time=0, layer=2, region=Region(0.0, 7.0, 1.0))
+        analyze_region(source, time=0, layer=2, region=Region(0.0, 7.0, 1.0))
     with pytest.raises(RequestError, match="layers are 0, 1, 2"):
-        analyse_region(source, time=0, layer=9, region=HERE)
+        analyze_region(source, time=0, layer=9, region=HERE)
 
 
 def test_ranking_reads_only_the_regions_nodes(latent_archive):
@@ -186,7 +186,7 @@ def test_ranking_reads_only_the_regions_nodes(latent_archive):
             asked.append((layer, None if nodes is None else len(nodes)))
             return real.load(time, layer, channels=channels, nodes=nodes)
 
-    result = analyse_region(Spy(), time=0, layer=1, region=HERE)
+    result = analyze_region(Spy(), time=0, layer=1, region=HERE)
     assert asked == [(2, result.nodes.size), (1, None)]
 
 
@@ -202,20 +202,20 @@ class _Spy:
         return self.real.load(time, layer, channels=channels, nodes=nodes)
 
 
-@pytest.mark.parametrize("centred", [False, True])
-def test_a_layer_ranked_where_it_is_analysed_is_read_once(latent_archive, centred):
-    """The app's default -- centred, both at the last layer -- used to read and
-    centre the same 100 MB twice."""
+@pytest.mark.parametrize("centered", [False, True])
+def test_a_layer_ranked_where_it_is_analyzed_is_read_once(latent_archive, centered):
+    """The app's default -- centered, both at the last layer -- used to read and
+    center the same 100 MB twice."""
     spy = _Spy(open_source(latent_archive))
-    once = analyse_region(spy, time=0, layer=2, region=HERE, centred=centred, top=3)
+    once = analyze_region(spy, time=0, layer=2, region=HERE, centered=centered, top=3)
     assert spy.asked == [(2, None)]
-    apart = analyse_region(
+    apart = analyze_region(
         open_source(latent_archive),
         time=0,
         layer=2,
         rank_layer=2,
         region=HERE,
-        centred=centred,
+        centered=centered,
         top=3,
     )
     assert once.ranking.channels.tolist() == apart.ranking.channels.tolist()
@@ -231,11 +231,11 @@ def test_layers_of_different_widths_are_not_followed_by_channel_index(latent_arc
     manifest["steps"][0]["n_channels"] = 4
     (latent_archive / "manifest.json").write_text(_json.dumps(manifest))
     spy = _Spy(open_source(latent_archive))
-    with pytest.raises(RequestError, match="rank at a layer as wide as the one analysed"):
-        analyse_region(spy, time=0, layer=0, region=HERE)
+    with pytest.raises(RequestError, match="rank at a layer as wide as the one analyzed"):
+        analyze_region(spy, time=0, layer=0, region=HERE)
     assert spy.asked == []  # refused before anything was read
     assert (
-        analyse_region(spy, time=0, layer=0, rank_layer=0, region=HERE).ranking.channels.max() < 4
+        analyze_region(spy, time=0, layer=0, rank_layer=0, region=HERE).ranking.channels.max() < 4
     )
 
 
@@ -243,7 +243,7 @@ def test_everything_that_can_be_refused_is_refused_before_the_first_read(latent_
     spy = _Spy(open_source(latent_archive))
     for bad in (dict(n_components=400), dict(reference="first"), dict(time=9), dict(layer=7)):
         with pytest.raises(RequestError):
-            analyse_region(spy, **{"time": 0, "layer": 2, "region": HERE, **bad})
+            analyze_region(spy, **{"time": 0, "layer": 2, "region": HERE, **bad})
     assert spy.asked == []
 
 
@@ -262,7 +262,7 @@ def test_a_box_may_cross_the_dateline_and_either_longitude_convention():
     assert Box(-10, 10, -10, 10).nodes(grid).tolist() == [3]
     assert Box(-10, 10, 0, 360).nodes(grid).size == 5
     assert Box(5, 10, 170, -170).nodes(grid).size == 0
-    assert Box(-10, 10, 170, -170).centre == (0.0, -180.0)
+    assert Box(-10, 10, 170, -170).center == (0.0, -180.0)
 
 
 def test_a_box_leaves_out_invalid_nodes():
@@ -286,7 +286,7 @@ def test_a_box_outline_closes_on_itself():
 def test_analysis_takes_a_box(latent_archive):
     source = open_source(latent_archive)
     box = Box(BUMP[0] - 20, BUMP[0] + 20, BUMP[1] - 30, BUMP[1] + 30)
-    result = analyse_region(source, time=0, layer=2, region=box, centred=True)
+    result = analyze_region(source, time=0, layer=2, region=box, centered=True)
     assert result.nodes.size and result.ranking.channels[0] == 4
     assert result.summary()["settings"]["region"] == {
         "lat_min": box.lat_min,
@@ -295,7 +295,7 @@ def test_analysis_takes_a_box(latent_archive):
         "lon_max": box.lon_max,
     }
     with pytest.raises(RequestError, match="no valid nodes in the box.*widen the region"):
-        analyse_region(source, time=0, layer=2, region=Box(89, 90, 0, 0.001))
+        analyze_region(source, time=0, layer=2, region=Box(89, 90, 0, 0.001))
 
 
 # -- the package's public names --------------------------------------------

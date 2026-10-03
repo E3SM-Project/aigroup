@@ -4,7 +4,7 @@
 feature follows it; one correlation then stands for a whole map. These start from
 the features. A census says, for every channel or feature of a layer at one time,
 how much of the world it is active over, how strongly, and where it peaks: a
-catalogue to browse. A profile takes one of them and sets every physical field
+catalog to browse. A profile takes one of them and sets every physical field
 where it is active against where it is not, which describes it by all the fields at
 once and suits a feature that is on in one place and off everywhere else -- the
 kind a correlation undersells.
@@ -118,7 +118,7 @@ def feature_census(
     threshold: float = 0.0,
     allow_unverified_basis: bool = False,
 ) -> FeatureCensus:
-    """A catalogue of one layer at one time: for each channel -- or each of a
+    """A catalog of one layer at one time: for each channel -- or each of a
     ``basis``'s features -- how much of the area it is active over, how strongly,
     and where it peaks. Over the whole grid, or a ``region``. The layer is encoded
     once, a block of nodes at a time."""

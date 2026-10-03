@@ -65,10 +65,10 @@ Every option is optional: archives can also be opened from the sidebar.
 Pick a model in the sidebar — the drop-down names each archive by the model and component
 its manifest declares, so SFNO's atmosphere, its ocean and a steered twin of either are
 told apart — then a time, a layer and a region. The view is
-[`analyse_region`](latents.md#python-api) with widgets on it:
+[`analyze_region`](latents.md#python-api) with widgets on it:
 
 - **Channels** — the channels that respond most strongly in the region, and a map of
-  each. *One colour scale for every map* makes them comparable by eye; otherwise each
+  each. *One color scale for every map* makes them comparable by eye; otherwise each
   scales to its own range.
 - **Similarity** — where else the model looks like the region, over the ranked channels
   and over all of them, on the fixed scale −1 to 1.
@@ -95,7 +95,7 @@ told apart — then a time, a layer and a region. The view is
   and `latents profile` commands that give the same numbers are under *Reproduce*.
 - **Through time** — the region's mean of the ranked channels (or the basis's features)
   at every time the archive holds, placed by its own calendar so that a gap between kept
-  steps looks like one. On request, since centred it reads every time once.
+  steps looks like one. On request, since centered it reads every time once.
 - **Reproduce** — the settings, the `xaig latents region` command and the
   Python that produce exactly what is on screen, and a JSON download of all three. The
   test suite runs that command and that code and checks they agree with the app. For an
@@ -124,7 +124,7 @@ traceback.
 
 Maps follow the page's theme. Signed quantities use a diverging blue–red scale symmetric
 about zero — with a light midpoint on a light page and a dark one on a dark page, so that
-zero always recedes — and nodes the grid marks invalid are a flat grey that belongs to no
+zero always recedes — and nodes the grid marks invalid are a flat gray that belongs to no
 value.
 
 On the SamudrACE-E3SMv3 atmosphere archive (9 layers × 17 times × 64,800 nodes × 384
@@ -135,12 +135,12 @@ analysis, and results and rendered maps are cached, bounded.
 ## The same figures without the app
 
 ```python
-from xaig.latents import Region, analyse_region, open_source
+from xaig.latents import Region, analyze_region, open_source
 from xaig.figures import map_figure
 
 source = open_source("latents/atmosphere")
 region = Region(lat=5, lon=-140, radius_km=1500)
-result = analyse_region(source, time=0, layer=8, region=region, centred=True)
+result = analyze_region(source, time=0, layer=8, region=region, centered=True)
 
 fig = map_figure(
     source.grid(),

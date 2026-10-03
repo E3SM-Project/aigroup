@@ -10,7 +10,7 @@ penalty, the standard one.
 
 Blocks take and return tensors and know nothing of archives, grids or training
 loops (``xaig.nn.train`` has those), so they can be lifted into any harness.
-Inputs are expected standardised; that is the caller's business.
+Inputs are expected standardized; that is the caller's business.
 
 Trained against another layer instead of its own input, the same block is a
 *transcoder*: it reads one layer and writes a later one, and its features are
@@ -73,7 +73,7 @@ class BSplineActivation(nn.Module):
 def topk_mask(z: torch.Tensor, k: int) -> torch.Tensor:
     """True at each row's ``k`` largest entries -- exactly ``k``, a tie at the cut
     going to the lowest index. The twin of ``xaig.latents.basis.topk_mask``,
-    spelt the same way on purpose; ``torch.topk`` alone leaves ties unspecified."""
+    spelled the same way on purpose; ``torch.topk`` alone leaves ties unspecified."""
     cut = z.topk(k, dim=-1).values[..., -1:]
     above, tied = z > cut, z == cut
     room = k - above.sum(dim=-1, keepdim=True)
@@ -128,9 +128,9 @@ class SparseAutoencoder(nn.Module):
             self.decoder.bias.zero_()
 
     @torch.no_grad()
-    def normalise_decoder(self) -> None:
+    def normalize_decoder(self) -> None:
         """Bring every feature's direction back to unit length; call after each
-        optimiser step. A feature's activation and the length of its direction can
+        optimizer step. A feature's activation and the length of its direction can
         be traded for one another at no cost to the reconstruction, so without
         this an activation is in units of its own: not comparable between two
         features, which is the first thing anyone does with them."""
@@ -169,7 +169,7 @@ class SparseAutoencoder(nn.Module):
         **meta,
     ) -> Dictionary:
         """The trained block as plain arrays, for ``xaig.latents`` to use without
-        torch. The standardisation the inputs were given travels with it."""
+        torch. The standardization the inputs were given travels with it."""
 
         def array(tensor: torch.Tensor):
             return tensor.detach().cpu().numpy().astype("float32")

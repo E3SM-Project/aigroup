@@ -53,7 +53,7 @@ equatorial Pacific, and fit three principal components there:
 
 ```console
 $ xaig latents region latents/atmosphere --lat 5 --lon -140 --radius-km 1500 \
-    --centred --top 6 --pcs 3
+    --centered --top 6 --pcs 3
 572 node(s) at layer 8, time 0425-01-03T18:00:00
 
 RANK  CHANNEL  PEAK_ABS
@@ -82,10 +82,10 @@ agrees.
 | --- | --- |
 | `--time` | a time label, or a position (`0`, `-1`) |
 | `--layer` | the layer similarity and the features are computed at; the last by default |
-| `--rank-layer` | the layer channels are ranked at; the last by default — what the network ends up emphasising. It must be as wide as `--layer`: a channel is followed from one to the other by its index, which only means something along a residual stream |
-| `--centred` | remove each channel's area-weighted global mean first |
+| `--rank-layer` | the layer channels are ranked at; the last by default — what the network ends up emphasizing. It must be as wide as `--layer`: a channel is followed from one to the other by its index, which only means something along a residual stream |
+| `--centered` | remove each channel's area-weighted global mean first |
 | `--pin` | list a channel first whatever it scores, to follow it across layers |
-| `--reference` | what "the region" is as one vector: the `nearest` node to its centre, or its area-weighted `mean` |
+| `--reference` | what "the region" is as one vector: the `nearest` node to its center, or its area-weighted `mean` |
 | `--pcs`, `--features` | how many features to map: principal components fitted in the region or, with `--basis`, the features of that basis which respond most strongly there |
 | `--basis` | a [basis file](#methods-a-basis-is-a-value): a global PCA, a sparse autoencoder |
 
@@ -115,15 +115,15 @@ hold 69.1% of the variance, and [a top-32 sparse autoencoder](nn.md) 82.1%.
 
 ```console
 $ xaig latents region latents/atmosphere --lat 5 --lon -140 --radius-km 1500 \
-    --centred --top 6 --features 3 --basis sae8.npz
+    --centered --top 6 --features 3 --basis sae8.npz
 ...
 F676  peak 27.5  45(-0.18)  107(+0.14)  351(-0.13)  124(+0.13)  129(+0.13)  326(+0.13)
 F48   peak 12.3  124(+0.16)  326(-0.15)  108(+0.14)  104(+0.14)  380(+0.13)  196(+0.13)
 F500  peak 11.5  280(+0.17)  351(-0.16)  332(+0.16)  211(+0.15)  22(+0.14)  114(-0.14)
 ```
 
-A basis is given the raw latents whatever `--centred` says: it carries the standardisation
-it was fitted with, and centring twice is simply wrong. Only the features asked for are
+A basis is given the raw latents whatever `--centered` says: it carries the standardization
+it was fitted with, and centering twice is simply wrong. Only the features asked for are
 computed, so a map of three features out of 1,024 does not cost the other 1,021. They are
 ranked by what each *contributes* in the region — its activation times the length of its
 direction — because a dictionary is free to trade one for the other.
@@ -142,7 +142,7 @@ direction — because a dictionary is free to trade one for the other.
 
     A basis that does not say where it was fitted — one made with `fit_pca` from plain
     arrays, say — is refused too, until you pass `--allow-unverified-basis`
-    (`allow_unverified_basis=True` from Python, on `analyse_region`, `region_series` and
+    (`allow_unverified_basis=True` from Python, on `analyze_region`, `region_series` and
     `rank_by_field` alike); the choice is recorded in the result's settings. To put a basis
     to a layer it says it was *not* fitted on, strip what it says first,
     `dataclasses.replace(basis, meta={})`, and then allow it: along a residual stream, a
@@ -157,7 +157,7 @@ direction — because a dictionary is free to trade one for the other.
 
 ## Through time
 
-`analyse_region` is a snapshot. To follow a region from one physics step to the next:
+`analyze_region` is a snapshot. To follow a region from one physics step to the next:
 
 ```console
 $ xaig latents series latents/atmosphere --lat 5 --lon -140 --radius-km 1500 \
@@ -172,7 +172,7 @@ TIME                 HOURS  45        107
 
 `HOURS` comes from the archive's own calendar, by hand: positions are not lead times. This
 exporter kept two runs of steps a day and a half apart, and a plot against position would
-hide that. Uncentred, only the region's nodes are read — a series over every time of the
+hide that. Uncentered, only the region's nodes are read — a series over every time of the
 7.6 GB archive is a few MB — and `--basis … --feature N` follows a feature instead.
 
 ## A run against its control
@@ -264,7 +264,7 @@ features instead.
 
 A **census** lists every channel of a layer at one time, or every feature of a basis, with
 how much of the area it is active over, its mean, its mean where active (*strength*), and
-where it peaks. It is a catalogue to browse:
+where it peaks. It is a catalog to browse:
 
 ```console
 $ xaig latents census latents/atmosphere --time 4 --layer 4 --basis bases/sae_L04.npz --top 3
@@ -304,7 +304,7 @@ another threshold may say more. Both commands read the whole grid or, with `--la
 `--lon` and `--radius-km`, a region: the day side only, say. A profile says what a feature
 goes with, not what it does.
 
-## Storylines and travelling things
+## Storylines and traveling things
 
 Two views follow something through the network and through time at once.
 
@@ -418,15 +418,15 @@ result but cannot be pinned by a flag; pin those from Python with
 ## Python API
 
 ```python
-from xaig.latents import Region, analyse_region, open_source
+from xaig.latents import Region, analyze_region, open_source
 
 source = open_source("latents/atmosphere")
-result = analyse_region(
+result = analyze_region(
     source,
     time="0425-01-03T18:00:00",
     layer=8,
     region=Region(lat=5, lon=-140, radius_km=1500),
-    centred=True,
+    centered=True,
     n_components=3,
 )
 
@@ -465,7 +465,7 @@ moments = accumulate_moments(source, layer=8)  # area-weighted, over every time
 save_basis("pca8.npz", pca_from_moments(moments, 32), provenance=source.info().provenance())
 
 basis = load_basis("sae8.npz")
-result = analyse_region(source, time=0, layer=8, region=region, n_components=3, basis=basis)
+result = analyze_region(source, time=0, layer=8, region=region, n_components=3, basis=basis)
 series = region_series(source, layer=8, region=region, basis=basis, features=[676])
 series.elapsed_seconds  # under the archive's calendar; None when it cannot say
 
@@ -507,16 +507,16 @@ anything is read; any other exception is a bug and keeps its traceback.
 ## Where this departs from the app, on purpose
 
 Checked on the real SamudrACE-E3SMv3 atmosphere latents: region selection and the
-uncentred ranking are identical to the app's, node for node, and the unweighted PCA
+uncentered ranking are identical to the app's, node for node, and the unweighted PCA
 matches scikit-learn's to 1e-7. Three things differ because they should:
 
 - **Means are area-weighted.** Rows of a lat-lon grid crowd the poles, so an unweighted
   "global mean" over-counts them. Weighting moves channel 321's global mean by 0.35 —
-  40% of its standard deviation — and changes the centred top five.
+  40% of its standard deviation — and changes the centered top five.
 - **The similarity reference is a stated policy.** The app compares against whichever
   region node comes first in the array, which for this region is its south-west corner
-  at (7.5°S, 144.5°W), 13° from the centre asked for. Here it is the node nearest the
-  centre, or the region's mean.
+  at (7.5°S, 144.5°W), 13° from the center asked for. Here it is the node nearest the
+  center, or the region's mean.
 - **Invalid nodes are left out.** Over land an ocean model's activations mean nothing —
   and are not zero: at the last layer of the SamudrACE-E3SMv3 ocean they are larger than
   over the sea (RMS 0.60 against 0.50), so nothing in the latents gives them away:
@@ -524,7 +524,7 @@ matches scikit-learn's to 1e-7. Three things differ because they should:
   warnings and no borrowed numbers.
 
 PCA signs are also fixed (each component's largest loading is positive), so a map does not
-flip colour between two runs of the same analysis.
+flip color between two runs of the same analysis.
 
 ## Masks
 
@@ -659,5 +659,5 @@ are in [the overview](index.md#writing-one).
 - [ ] Differences and series in a basis's features between two runs
 - [ ] How redundant a basis is: the pairwise correlation of its features' activations over
       time, the measure Cheon (2026) reports beside explained variance
-- [ ] A probe for a labelled phenomenon on features against one on channels (MacMillan &
+- [ ] A probe for a labeled phenomenon on features against one on channels (MacMillan &
       Ouellette 2025 find a tropical-cyclone feature a probe on neurons cannot)

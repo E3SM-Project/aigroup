@@ -27,8 +27,8 @@ class Sourceless:
     """Reads nothing, so its options are keyword-only: the first positional
     parameter of a factory is always the source."""
 
-    def __init__(self, *, flavour="plain"):
-        self.flavour = flavour
+    def __init__(self, *, flavor="plain"):
+        self.flavor = flavor
 
 
 @pytest.fixture(autouse=True)

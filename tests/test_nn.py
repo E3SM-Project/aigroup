@@ -38,7 +38,7 @@ from xaig.core.errors import RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
     Decomposition,
     Region,
-    analyse_region,
+    analyze_region,
     bspline_activation,
     iter_batches,
     load_basis,
@@ -82,8 +82,8 @@ def test_a_block_and_its_dictionary_encode_alike(activation):
     assert isinstance(dictionary, Decomposition) and dictionary.meta == {"note": "x"}
 
     latents = np.random.default_rng(0).normal(size=(50, 6)).astype(np.float32) * 3
-    standardised = torch.as_tensor((latents - mean) / scale)
-    rebuilt, features = block(standardised)
+    standardized = torch.as_tensor((latents - mean) / scale)
+    rebuilt, features = block(standardized)
     assert dictionary.transform(latents) == pytest.approx(features.detach().numpy(), abs=1e-5)
     back = rebuilt.detach().numpy() * scale + mean
     assert dictionary.reconstruct(latents) == pytest.approx(back, abs=1e-4)
@@ -102,8 +102,8 @@ def test_the_penalty_is_what_makes_a_relu_code_sparse():
     torch.manual_seed(0)
     block, x = SparseAutoencoder(6, 20), torch.randn(64, 6)
     plain, error, _ = block.loss(x)
-    penalised, same_error, features = block.loss(x, l1=2.0)
-    assert plain == error == same_error and penalised > error
+    penalized, same_error, features = block.loss(x, l1=2.0)
+    assert plain == error == same_error and penalized > error
     top = SparseAutoencoder(6, 20, activation="topk", k=3)
     total, error, features = top.loss(x, l1=2.0)
     assert total == error and (features > 0).sum(-1).max() <= 3  # topk needs no penalty
@@ -122,12 +122,12 @@ def test_fitting_finds_the_planted_bump(latent_archive):
     metrics = dictionary.meta["metrics"]
     assert metrics["explained_variance"] > 0.8 and metrics["mean_active_features"] <= 3
     assert dictionary.meta["fitted_on"]["layer"] == 2 and seen and seen[0] == 25
-    assert dictionary.input_mean[1] == pytest.approx(50.0, abs=0.01)  # standardised, not raw
+    assert dictionary.input_mean[1] == pytest.approx(50.0, abs=0.01)  # standardized, not raw
 
-    result = analyse_region(source, time=0, layer=2, region=HERE, n_components=1, basis=dictionary)
+    result = analyze_region(source, time=0, layer=2, region=HERE, n_components=1, basis=dictionary)
     assert result.feature_info[0]["top_loadings"][0]["channel"] == 4
-    centre = source.grid().nearest(*BUMP)
-    assert result.scores[centre, 0] == pytest.approx(np.nanmax(result.scores[:, 0]))
+    center = source.grid().nearest(*BUMP)
+    assert result.scores[center, 0] == pytest.approx(np.nanmax(result.scores[:, 0]))
 
 
 def _evaluated_in_numpy(source, dictionary, *, layer, target_layer=None, batch_size, times, seed):
@@ -142,10 +142,10 @@ def _evaluated_in_numpy(source, dictionary, *, layer, target_layer=None, batch_s
     for batch in batches:
         x, wanted = (batch, batch) if target_layer is None else batch
         written = dictionary.reconstruct(x).astype(np.float64)
-        centre = dictionary.input_mean if target_layer is None else dictionary.output_mean
+        center = dictionary.input_mean if target_layer is None else dictionary.output_mean
         scale = dictionary.input_scale if target_layer is None else dictionary.output_scale
         error += ((written - wanted) ** 2).sum() / scale**2
-        power += ((wanted - centre) ** 2).sum() / scale**2
+        power += ((wanted - center) ** 2).sum() / scale**2
         features = dictionary.transform(x)
         active += (features > 0).sum()
         fired |= (features > 0).any(axis=0)
@@ -206,7 +206,7 @@ def test_a_fit_that_asks_for_nothing_is_refused(latent_archive):
         fit_sae(open_source(latent_archive), layer=2, n_features=0)
 
 
-def test_a_layer_with_nothing_to_standardise_by_is_refused_before_training():
+def test_a_layer_with_nothing_to_standardize_by_is_refused_before_training():
     """Constant everywhere: the scale is zero, and what is divided by it is not a number."""
     flat = MemorySource({0: np.full((2, 48, 3), 1e8, dtype=np.float32)})
     with pytest.raises(RequestError, match="layer 0 has no variance"):

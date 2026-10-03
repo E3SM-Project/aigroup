@@ -1,11 +1,11 @@
 """Per-node values on a map.
 
-Colour follows the job the numbers do. Everything drawn so far is *signed* --
+Color follows the job the numbers do. Everything drawn so far is *signed* --
 an activation about its mean, a cosine similarity, a principal-component score --
 so the default is a diverging blue-red scale whose neutral midpoint sits exactly
 on zero, with limits symmetric about it: zero has to read as "nothing", and equal
 magnitudes of either sign have to look equally strong. Invalid nodes are a flat
-grey that belongs to no value. Pass ``symmetric=False`` with a single-hue ``cmap``
+gray that belongs to no value. Pass ``symmetric=False`` with a single-hue ``cmap``
 for a magnitude.
 
 A dark surface gets a scale of its own rather than the light one on a black card:
@@ -46,7 +46,7 @@ log = logging.getLogger(__name__)
 
 SIGNED_CMAP = "RdBu_r"
 MAGNITUDE_CMAP = "Blues"
-INVALID_COLOUR = "#c9c9c4"
+INVALID_COLOR = "#c9c9c4"
 _INK = "#33332f"
 
 # The dark counterparts. "berlin" (blue - black - red) arrived in matplotlib 3.10;
@@ -58,7 +58,7 @@ _FETCH_TIMEOUT_SECONDS = 10.0
 DARK_SIGNED_CMAP = "berlin"
 DARK_MAGNITUDE_CMAP = "Blues_r"
 DARK_SURFACE = "#0e1117"
-DARK_INVALID_COLOUR = "#4b4b47"
+DARK_INVALID_COLOR = "#4b4b47"
 _DARK_INK = "#d9d9d3"
 
 
@@ -139,7 +139,7 @@ def map_figure(
     """One per-node field on a global map.
 
     A structured grid is drawn as cells, a mesh as points. ``region`` (a ``Region``,
-    a ``Box``, or anything with ``outline()``) is outlined. ``limit`` pins the colour
+    a ``Box``, or anything with ``outline()``) is outlined. ``limit`` pins the color
     range to ``±limit`` so several maps can be compared by eye; without it each
     map scales to its own data. ``dark`` draws for a dark page.
     """
@@ -148,7 +148,7 @@ def map_figure(
         raise ValueError(f"expected one value per node {(grid.n_nodes,)}, got {values.shape}")
     values = np.where(grid.valid, values, np.nan)
     vmin, vmax = (-limit, limit) if limit else _limits(values, symmetric)
-    ink, invalid = (_DARK_INK, DARK_INVALID_COLOUR) if dark else (_INK, INVALID_COLOUR)
+    ink, invalid = (_DARK_INK, DARK_INVALID_COLOR) if dark else (_INK, INVALID_COLOR)
     if cmap is None and dark:
         from matplotlib import colormaps
 

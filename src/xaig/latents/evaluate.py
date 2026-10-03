@@ -1,15 +1,15 @@
 """Evaluating a frozen basis on times it was not fitted on.
 
-A dictionary fitted and scored on the same nodes says how well it memorised them. The
+A dictionary fitted and scored on the same nodes says how well it memorized them. The
 protocol here is the smallest that says more:
 
-1. **Split by time, not by node.** Neighbouring nodes and neighbouring steps are
+1. **Split by time, not by node.** Neighboring nodes and neighboring steps are
    nearly the same sample, so a random split leaks. ``split_time_blocks`` cuts the
    times into contiguous blocks, holds some out, and drops a buffer of ``gap`` times
    beside every held-out block from the training side. ``split_groups`` holds out whole
    trajectories, ``split_archives`` a whole other archive. A split is a list of time
    labels, written into every result.
-2. **Fit on the training side only.** Standardisation (``accumulate_moments``), a PCA, a
+2. **Fit on the training side only.** Standardization (``accumulate_moments``), a PCA, a
    dictionary (``fit_sae(times=split.train)``): all of it. ``evaluate_basis`` refuses a
    basis that says it saw a held-out time.
 3. **Freeze it and measure both sides**: reconstruction, sparsity, dead features,
@@ -279,7 +279,7 @@ class SideMetrics:
 
 
 def _reference_mean(basis: Decomposition) -> np.ndarray:
-    """What a basis is centred on in the layer it writes."""
+    """What a basis is centered on in the layer it writes."""
     if isinstance(basis, PCA):
         return basis.mean
     out = basis.output_mean if basis.output_mean is not None else basis.input_mean

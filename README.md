@@ -35,7 +35,7 @@ stays nimble.
 $ xaig latents toy scratch/toy/control        # no model to hand? make an archive with numpy
 $ xaig latents info scratch/toy/control --mask-variable sst
 $ xaig latents info /path/to/latents/atmosphere
-$ xaig latents region /path/to/latents/atmosphere --lat 5 --lon -140 --centred --pcs 3
+$ xaig latents region /path/to/latents/atmosphere --lat 5 --lon -140 --centered --pcs 3
 $ xaig nn sae /path/to/latents/atmosphere --out sae.npz      # needs `uv sync --extra nn`
 $ xaig latents region /path/to/latents/atmosphere --lat 5 --lon -140 --features 3 --basis sae.npz
 $ xaig app --latents /path/to/latents/   # the same, in a local web app

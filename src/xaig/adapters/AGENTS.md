@@ -58,7 +58,7 @@ the provenance keys, the same answers from two openings, an undeclared option re
 name, a missing or foreign source an `AdapterError`; of an `Intervenable`: float32 latents
 at exactly the places recorded, noise a function of the seed alone, hooks that see what the
 pass produced and are continued with, a state that is not modified, places that do not
-exist refused. Layout-specific behaviour goes in its own test module
+exist refused. Layout-specific behavior goes in its own test module
 (`tests/test_bundle_dir.py`); what is asked of every adapter does not.
 
 ## Registering

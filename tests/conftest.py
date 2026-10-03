@@ -18,8 +18,8 @@ import pytest
 # Small enough to read at a glance, with structure planted so each analysis has
 # a known right answer:
 #
-#   channel 4   a bump centred on BUMP, growing with depth: what "responds here"
-#   channel 1   a constant offset of 50 at every node: what centring is for
+#   channel 4   a bump centered on BUMP, growing with depth: what "responds here"
+#   channel 1   a constant offset of 50 at every node: what centering is for
 #   the rest    small seeded noise
 
 BUMP = (7.5, 45.0)

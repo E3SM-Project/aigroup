@@ -121,7 +121,7 @@ def open_intervenable(source: str | None, adapter: str, **options: Any) -> Inter
 def feature_direction(basis: Decomposition, feature: int) -> np.ndarray:
     """The direction of ``feature`` in the units of the layer the basis reads, float64.
 
-    A dictionary's decoder row is in standardised units, so it is multiplied by the scale
+    A dictionary's decoder row is in standardized units, so it is multiplied by the scale
     its decode applies. A transcoder writes another layer: its directions are not
     directions of the layer it reads, and cannot steer it.
     """
@@ -368,7 +368,7 @@ def _random_unit(n_channels: int, seed: int, draw: int) -> np.ndarray:
     return vector / np.linalg.norm(vector)
 
 
-def _summarise(
+def _summarize(
     names: Sequence[str], pairings: Sequence[Pairing], seeds: Sequence[int], n_random: int
 ) -> dict[str, Effect]:
     effects = {}
@@ -513,7 +513,7 @@ def run_steering(
         provenance=result_provenance(info, basis=basis),
         runs=tuple(runs),
         pairings=tuple(pairings),
-        effects=_summarise(names, pairings, seeds, n_random),
+        effects=_summarize(names, pairings, seeds, n_random),
     )
 
 

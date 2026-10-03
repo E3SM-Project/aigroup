@@ -122,8 +122,8 @@ def test_moments_do_not_cancel_beside_a_large_offset():
     latents = data.astype(np.float64).reshape(-1, 4)
     weights = np.tile(source.grid().weights(), 2) / 2
     mean = weights @ latents
-    centred = latents - mean
-    exact = (centred * weights[:, None]).T @ centred
+    centered = latents - mean
+    exact = (centered * weights[:, None]).T @ centered
     assert moments.mean == pytest.approx(mean, rel=1e-12)
     assert moments.covariance[0, 0] == pytest.approx(0.0, abs=1e-6)
     assert moments.covariance[1:, 1:] == pytest.approx(exact[1:, 1:], rel=1e-9)

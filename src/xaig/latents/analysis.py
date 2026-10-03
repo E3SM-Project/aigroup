@@ -45,7 +45,7 @@ class Region:
     radius_km: float
 
     @property
-    def centre(self) -> tuple[float, float]:
+    def center(self) -> tuple[float, float]:
         return self.lat, self.lon
 
     def nodes(self, grid: Grid) -> np.ndarray:
@@ -86,7 +86,7 @@ class Box:
         return span if span >= 360.0 else span % 360.0
 
     @property
-    def centre(self) -> tuple[float, float]:
+    def center(self) -> tuple[float, float]:
         lon = self.lon_min + self._width / 2.0
         return (self.lat_min + self.lat_max) / 2.0, (lon + 180.0) % 360.0 - 180.0
 
@@ -158,7 +158,7 @@ def cosine_similarity(latents: np.ndarray, reference: np.ndarray) -> np.ndarray:
     """
     latents = _floating(latents)
     # Stay in the layer's own precision: only per-node results are widened, so a
-    # 100 MB layer is never copied to float64 just to be normalised.
+    # 100 MB layer is never copied to float64 just to be normalized.
     reference = np.asarray(reference, dtype=latents.dtype)
     dots = (latents @ reference).astype(np.float64)
     squares = np.einsum("ij,ij->i", latents, latents).astype(np.float64)
@@ -174,16 +174,16 @@ def load_channels(
     time: str | int,
     layer: int,
     channels: Sequence[int],
-    centred: bool = False,
+    centered: bool = False,
 ) -> np.ndarray:
     """A few channels over the whole grid, ``(n_nodes, len(channels))``, ready to
     map: NaN where the grid is invalid, and with each channel's area-weighted
-    global mean removed when ``centred``. Only the channels asked for are kept in
+    global mean removed when ``centered``. Only the channels asked for are kept in
     memory; how little is *read* is up to the source (an archive stores a node's
     channels side by side, so its pages are touched all the same)."""
     grid = source.grid()
     values = read_latents(source, time, layer, channels=list(channels)).astype(np.float64)
-    if centred:
+    if centered:
         values -= grid.mean(values)
     values[~grid.valid] = np.nan
     return values
@@ -191,7 +191,7 @@ def load_channels(
 
 @dataclass(frozen=True, eq=False)
 class RegionAnalysis:
-    """Everything ``analyse_region`` found, with what it takes to find it again.
+    """Everything ``analyze_region`` found, with what it takes to find it again.
 
     Per-node arrays span the whole grid and are NaN where the grid is invalid.
     ``similarity_top`` uses only the ranked channels. ``scores`` is
@@ -241,7 +241,7 @@ def _feature_info(basis: Decomposition, features: Sequence[int], label: str, **e
     )
 
 
-def analyse_region(
+def analyze_region(
     source: LatentSource,
     *,
     time: str | int,
@@ -250,7 +250,7 @@ def analyse_region(
     rank_layer: int | None = None,
     top: int = 15,
     pinned: Sequence[int] = (),
-    centred: bool = False,
+    centered: bool = False,
     reference: str = "nearest",
     n_components: int = 0,
     basis: Decomposition | None = None,
@@ -259,17 +259,17 @@ def analyse_region(
     """Rank channels in a region, then map similarity and a decomposition.
 
     Channels are ranked at ``rank_layer`` (the last layer unless told otherwise:
-    what the network ends up emphasising) from the region's nodes alone.
+    what the network ends up emphasizing) from the region's nodes alone.
     Similarity and the decomposition are computed at ``layer``. The two must be
     equally wide: a channel is followed from one to the other by its index, which
     only means something along a residual stream.
 
-    ``centred`` removes each channel's area-weighted global mean first. Without
+    ``centered`` removes each channel's area-weighted global mean first. Without
     it, channels carrying a large constant offset dominate both the ranking and
     the cosine similarity.
 
     ``reference`` says what "this region" means as a single vector: ``"nearest"``
-    is the valid node closest to the region's centre, ``"mean"`` the area-weighted
+    is the valid node closest to the region's center, ``"mean"`` the area-weighted
     mean over the region. Either is deterministic and independent of node order.
 
     ``n_components`` features are mapped. Without a ``basis`` they are principal
@@ -279,8 +279,8 @@ def analyse_region(
     *contributes*, its activation times the length of its direction, since a
     dictionary is free to trade one for the other and an activation alone would
     rank by that accident. The basis must have been fitted on this network and
-    layer (``check_basis_fits``), and sees the raw latents whatever ``centred``
-    says, since it carries the standardisation it was fitted with. Missing
+    layer (``check_basis_fits``), and sees the raw latents whatever ``centered``
+    says, since it carries the standardization it was fitted with. Missing
     identity requires ``allow_unverified_basis=True``; known mismatches are
     always refused. This choice is recorded in the result settings.
 
@@ -296,7 +296,7 @@ def analyse_region(
     if width != rank_width:
         raise RequestError(
             f"layer {layer} has {width} channel(s) and layer {rank_layer}, where channels are "
-            f"ranked, has {rank_width}; rank at a layer as wide as the one analysed"
+            f"ranked, has {rank_width}; rank at a layer as wide as the one analyzed"
         )
     if basis is not None:
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
@@ -316,17 +316,17 @@ def analyse_region(
                 f"at most {limit} exist{hint}"
             )
 
-    def centre(full: np.ndarray) -> np.ndarray:
+    def center(full: np.ndarray) -> np.ndarray:
         full -= grid.mean(full).astype(full.dtype)  # in place: load() hands over a fresh array
         return full
 
     ranking = None
     if rank_layer != layer:
-        # Centring needs the global mean, so it costs a full read even for a
-        # handful of nodes; uncentred, only the region is read. Either way this
+        # Centering needs the global mean, so it costs a full read even for a
+        # handful of nodes; uncentered, only the region is read. Either way this
         # layer is let go before the next is loaded.
-        if centred:
-            ranked_at = centre(read_latents(source, time_label, rank_layer))[nodes]
+        if centered:
+            ranked_at = center(read_latents(source, time_label, rank_layer))[nodes]
         else:
             ranked_at = read_latents(source, time_label, rank_layer, nodes=nodes)
         ranking = rank_channels(ranked_at, top=top, pinned=pinned)
@@ -344,7 +344,7 @@ def analyse_region(
         )
     if n_components and basis is None:
         # A fitted basis always consumes raw latents, independently of how the
-        # ranking and similarity are centred below.
+        # ranking and similarity are centered below.
         pca = replace(
             fit_pca(latents[nodes], n_components, weights=weights[nodes]),
             meta={
@@ -359,13 +359,13 @@ def analyse_region(
         )
         scores = pca.transform(latents)
         feature_info = _feature_info(pca, range(n_components), "PC")
-    if centred:
-        centre(latents)
+    if centered:
+        center(latents)
     if ranking is None:
         ranking = rank_channels(latents[nodes], top=top, pinned=pinned)
 
     if reference == "nearest":
-        vector = latents[grid.nearest(*region.centre)]
+        vector = latents[grid.nearest(*region.center)]
     else:
         vector = (weights[nodes] / weights[nodes].sum()) @ latents[nodes]
     valid = grid.valid
@@ -383,7 +383,7 @@ def analyse_region(
         "region": asdict(region),
         "top": top,
         "pinned": [int(c) for c in pinned],
-        "centred": centred,
+        "centered": centered,
         "reference": reference,
         "n_components": n_components,
         "basis": None if basis is None else basis.meta.get("path"),

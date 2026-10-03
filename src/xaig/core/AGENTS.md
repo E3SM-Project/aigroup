@@ -25,5 +25,5 @@ points alone.) Enforced by `tests/test_purity.py`, statically and at runtime.
 - `RequestError` is for what was asked and cannot be had. It is also a `ValueError`, but
   raise it rather than one wherever a person's input is at fault: clients show an
   `XaigError` in one line and let everything else keep its traceback.
-- The registry validates what it passes to a factory. A misspelt option is an error
+- The registry validates what it passes to a factory. A misspelled option is an error
   naming the accepted ones; it must never silently mean "use the default".

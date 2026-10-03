@@ -59,7 +59,7 @@ def test_the_steer_command_writes_a_record_of_what_it_found(steering):
     assert record.split is None and record.commit is None
 
 
-def test_a_record_is_compact_beside_the_result_it_summarises(steering):
+def test_a_record_is_compact_beside_the_result_it_summarizes(steering):
     """The runs and pairings are the bulk of a result, and a record leaves them out."""
     full, path = steering
     assert {"runs", "pairings"} <= full.keys()

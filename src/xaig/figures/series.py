@@ -1,7 +1,7 @@
 """Values through time, one line per channel or feature.
 
 Lines are categories, so they get a categorical palette -- Okabe and Ito's, which
-survives the common colour-vision deficiencies -- and, past its eight colours, a
+survives the common color-vision deficiencies -- and, past its eight colors, a
 change of dash rather than a ninth hue nobody can tell from the first. Zero is
 drawn, because what is plotted here is signed and "did it change sign" is usually
 the question.

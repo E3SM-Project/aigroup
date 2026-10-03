@@ -32,7 +32,7 @@ like any other:
 ```console
 $ xaig latents toy scratch/toy/control
 $ xaig latents info scratch/toy/control --mask-variable sst
-$ xaig latents region scratch/toy/control --lat 10 --lon -114 --time 2 --centred --pcs 2
+$ xaig latents region scratch/toy/control --lat 10 --lon -114 --time 2 --centered --pcs 2
 $ xaig latents fields scratch/toy/control --field precipitation --top 3
 $ xaig nn sae scratch/toy/control --features 64 --k 4 --out scratch/toy/sae.npz   # needs xaig[nn]
 $ xaig app --latents scratch/toy                                                  # needs xaig[app]
@@ -41,11 +41,11 @@ $ xaig app --latents scratch/toy                                                
 The CLI is a thin client of the Python API; anything it can do, a notebook can:
 
 ```python
-from xaig.latents import Region, analyse_region, open_source
+from xaig.latents import Region, analyze_region, open_source
 
 source = open_source("scratch/toy/control", mask_variable="sst")
-result = analyse_region(
-    source, time=2, layer=3, region=Region(lat=10, lon=-114, radius_km=1500), centred=True
+result = analyze_region(
+    source, time=2, layer=3, region=Region(lat=10, lon=-114, radius_km=1500), centered=True
 )
 result.ranking.channels  # the channels that respond most strongly there
 ```

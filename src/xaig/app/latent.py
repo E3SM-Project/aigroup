@@ -31,7 +31,7 @@ from xaig.latents import (
     Region,
     RegionAnalysis,
     RegionSeries,
-    analyse_region,
+    analyze_region,
     feature_profile,
     load_basis,
     load_channels,
@@ -71,14 +71,14 @@ def _basis(path: str, stamp: int | None):
     return load_basis(path)
 
 
-@st.cache_data(max_entries=_CACHED, show_spinner="Analysing the region…")
-def _analyse(
+@st.cache_data(max_entries=_CACHED, show_spinner="Analyzing the region…")
+def _analyze(
     path: str, mask_variable: str | None, settings: dict, stamp: int | None = None
 ) -> RegionAnalysis:
     kwargs = dict(settings)
     region = Region(**kwargs.pop("region"))
     basis = kwargs.pop("basis")
-    return analyse_region(
+    return analyze_region(
         _open(path, mask_variable),
         region=region,
         basis=_basis(basis, stamp) if basis else None,
@@ -87,15 +87,15 @@ def _analyse(
 
 
 @st.cache_data(max_entries=_CACHED, show_spinner="Reading channels…")
-def _channels(path: str, mask_variable: str | None, time: str, layer: int, channels, centred):
+def _channels(path: str, mask_variable: str | None, time: str, layer: int, channels, centered):
     return load_channels(
-        _open(path, mask_variable), time=time, layer=layer, channels=channels, centred=centred
+        _open(path, mask_variable), time=time, layer=layer, channels=channels, centered=centered
     )
 
 
 @st.cache_data(max_entries=_CACHED, show_spinner="Following the region through time…")
 def _series(
-    path: str, mask_variable: str | None, layer: int, region, columns, centred, basis, stamp,
+    path: str, mask_variable: str | None, layer: int, region, columns, centered, basis, stamp,
     unverified: bool = False,
 ) -> RegionSeries:  # fmt: skip
     chosen = (
@@ -104,7 +104,7 @@ def _series(
         else {"channels": columns}
     )
     return region_series(
-        _open(path, mask_variable), layer=layer, region=Region(*region), centred=centred, **chosen
+        _open(path, mask_variable), layer=layer, region=Region(*region), centered=centered, **chosen
     )
 
 
@@ -259,8 +259,8 @@ def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...
         radius_km = st.slider("Radius (km)", 100, 5000, 1500, step=100)
 
         st.subheader("How")
-        centred = st.checkbox(
-            "Centre channels",
+        centered = st.checkbox(
+            "Center channels",
             value=True,
             help="Remove each channel's area-weighted global mean. Without it, channels "
             "carrying a large constant offset dominate the ranking and the similarity.",
@@ -270,7 +270,7 @@ def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...
                 "Rank channels at",
                 names,
                 index=len(names) - 1,
-                help="The last layer shows what the network ends up emphasising; layer 0 "
+                help="The last layer shows what the network ends up emphasizing; layer 0 "
                 "shows what the encoder does.",
             )
         ]
@@ -285,7 +285,7 @@ def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...
         reference = st.radio(
             "Compare against",
             ["nearest", "mean"],
-            format_func={"nearest": "the node at the centre", "mean": "the region's mean"}.get,
+            format_func={"nearest": "the node at the center", "mean": "the region's mean"}.get,
             horizontal=True,
         )
 
@@ -340,7 +340,7 @@ def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...
         "rank_layer": rank_layer,
         "top": top,
         "pinned": pinned,
-        "centred": centred,
+        "centered": centered,
         "reference": reference,
         "n_components": int(n_components) if basis or method == _IN_REGION else 0,
         "basis": basis,
@@ -351,7 +351,7 @@ def _controls(info, path: str, mask_variable: str | None, fields: tuple[str, ...
 def _gallery(
     path, mask_variable, fields, titles, label, region, limit, across=_COLUMNS, symmetric=None
 ) -> None:
-    """``symmetric`` is one flag per map, or None for a scale centred on zero throughout."""
+    """``symmetric`` is one flag per map, or None for a scale centered on zero throughout."""
     columns = st.columns(across)
     dark = dark_page()
     symmetric = [True] * len(titles) if symmetric is None else symmetric
@@ -361,7 +361,7 @@ def _gallery(
 
 
 def _signed(values: np.ndarray) -> bool:
-    """Whether a map has both signs, and so wants a scale centred on zero."""
+    """Whether a map has both signs, and so wants a scale centered on zero."""
     finite = values[np.isfinite(values)]
     return bool(finite.size and finite.min() < 0.0 < finite.max())
 
@@ -508,7 +508,7 @@ def reproduction(
         options.append(("--mask-variable", mask_variable))
     lines = [shlex.join(["xaig", "latents", "region", path])]
     lines += [shlex.join([flag, str(value)]) for flag, value in options]
-    lines += ["--centred"] if s["centred"] else []
+    lines += ["--centered"] if s["centered"] else []
     lines += ["--allow-unverified-basis"] if s.get("allow_unverified_basis") else []
     command = " \\\n    ".join(lines)
 
@@ -522,7 +522,7 @@ def reproduction(
         () if s.get("allow_unverified_basis") else ("allow_unverified_basis",)
     )
     arguments += [f"{k}={v!r}" for k, v in s.items() if k not in unsaid]
-    names = ["Region", "analyse_region", "open_source"]
+    names = ["Region", "analyze_region", "open_source"]
     if s.get("basis"):
         pin = f", sha256={digest!r}" if digest else ""
         arguments.append(f"basis=load_basis({s['basis']!r}{pin})")
@@ -530,7 +530,7 @@ def reproduction(
     python = (
         f"from xaig.latents import {', '.join(names)}\n\n"
         f"source = {opened}\n"
-        "result = analyse_region(\n    source,\n    " + ",\n    ".join(arguments) + ",\n)"
+        "result = analyze_region(\n    source,\n    " + ",\n    ".join(arguments) + ",\n)"
     )
     return command, python
 
@@ -582,7 +582,7 @@ def _through_time(path, mask_variable, settings, result: RegionAnalysis) -> None
         settings["layer"],
         tuple(settings["region"].values()),
         columns,
-        settings["centred"],
+        settings["centered"],
         settings["basis"] if follow_features else None,
         _stamp(settings["basis"]) if follow_features else None,
         settings["allow_unverified_basis"],
@@ -637,7 +637,7 @@ def page() -> None:
     no_features = None
     try:
         try:
-            result = _analyse(path, mask_variable, settings, _stamp(settings["basis"]))
+            result = _analyze(path, mask_variable, settings, _stamp(settings["basis"]))
         except RequestError as exc:
             if not settings["n_components"]:
                 raise
@@ -646,7 +646,7 @@ def page() -> None:
             # under Features rather than blanking the view. Whatever else is wrong
             # is refused before anything is read, so asking again costs nothing.
             no_features = str(exc)
-            result = _analyse(path, mask_variable, {**settings, "n_components": 0, "basis": None})
+            result = _analyze(path, mask_variable, {**settings, "n_components": 0, "basis": None})
     except RequestError as exc:
         st.warning(str(exc))
         return
@@ -672,8 +672,8 @@ def page() -> None:
             for i, (c, s) in enumerate(zip(ranked, result.ranking.scores, strict=True), start=1)
         ]
         st.dataframe(table, hide_index=True, width="stretch")
-        shared = st.toggle("One colour scale for every map", value=False)
-        fields = _channels(path, mask_variable, time, layer, tuple(ranked), settings["centred"])
+        shared = st.toggle("One color scale for every map", value=False)
+        fields = _channels(path, mask_variable, time, layer, tuple(ranked), settings["centered"])
         limit = float(np.nanmax(np.abs(fields))) if shared else None
         _gallery(
             path, mask_variable, fields.T, [f"Channel {c} · layer {layer}" for c in ranked],

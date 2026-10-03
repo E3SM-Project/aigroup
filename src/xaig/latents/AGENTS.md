@@ -25,7 +25,7 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   are resolved on first use through `_LAZY`; a new public name goes there, in `__all__`
   and under `TYPE_CHECKING`.
 - **Area-weight everything.** Unweighted means on a lat-lon grid are simply wrong. On
-  real SamudrACE latents, unweighted centring moved one channel's global mean by 40% of
+  real SamudrACE latents, unweighted centering moved one channel's global mean by 40% of
   its standard deviation and changed the top-5 ranking.
 - **Be NaN- and mask-aware.** Ocean channels are undefined over land (30.7% of points in
   the E3SMv3 configuration); a plain `mean` silently returns NaN or a biased number.
@@ -55,7 +55,7 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   `--basis-sha256`).
 - **A held-out number is of a frozen basis on times it was not fitted on.** Splits are
   contiguous time blocks with a buffer, never nodes or adjacent steps, and are written into
-  the result as labels. Normalisation, PCA and dictionary are fitted on `split.train` only;
+  the result as labels. Normalization, PCA and dictionary are fitted on `split.train` only;
   `evaluate_basis` refuses a basis whose `fitted_on.times` includes a held-out time, and
   marks one that says nothing `unknown`. A result is built with `result_provenance`; this
   package does not train (seeds and sweeps are `nn`'s, handed in as `Dictionary`s).
@@ -82,8 +82,8 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   product. `nn` keeps directions at unit length so that the two agree.
 - **A method is a value.** Anything that turns channels into features is a
   `Decomposition`; routines take one as `basis=` rather than growing an argument per
-  method. A basis is handed *raw* latents: its standardisation is its own and travels
-  with it, so centring an analysis must not centre its input twice.
+  method. A basis is handed *raw* latents: its standardization is its own and travels
+  with it, so centering an analysis must not center its input twice.
 - **Area and mask hold for training data too.** `iter_batches` draws nodes by area and
   never where the grid is invalid, so a plain mean over a batch is the area-weighted
   loss. Do not train on `source.load()` directly.

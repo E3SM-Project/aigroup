@@ -4,7 +4,7 @@ Two pictures recur whenever something is followed through a network and through
 time. A layer-by-time panel shows where a signal lives and how it spreads -- a
 storyline's correlations, or how far a perturbed run has drifted from its control.
 A Hovmoller diagram shows one quantity along a latitude band, longitude against
-time, where anything travelling draws tilted stripes.
+time, where anything traveling draws tilted stripes.
 
 Both take plain arrays, so any analysis that produces one can be drawn. Built on
 ``matplotlib.figure.Figure`` directly, like every figure in ``figures``.
@@ -116,7 +116,7 @@ def hovmoller_figure(
     """``values`` is ``(n_times, n_lon)``: longitude across, time running up.
 
     Columns are sorted by longitude in 0..360, so a band that crosses the
-    dateline or the prime meridian draws unbroken. Signed data is centred on zero
+    dateline or the prime meridian draws unbroken. Signed data is centered on zero
     unless ``symmetric`` is False; ``limit`` pins the range to ``+-limit``."""
     values = np.asarray(values, dtype=np.float64)
     lon = np.asarray(lon, dtype=np.float64)
