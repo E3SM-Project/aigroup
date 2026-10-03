@@ -2074,6 +2074,9 @@ like any other:</p>
 </span></code></pre></div>
 <p>Meshes need no special handling: without a <code>grid_shape</code> everything works except
 <code>to_map</code>, and weights are uniform unless the adapter supplies <code>area</code>.</p>
+<p><code>bundle-dir</code> is a second layout shipped to show this: channels first, one file per level
+and time. How to write one, and the contract tests that every adapter is asked to pass,
+are in <a href="../#writing-one">the overview</a>.</p>
 <h2 id="remaining-tasks">Remaining tasks</h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A GraphCast mesh adapter, including the <em>translator</em> of Tempest et al. (2026), which

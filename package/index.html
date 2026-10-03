@@ -987,6 +987,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Adding an adapter">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#writing-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing one
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1207,6 +1224,42 @@ Register it, from this repo or any other package:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>uv<span class="w"> </span>sync<span class="w">   </span><span class="c1"># entry points are read from installed metadata</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>/path/to/export<span class="w"> </span>--adapter<span class="w"> </span>myframework
 </span></code></pre></div>
+<h3 id="writing-one">Writing one</h3>
+<ol>
+<li><strong>The module</strong> goes in <code>xaig/adapters/</code> (or any package): a class whose first positional
+   parameter is the source and whose options are keyword arguments. An option it does not
+   declare is refused by name for it, by the registry. A source that is broken is an
+   <code>AdapterError</code>; a request it cannot meet is a <code>RequestError</code>, never an <code>IndexError</code>.</li>
+<li><strong>A writer</strong>, <code>write(path, **contents)</code> with the signature of <code>write_archive</code>, is
+   optional and worth having: the toy emulator writes through it
+   (<code>xaig latents toy OUT --adapter myframework</code>), so the reader is tested against it.</li>
+<li><strong>The entry point</strong>, as above, and <code>uv sync</code>.</li>
+<li><strong>The contract tests.</strong> Add one line to <code>LATENT_CASES</code> in
+   <code>tests/test_adapter_contracts.py</code> (and to <code>INTERVENABLE_CASES</code> if the adapter can be run
+   forward with hooks), and every test there is asked of it; <code>src/xaig/adapters/AGENTS.md</code>
+   lists what they ask. The suite fails until a registered adapter is under contract.</li>
+</ol>
+<p>The repository ships two layouts, and the second exists to show that this is all there is.
+<code>latent-archive</code> keeps <code>(n_times, n_nodes, n_channels)</code> in one file per layer; <code>bundle-dir</code>
+keeps <code>(n_channels, n_lat, n_lon)</code> in one file per level <em>and</em> time, with its own words in
+its JSON manifest (<code>system</code>, <code>clock</code>, <code>levels</code>). Nothing that reads latents was edited to
+add it:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>toy<span class="w"> </span>scratch/bundle<span class="w"> </span>--adapter<span class="w"> </span>bundle-dir
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>info<span class="w"> </span>scratch/bundle<span class="w"> </span>--adapter<span class="w"> </span>bundle-dir
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">source                 scratch/bundle</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">model                  xaig-toy</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">component              atmosphere</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">checkpoint             seed-0</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">calendar               noleap</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">timestep_s             21600</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="go">grid                   24x48, 1152 nodes, 1152 valid</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="go">times                  8: 0424-02-27T06:00:00 .. 0424-03-02T00:00:00</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="go">…</span>
+</span></code></pre></div>
+<p>A bundle keeps its mask in <code>coords.npz</code> (<code>ocean</code>, true where the model says something). The
+toy's land is known only to its <code>sst</code> field, so a toy bundle has no mask, and says
+<code>1152 valid</code>; <code>--mask-variable</code> is an archive's option and a bundle refuses it, naming the
+one it has (<code>unmasked</code>).</p>
 <h2 id="where-this-comes-from">Where this comes from</h2>
 <p>Three papers are behind what is here, and behind what comes next. Cite them if you use it.</p>
 <ul>
