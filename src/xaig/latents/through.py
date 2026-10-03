@@ -107,12 +107,8 @@ def region_series(
     if basis is not None:
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
         columns = tuple(int(f) for f in (range(basis.n_features) if features is None else features))
-        if not columns:
-            raise RequestError("no features selected: `features` is empty")
     else:
         columns = tuple(int(c) for c in (range(width) if channels is None else channels))
-        if not columns:
-            raise RequestError("no channels selected: `channels` is empty")
         bad = [c for c in columns if not 0 <= c < width]
         if bad:
             raise RequestError(f"channel(s) {bad} outside 0..{width - 1}")
@@ -319,22 +315,20 @@ def difference_growth(
     the nodes valid in both (and in ``noise``, if given). ``noise``, a rerun of the
     control with another seed, adds the baseline a stochastic model's differences have to clear."""
     chosen = tuple(x.index for x in control.info().layers) if layers is None else tuple(layers)
-    if not chosen:
-        raise RequestError("no layers selected: `layers` is empty")
+    others = (experiment,) if noise is None else (experiment, noise)
     for layer in chosen:
-        for other in (experiment, noise):
-            if other is not None:
-                check_comparable(
-                    control,
-                    other,
-                    layer=layer,
-                    across_models=across_models,
-                    allow_unverified=allow_unverified,
-                )
+        for other in others:
+            check_comparable(
+                control,
+                other,
+                layer=layer,
+                across_models=across_models,
+                allow_unverified=allow_unverified,
+            )
     labels = _common_times(control, experiment, times)
     if noise is not None:
         labels = _common_times(control, noise, labels)
-    grid = shared_grid(control, experiment, *(() if noise is None else (noise,)))
+    grid = shared_grid(control, *others)
     weights = grid.weights()
     rms = np.zeros((len(labels), len(chosen)))
     relative = np.zeros_like(rms)
@@ -611,8 +605,6 @@ def field_storyline(
     _reference_fields(source, field)
     info, grid = source.info(), source.grid()
     chosen = tuple(x.index for x in info.layers) if layers is None else tuple(layers)
-    if not chosen:
-        raise RequestError("no layers selected: `layers` is empty")
     bases = dict(bases or {})
     for layer in chosen:
         info.layer(layer)

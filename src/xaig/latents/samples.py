@@ -21,31 +21,28 @@ The two rules of ``latents.grid`` hold here as well, and are as easy to forget:
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import Any
 
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.basis import PCA, fix_signs
-from xaig.latents.source import BLOCK, LatentSource, read_latents
+from xaig.latents.source import LatentSource, read_latents
 
 try:
     import numpy as np
 except ImportError as exc:
     raise missing_extra("numpy", "latents") from exc
 
+_BLOCK = 8192
+
 
 def _time_labels(source: LatentSource, times: Sequence[str | int] | None) -> list[str]:
-    """The labels of the times asked for (all by default); asking for none is refused,
-    as an empty selection is everywhere here, rather than answered with nothing."""
+    """The labels of the times asked for (all by default); none is refused."""
     info = source.info()
     labels = list(info.times) if times is None else [info.times[info.time_index(t)] for t in times]
     if not labels:
-        raise RequestError(
-            f"no times selected: {info.source} holds none"
-            if times is None
-            else "no times selected: `times` is empty"
-        )
+        raise RequestError(f"no times selected from {info.source}")
     return labels
 
 
@@ -73,40 +70,6 @@ class Moments:
         return float(np.sqrt(np.trace(self.covariance) / self.covariance.shape[0]))
 
 
-def check_moments(moments: Moments) -> Moments:
-    """The moments, or a ``RequestError`` if they cannot be used: a covariance that is
-    not finite, or a variance below zero by more than round-off. A diagonal entry
-    negative by no more than ``1e-12`` of the largest is round-off and is set to zero."""
-    where = f"layer {moments.layer} over {len(moments.times)} time(s)"
-    covariance = moments.covariance
-    if not (np.isfinite(moments.mean).all() and np.isfinite(covariance).all()):
-        raise RequestError(f"the moments of {where} are not finite")
-    variance = np.diag(covariance)
-    floor = -1e-12 * float(np.abs(variance).max(initial=0.0))
-    if (variance < floor).any():
-        worst = int(np.argmin(variance))
-        raise RequestError(
-            f"the moments of {where} have negative variance ({variance[worst]:.3g} "
-            f"in channel {worst})"
-        )
-    if (variance < 0.0).any():
-        covariance = covariance.copy()
-        covariance[np.diag_indices_from(covariance)] = np.clip(variance, 0.0, None)
-        return replace(moments, covariance=covariance)
-    return moments
-
-
-def check_trainable(moments: Moments) -> None:
-    """Refuse moments a layer cannot be standardised by: ``scale`` must be finite and
-    positive, and it is zero when every channel is constant."""
-    scale = moments.scale
-    if not (np.isfinite(scale) and scale > 0.0):
-        raise RequestError(
-            f"layer {moments.layer} has no variance to standardise by (scale {scale:.3g}) "
-            f"over {len(moments.times)} time(s); there is nothing to fit"
-        )
-
-
 def accumulate_moments(
     source: LatentSource, *, layer: int, times: Sequence[str | int] | None = None
 ) -> Moments:
@@ -116,8 +79,7 @@ def accumulate_moments(
     and the sums are ``(n_channels, n_channels)`` however many times there are.
     The covariance is built from centred sums, each block merged into the running
     mean and scatter as it arrives, rather than as ``E[x x'] - E[x] E[x]'``, which
-    loses every digit of a channel whose mean dwarfs its spread. The result is
-    checked (``check_moments``) before it is returned.
+    loses every digit of a channel whose mean dwarfs its spread.
     """
     info, labels = source.info(), _time_labels(source, times)
     n_channels = info.layer(layer).n_channels
@@ -128,8 +90,8 @@ def accumulate_moments(
     scatter = np.zeros((n_channels, n_channels))  # weighted sum of centred outer products
     for label in labels:
         latents = read_latents(source, label, layer)
-        for start in range(0, latents.shape[0], BLOCK):
-            keep = np.flatnonzero(weights[start : start + BLOCK] > 0.0) + start
+        for start in range(0, latents.shape[0], _BLOCK):
+            keep = np.flatnonzero(weights[start : start + _BLOCK] > 0.0) + start
             if keep.size:
                 block = latents[keep].astype(np.float64)
                 if shift is None:
@@ -145,15 +107,13 @@ def accumulate_moments(
                 scatter += block_scatter + np.outer(gap, gap) * (total * block_weight / merged)
                 mean += gap * (block_weight / merged)
                 total = merged
-    return check_moments(
-        Moments(
-            mean=mean + (0.0 if shift is None else shift),
-            covariance=scatter / total,
-            times=tuple(labels),
-            layer=layer,
-            provenance=info.provenance(),
-            network_layer=info.layer(layer).position,
-        )
+    return Moments(
+        mean=mean + (0.0 if shift is None else shift),
+        covariance=scatter / total,
+        times=tuple(labels),
+        layer=layer,
+        provenance=info.provenance(),
+        network_layer=info.layer(layer).position,
     )
 
 

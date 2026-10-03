@@ -131,9 +131,8 @@ def feature_census(
     weights = weights / weights.sum()
     latents = read_latents(source, label, layer, nodes=nodes)
 
-    # Latents are read through ``read_latents``, so a NaN in a valid node never gets
-    # here; what a basis makes of finite latents can still overflow, and such a value
-    # is left out of its column, which is then read over the area it has values for.
+    # The latents are finite (``read_latents``), but a basis is any ``Decomposition``:
+    # a value it returns that is not is left out of its column, read over the rest.
     area, total, finite = np.zeros(n_columns), np.zeros(n_columns), np.zeros(n_columns)
     active_total = np.zeros(n_columns)
     peak = np.full(n_columns, -np.inf)
@@ -275,7 +274,7 @@ def feature_profile(
         else:
             values = read_latents(source, label, layer, channels=[column], nodes=nodes)[:, 0]
             values = values.astype(np.float64)
-        read = np.isfinite(values)  # an activation that overflowed is on neither side
+        read = np.isfinite(values)  # what a basis returns may not be finite
         on = read & (values > threshold)
         active_area += float(weights[on].sum())
         total_area += float(weights[read].sum())

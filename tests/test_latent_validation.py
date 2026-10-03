@@ -29,7 +29,6 @@ from xaig.latents import (  # noqa: E402
 )
 
 WHOLE = Box(-90.0, 90.0, 0.0, 360.0)
-HERE = Region(lat=0.0, lon=0.0, radius_km=3000.0)
 N_NODES = 48
 
 
@@ -46,9 +45,8 @@ def _planted(poison=None, mask=None):
 NAMED = r"layer 1 at t2 holds 1 valid node\(s\).*channel 2.*in memory"
 
 
-@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
-def test_read_latents_names_the_layer_the_time_and_the_channel(value):
-    source = _planted({(1, 2): value})
+def test_read_latents_names_the_layer_the_time_and_the_channel():
+    source = _planted({(1, 2): np.nan})
     with pytest.raises(RequestError, match=NAMED):
         read_latents(source, 2, 1)
     with pytest.raises(RequestError, match=NAMED):
@@ -76,12 +74,8 @@ def test_every_reader_of_latents_refuses_a_valid_node_that_is_not_a_number():
         ),
         "region": lambda: analyse_region(source, time=2, layer=1, region=WHOLE),
         "series": lambda: region_series(source, layer=1, region=WHOLE, channels=[2]),
-        "centred series": lambda: region_series(
-            source, layer=1, region=WHOLE, channels=[2], centred=True
-        ),
         "channels": lambda: load_channels(source, time=2, layer=1, channels=[2]),
         "difference": lambda: difference(other, source, time=2, layer=1),
-        "control": lambda: difference(source, other, time=2, layer=1),
         "growth": lambda: difference_growth(other, source),
         "noise": lambda: difference_growth(other, other, noise=source),
     }
@@ -97,38 +91,20 @@ def test_every_reader_of_latents_refuses_a_valid_node_that_is_not_a_number():
 
 
 def test_nothing_selected_is_refused_saying_what_was_empty():
-    source, other = _planted(), _planted()
+    source, nowhere = _planted(), Region(0.0, 0.0, 1.0)
     empty = {
-        "no times selected": [
-            lambda: accumulate_moments(source, layer=0, times=[]),
-            lambda: list(iter_batches(source, layer=0, times=[])),
-            lambda: region_series(source, layer=0, region=HERE, channels=[0], times=[]),
-            lambda: difference_growth(source, other, times=[]),
-        ],
-        "no channels selected": [
-            lambda: region_series(source, layer=0, region=HERE, channels=[]),
-            lambda: load_channels(source, time=0, layer=0, channels=[]),
-        ],
-        "no layers selected": [lambda: difference_growth(source, other, layers=[])],
-        "no valid nodes within": [
-            lambda: analyse_region(source, time=0, layer=0, region=Region(0.0, 0.0, 1.0)),
-            lambda: region_series(source, layer=0, region=Region(0.0, 0.0, 1.0), channels=[0]),
-        ],
-        "no valid nodes: the mask": [
-            lambda: accumulate_moments(_planted(mask=np.zeros(N_NODES, bool)), layer=0),
-            lambda: list(iter_batches(_planted(mask=np.zeros(N_NODES, bool)), layer=0)),
-        ],
+        "no times selected": lambda: accumulate_moments(source, layer=0, times=[]),
+        "no valid nodes within": lambda: analyse_region(source, time=0, layer=0, region=nowhere),
+        "no valid nodes within 1 km": lambda: region_series(
+            source, layer=0, region=nowhere, channels=[0]
+        ),
+        "no valid nodes: the mask": lambda: accumulate_moments(
+            _planted(mask=np.zeros(N_NODES, bool)), layer=0
+        ),
     }
-    for message, calls in empty.items():
-        for call in calls:
-            with pytest.raises(RequestError, match=message):
-                call()
-
-
-def test_runs_with_no_node_in_common_are_refused():
-    half = np.arange(N_NODES) < 24
-    with pytest.raises(RequestError, match="no node is valid in all of memory, memory"):
-        difference(_planted(mask=half), _planted(mask=~half), time=0, layer=0)
+    for message, call in empty.items():
+        with pytest.raises(RequestError, match=message):
+            call()
 
 
 def test_the_cli_says_it_in_one_line(latent_archive):

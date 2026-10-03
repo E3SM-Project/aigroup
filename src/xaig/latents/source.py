@@ -237,9 +237,6 @@ class ReferenceFields(Protocol):
     def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray: ...
 
 
-BLOCK = 8192  # nodes per step of a blocked reduction
-
-
 def read_latents(
     source: LatentSource,
     time: str | int,
@@ -256,19 +253,17 @@ def read_latents(
     diverged), and one such value would turn every mean, moment and loss it
     touches into NaN, far from the cause. It is refused here, naming the layer, the
     time and the channels, so everything that reads latents to analyse or train on
-    reads them through this. Checked a block of nodes at a time: no second copy.
+    reads them through this.
     """
     values = source.load(time, layer, channels=channels, nodes=nodes)
     valid = source.grid().valid
     if nodes is not None:
         valid = valid[np.asarray(nodes, dtype=np.intp)]
-    n_bad, bad_channels = 0, np.zeros(values.shape[1], dtype=bool)
-    for start in range(0, values.shape[0], BLOCK):
-        keep = valid[start : start + BLOCK]
-        ok = np.isfinite(values[start : start + BLOCK][keep])
-        n_bad += int(np.count_nonzero(~ok.all(axis=1)))
-        bad_channels |= ~ok.all(axis=0)
-    if n_bad:
+    ok = np.isfinite(values)
+    ok[~valid] = True
+    if not ok.all():
+        n_bad = int(np.count_nonzero(~ok.all(axis=1)))
+        bad_channels = ~ok.all(axis=0)
         info = source.info()
         chosen = np.arange(values.shape[1]) if channels is None else np.asarray(channels)
         named = ", ".join(str(int(c)) for c in chosen[bad_channels][:5])
@@ -332,7 +327,8 @@ def check_comparable(
     ``allow_unverified=True`` accepts that, as ``check_basis_fits`` does for a basis.
     """
     info_a, info_b = a.info(), b.info()
-    apart = differing_identity(info_a.identity(), info_b.identity())
+    declared_a, declared_b = info_a.identity(), info_b.identity()
+    apart = differing_identity(declared_a, declared_b)
     if apart and not across_models:
         raise RequestError(
             f"{info_a.source} and {info_b.source} are different networks ({'; '.join(apart)}), "
@@ -349,7 +345,7 @@ def check_comparable(
             f"and network layer {place_b.position} in {info_b.source}; "
             "they are different places in the network"
         )
-    width_a, width_b = info_a.layer(layer).n_channels, info_b.layer(layer).n_channels
+    width_a, width_b = place_a.n_channels, place_b.n_channels
     if width_a != width_b:
         raise RequestError(
             f"layer {layer} has {width_a} channel(s) in {info_a.source} "
@@ -366,7 +362,6 @@ def check_comparable(
         raise RequestError(
             f"{info_a.source} and {info_b.source} have the same number of nodes in different places"
         )
-    declared_a, declared_b = info_a.identity(), info_b.identity()
     missing = [
         f"{key} in {name}"
         for name, declared in ((info_a.source, declared_a), (info_b.source, declared_b))
@@ -394,9 +389,6 @@ def shared_grid(a: LatentSource, b: LatentSource, *more: LatentSource) -> Grid:
     valid = grid_a.valid & b.grid().valid
     for other in more:
         valid = valid & other.grid().valid
-    if not valid.any():
-        names = ", ".join(x.info().source for x in (a, b, *more))
-        raise RequestError(f"no node is valid in all of {names}; there is nothing to compare")
     return Grid(
         lat=grid_a.lat,
         lon=grid_a.lon,
@@ -428,9 +420,7 @@ def check_basis_fits(
     # different layers, and index 4 of one is then not index 4 of the other.
     position = info.layer(layer).position
     fitted_at = fitted.get("network_layer", fitted.get("layer"))
-    # Unlike two runs, a basis always records the place it was fitted at (the layer's
-    # index, for a source that declares none), so an undeclared layer here is compared
-    # by index on purpose: the same index of an undeclared source is the same place.
+    # A basis always records a place (an index, if undeclared), so index matches index.
     if fitted_at is not None and int(fitted_at) != position:
         here = f"layer {layer}" + ("" if position == layer else f" (network layer {position})")
         there = "layer" if "network_layer" not in fitted else "network layer"

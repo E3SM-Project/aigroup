@@ -29,7 +29,6 @@ from xaig.latents import (
     Dictionary,
     LatentSource,
     accumulate_moments,
-    check_trainable,
     iter_batches,
 )
 from xaig.nn.sae import SparseAutoencoder
@@ -117,8 +116,9 @@ def fit_sae(
         if target_layer is None
         else accumulate_moments(source, layer=target_layer, times=times)
     )
-    check_trainable(moments)
-    check_trainable(goal)
+    for each in (moments,) if target_layer is None else (moments, goal):
+        if not each.scale > 0.0:  # every channel constant
+            raise RequestError(f"layer {each.layer} has no variance; there is nothing to fit")
     n_outputs = goal.mean.size
 
     torch.manual_seed(seed)
@@ -161,7 +161,7 @@ def fit_sae(
             step += 1
             if progress is not None and step % 25 == 0:
                 progress(step, float(error.detach()))
-            if last:  # the model as it was while it learned: it moves under this
+            if last:
                 tally.add(x if target is None else target, error.detach(), features.detach())
     training_metrics = tally.metrics()
 

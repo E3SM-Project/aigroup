@@ -175,8 +175,6 @@ def load_channels(
     global mean removed when ``centred``. Only the channels asked for are kept in
     memory; how little is *read* is up to the source (an archive stores a node's
     channels side by side, so its pages are touched all the same)."""
-    if not len(channels):
-        raise RequestError("no channels selected: `channels` is empty")
     grid = source.grid()
     values = read_latents(source, time, layer, channels=list(channels)).astype(np.float64)
     if centred:

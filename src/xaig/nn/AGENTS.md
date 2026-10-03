@@ -28,10 +28,8 @@ it. Needs the `nn` extra (torch), which a plain `uv sync` leaves out:
   the plain mean in the loss is the area-weighted one.
 - **Say how good it is, of what it returns.** A fit reports explained variance, mean active
   features and the dead fraction in `meta["metrics"]`, with everything needed to refit it
-  beside them. They are measured on the *exported* dictionary, in a no-grad pass of the
-  frozen final model over the last epoch's batches; the numbers summed while the weights
-  moved are `meta["training_metrics"]`, a monitor. A test holds `metrics` to an
-  independent numpy evaluation of the `Dictionary`.
+  beside them, measured on the *exported* dictionary (`training_metrics` is a monitor). A
+  test holds `metrics` to an independent numpy evaluation of the `Dictionary`.
 - Import torch behind the extra, at the top of the module that needs it and never in
   `__init__.py` or `cli.py`: `xaig --help` imports every cli module on a base install.
 - The loop is a toy on purpose. Quote what it measures; do not tune it in secret.

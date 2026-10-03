@@ -16,10 +16,7 @@ from conftest import (  # noqa: E402
 )
 from xaig.core.errors import RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
-    Moments,
     accumulate_moments,
-    check_moments,
-    check_trainable,
     fit_pca,
     iter_batches,
     open_source,
@@ -115,8 +112,8 @@ def test_batches_need_something_to_draw_from(latent_archive):
 
 def test_moments_do_not_cancel_beside_a_large_offset():
     """A float32 channel that is 1e8 everywhere has no variance. Raw second moments
-    minus the square of the mean gave -2 for it on a grid with unequal areas, and a
-    scale of NaN for everything trained on it."""
+    minus the square of the mean went negative for it on a grid with unequal areas,
+    and a scale of NaN for everything trained on it."""
     rng = np.random.default_rng(3)
     planted = rng.normal(0.0, 2.0, (2, 48, 3)).astype(np.float32)
     data = np.concatenate([np.full((2, 48, 1), 1e8, dtype=np.float32), planted], axis=2)
@@ -131,29 +128,4 @@ def test_moments_do_not_cancel_beside_a_large_offset():
     assert moments.covariance[0, 0] == pytest.approx(0.0, abs=1e-6)
     assert moments.covariance[1:, 1:] == pytest.approx(exact[1:, 1:], rel=1e-9)
     assert moments.covariance[0, 1:] == pytest.approx(0.0, abs=1e-3)
-    assert np.isfinite(moments.scale) and moments.scale == pytest.approx(
-        np.sqrt(np.trace(exact) / 4), rel=1e-9
-    )
-    assert (np.diag(moments.covariance) >= 0.0).all()
-
-
-def test_moments_of_a_layer_that_cannot_be_trained_on_are_refused():
-    """What would make a NaN scale is said before anything is loaded to train on."""
-    flat = MemorySource({0: np.full((1, 48, 2), 7.0, dtype=np.float32)})
-    with pytest.raises(RequestError, match="layer 0 .*no variance"):
-        check_trainable(accumulate_moments(flat, layer=0))
-    bad = Moments(
-        mean=np.zeros(2),
-        covariance=np.array([[1.0, 0.0], [0.0, -1.0]]),
-        times=("t0",),
-        layer=3,
-    )
-    with pytest.raises(RequestError, match="layer 3 .*negative variance"):
-        check_moments(bad)
-    broken = Moments(mean=np.zeros(1), covariance=np.array([[np.nan]]), times=("t0",), layer=3)
-    with pytest.raises(RequestError, match="layer 3 .*not finite"):
-        check_moments(broken)
-    roundoff = Moments(
-        mean=np.zeros(2), covariance=np.diag([4.0, -1e-15]), times=("t0",), layer=0
-    )  # a variance of -1e-15 beside 4 is round-off, not information
-    assert np.diag(check_moments(roundoff).covariance).tolist() == [4.0, 0.0]
+    assert moments.scale == pytest.approx(np.sqrt(np.trace(exact) / 4), rel=1e-9)

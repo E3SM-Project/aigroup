@@ -181,8 +181,8 @@ seed is not channel 42 of this one, whatever number it carries — unless `--acr
 says the index does carry over (a fine-tune of the same weights); comparing networks
 trained apart needs a different tool altogether. The layer is matched by its place in the
 network (`network_layer` in the manifest, else its index), so a run whose layer 0 is
-network layer 2 is not set against one whose layer 0 is network layer 8 (when both declare one), and nothing lifts
-that refusal. Where either run leaves out its model, component, checkpoint or layer
+network layer 2 is not set against one whose layer 0 is network layer 8 (when both declare
+one), and nothing lifts that refusal. Where either run leaves out its model, component, checkpoint or layer
 placement the comparison cannot be verified, and is refused until you pass
 `--allow-unverified-sources` (`allow_unverified=True` from Python; the result's settings
 record that you did). Only nodes valid in *all* the runs compared — control, experiment and
@@ -485,34 +485,19 @@ That is 30.7% of points over land, excluded from everything that follows.
 
 ### Values that are not numbers, and selections that are empty
 
-Two things go wrong in the same way everywhere, so they are refused in the same way
-everywhere: with a one-line error that says what and where, never with a NaN that turns up
-three steps later.
+Both are refused everywhere with a one-line error that says what and where, never with a
+NaN that turns up three steps later.
 
 - **A valid node whose activations are NaN or infinite.** What a masked node holds is
-  never looked at, but a node the mask says is valid has to hold numbers. An exporter that
-  wrote NaN for land and forgot the mask, or a run that diverged, would otherwise turn a mean,
-  a covariance or a training loss into NaN. Every analysis and the training loop read
-  latents through `read_latents`, which raises
+  never looked at, but a node the mask says is valid has to hold numbers. Every analysis
+  and the training loop read latents through `read_latents`, which raises
   `layer 8 at 0425-01-03T18:00:00 holds 12 valid node(s) with activations that are not finite
   (channel 41, 77) in latents/atmosphere; a node the source cannot supply belongs in its
   mask, not left NaN`. The remedy is the mask (`--mask-variable`, or `mask` in `grid.npz`).
   Fields are different: a reference field is NaN where it is missing, and stays so.
-  This is a change of behaviour: an analysis (`hovmoller`, `region_series`, `census`,
-  `profile`, the maps and the rest) used to tolerate NaN at nodes the mask calls valid,
-  skipping them silently, and now raises this `RequestError` instead. An archive written
-  without a mask, with NaN where the model has no values, must be given one.
-- **An empty selection.** No times, channels, features or layers, a region or box with no
-  valid node in it, a mask that leaves no node, runs that share no valid node: each is a
-  `RequestError` naming what was empty (`no times selected`, `no channels selected`,
-  `no valid nodes within 1 km of (0, 0)`), not an empty result.
-
-Moments are accumulated about the mean, one block of nodes at a time, so a channel with a
-huge offset and a tiny spread (a constant at 1e8 in float32) keeps its variance instead of
-cancelling to a negative one. Before anything is trained on them the covariance must be
-finite with a non-negative diagonal (round-off is clamped, anything larger refused) and the
-scale finite and positive, so a layer with no variance at all is refused rather than divided
-by.
+- **An empty selection.** No times, a region or box with no valid node in it, or a mask
+  (or the runs compared) that leaves no node: each is a `RequestError` naming what was
+  empty (`no times selected`, `no valid nodes within 1 km of (0, 0)`), not an empty result.
 
 ## The latent archive
 

@@ -40,9 +40,8 @@ model: its numbers show what the output looks like and say nothing about what a 
 will explain on a real layer. The defaults (1,024 features, `k` of 32, two epochs) are
 sized for a layer of a million node-times, and on a toy this small they underfit; the
 options above are the ones used here. The percentage, the active count and the dead
-fraction are measured on the dictionary that is written, which costs one extra pass over
-the last epoch's batches after training; the running `reconstruction` lines are the
-loop's own, taken while the weights were changing.
+fraction describe the dictionary that is written; the running `reconstruction` lines are
+the loop's own, taken while the weights were changing.
 
 | Option | Meaning |
 | --- | --- |
@@ -111,17 +110,14 @@ from xaig.nn.train import fit_sae
 source = open_source("latents/atmosphere")
 dictionary = fit_sae(source, layer=8, n_features=1024, activation="topk", k=32)
 dictionary.meta["metrics"]  # explained_variance, mean_active_features, dead_fraction
-dictionary.meta["training_metrics"]  # the same three, as the loop saw them while learning
+dictionary.meta["training_metrics"]  # the loop's running tally, a monitor
 save_basis("sae8.npz", dictionary)
 ```
 
-`metrics` describes the dictionary you were given: after the last update, the loop makes one
-more pass over the last epoch's batches with the final weights frozen (no gradients) and
-measures that. `training_metrics` is the running tally from that epoch, taken while the
-weights were still changing; after a single update it describes the model *before* it. Use
-the first for results and the second to watch a run. Before training starts the moments are
-checked: a layer with no variance to standardise by (every channel constant), or a
-covariance that is not finite, is a `RequestError` and not a NaN loss.
+`metrics` describes the dictionary you were given, measured in one more pass over the last
+epoch's batches with the final weights frozen; quote it, and use `training_metrics` only to
+watch a run. A layer with no variance to standardise by (every channel constant) is a
+`RequestError`, not a NaN loss.
 
 The modules are plain `nn.Module`s that take and return tensors and know nothing of
 archives, grids or loops, so they can be lifted into any harness:
