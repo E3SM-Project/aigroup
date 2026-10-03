@@ -214,14 +214,22 @@ def difference(
     layer: int,
     top: int = 15,
     across_models: bool = False,
+    allow_unverified: bool = False,
 ) -> PairedDifference:
     """Which channels a perturbation reached, and where: ``experiment - control``
     at one layer and time, channels ranked by how much they moved.
 
-    The two must be one network on one grid (``check_comparable``); what is
-    compared is the nodes valid in both.
+    The two must be one network on one grid (``check_comparable``, which says what
+    ``across_models`` and ``allow_unverified`` lift); what is compared is the nodes
+    valid in both.
     """
-    check_comparable(control, experiment, layer=layer, across_models=across_models)
+    check_comparable(
+        control,
+        experiment,
+        layer=layer,
+        across_models=across_models,
+        allow_unverified=allow_unverified,
+    )
     label = control.info().times[control.info().time_index(time)]
     experiment.info().time_index(label)
     grid = shared_grid(control, experiment)
@@ -237,6 +245,7 @@ def difference(
             "layer": layer,
             "top": top,
             "across_models": across_models,
+            "allow_unverified": allow_unverified,
             "n_nodes_compared": int(grid.valid.sum()),
         },
         provenance=_pair_provenance(control, experiment),
@@ -295,6 +304,7 @@ def difference_growth(
     layers: Sequence[int] | None = None,
     times: Sequence[str | int] | None = None,
     across_models: bool = False,
+    allow_unverified: bool = False,
     noise: LatentSource | None = None,
 ) -> DifferenceGrowth:
     """Follow a perturbation through the network and through time: the size of
@@ -303,9 +313,15 @@ def difference_growth(
     control with another seed, adds the baseline a stochastic model's differences have to clear."""
     chosen = tuple(x.index for x in control.info().layers) if layers is None else tuple(layers)
     for layer in chosen:
-        check_comparable(control, experiment, layer=layer, across_models=across_models)
-        if noise is not None:
-            check_comparable(control, noise, layer=layer, across_models=across_models)
+        for other in (experiment, noise):
+            if other is not None:
+                check_comparable(
+                    control,
+                    other,
+                    layer=layer,
+                    across_models=across_models,
+                    allow_unverified=allow_unverified,
+                )
     labels = _common_times(control, experiment, times)
     if noise is not None:
         labels = _common_times(control, noise, labels)
@@ -334,6 +350,7 @@ def difference_growth(
         settings={
             "layers": list(chosen),
             "across_models": across_models,
+            "allow_unverified": allow_unverified,
             "n_nodes_compared": int(grid.valid.sum()),
             "noise": None if noise is None else noise.info().source,
         },

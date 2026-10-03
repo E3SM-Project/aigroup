@@ -179,8 +179,14 @@ channel, so the two must be one network on one grid; that is checked, not assume
 archives that declare different models or checkpoints are refused — channel 42 of another
 seed is not channel 42 of this one, whatever number it carries — unless `--across-models`
 says the index does carry over (a fine-tune of the same weights); comparing networks
-trained apart needs a different tool altogether. Only nodes valid in *both* runs are
-weighed: a node one of them masks holds whatever it holds there.
+trained apart needs a different tool altogether. The layer is matched by its place in the
+network (`network_layer` in the manifest, else its index), so a run whose layer 0 is
+network layer 2 is not set against one whose layer 0 is network layer 8, and nothing lifts
+that refusal. Where either run leaves out its model, component, checkpoint or layer
+placement the comparison cannot be verified, and is refused until you pass
+`--allow-unverified-sources` (`allow_unverified=True` from Python; the result's settings
+record that you did). Only nodes valid in *all* the runs compared — control, experiment and
+any noise run — are weighed: a node one of them masks holds whatever it holds there.
 
 ```console
 $ xaig latents diff latents/control latents/steered --layer 8

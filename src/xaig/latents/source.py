@@ -261,10 +261,16 @@ def differing_identity(ours: Mapping[str, Any], theirs: Mapping[str, Any]) -> li
 
 
 def check_comparable(
-    a: LatentSource, b: LatentSource, *, layer: int, across_models: bool = False
+    a: LatentSource,
+    b: LatentSource,
+    *,
+    layer: int,
+    across_models: bool = False,
+    allow_unverified: bool = False,
 ) -> None:
     """Refuse to set two sources against each other unless node ``i`` of one is
-    node ``i`` of the other and channel ``c`` of ``layer`` is the same channel.
+    node ``i`` of the other and channel ``c`` of ``layer`` is the same channel of
+    the same place in the same network.
 
     A perturbed run is compared with its control node for node and channel for
     channel, so a differing grid or width is not a detail: the difference would
@@ -273,6 +279,13 @@ def check_comparable(
     so sources that declare different identities are refused too. ``across_models``
     lifts that one check, for the cases where the index does carry over (a
     fine-tune of the same weights), and it is the caller's to justify.
+
+    ``layer`` is a place in each source, and two sources may keep different layers
+    of one network: it is the layer's place in the *network*
+    (``LayerInfo.position``) that must agree, and a known mismatch is refused
+    whatever else is passed. A model, component, checkpoint or layer position that
+    either side does not declare cannot be compared and is refused too, unless
+    ``allow_unverified=True`` accepts that, as ``check_basis_fits`` does for a basis.
     """
     info_a, info_b = a.info(), b.info()
     apart = differing_identity(info_a.identity(), info_b.identity())
@@ -281,6 +294,13 @@ def check_comparable(
             f"{info_a.source} and {info_b.source} are different networks ({'; '.join(apart)}), "
             "and a channel's index means nothing between two; pass across_models=True "
             "only if it does here"
+        )
+    place_a, place_b = info_a.layer(layer), info_b.layer(layer)
+    if place_a.position != place_b.position:
+        raise RequestError(
+            f"layer {layer} is network layer {place_a.position} in {info_a.source} "
+            f"and network layer {place_b.position} in {info_b.source}; "
+            "they are different places in the network"
         )
     width_a, width_b = info_a.layer(layer).n_channels, info_b.layer(layer).n_channels
     if width_a != width_b:
@@ -298,6 +318,23 @@ def check_comparable(
     if not (same_lat and np.allclose(grid_a.lon % 360.0, grid_b.lon % 360.0)):
         raise RequestError(
             f"{info_a.source} and {info_b.source} have the same number of nodes in different places"
+        )
+    declared_a, declared_b = info_a.identity(), info_b.identity()
+    missing = [
+        f"{key} in {name}"
+        for name, declared in ((info_a.source, declared_a), (info_b.source, declared_b))
+        for key in ("model", "component", "checkpoint")
+        if key not in declared
+    ]
+    # Two sources that both count layers by index agree by construction; one that
+    # declares where its layers sit and one that does not have only been assumed to.
+    if (place_a.network_layer is None) != (place_b.network_layer is None):
+        silent = info_a if place_a.network_layer is None else info_b
+        missing.append(f"network layer in {silent.source}")
+    if missing and not allow_unverified:
+        raise RequestError(
+            f"the sources cannot be shown to be comparable (undeclared: {', '.join(missing)}); "
+            "pass allow_unverified=True (CLI: --allow-unverified-sources) to compare them anyway"
         )
 
 

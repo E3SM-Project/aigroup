@@ -363,13 +363,59 @@ def test_two_networks_are_not_compared_channel_by_channel(pair, tmp_path):
         difference_growth(control, other)
     insisted = difference(control, other, time=1, layer=2, across_models=True)
     assert insisted.settings["across_models"] is True  # and the result says that it was
-    # What a source does not declare is not held against it.
+    # What a source does not declare cannot be compared, and is accepted only on request.
     anonymous = _renamed(write_latent_archive(tmp_path / "anon"), checkpoint=None, model=None)
-    assert difference(control, open_source(anonymous), time=1, layer=2).rms.max() == 0.0
+    silent = open_source(anonymous)
+    with pytest.raises(RequestError, match=r"undeclared: model in .*anon, checkpoint in .*anon"):
+        difference(control, silent, time=1, layer=2)
+    with pytest.raises(RequestError, match="undeclared"):
+        difference_growth(control, silent)
+    accepted = difference(control, silent, time=1, layer=2, allow_unverified=True)
+    assert accepted.rms.max() == 0.0 and accepted.settings["allow_unverified"] is True
+    assert difference_growth(control, silent, allow_unverified=True).rms.max() == 0.0
 
     refused = _invoke("diff", pair[0], tmp_path / "seed2")
     assert refused.exit_code == 1 and "different networks" in refused.output
     assert _invoke("diff", pair[0], tmp_path / "seed2", "--across-models").exit_code == 0
+    unverified = _invoke("diff", pair[0], tmp_path / "anon")
+    assert unverified.exit_code == 1 and "--allow-unverified-sources" in unverified.output
+    assert _invoke("diff", pair[0], tmp_path / "anon", "--allow-unverified-sources").exit_code == 0
+
+
+def _placed(path, places):
+    """The archive at ``path``, its layers declared to sit at network layers ``places``."""
+    manifest = json.loads((path / "manifest.json").read_text())
+    for step, place in zip(manifest["steps"], places, strict=True):
+        step["network_layer"] = place
+    (path / "manifest.json").write_text(json.dumps(manifest))
+    return open_source(path)
+
+
+def test_layers_are_compared_by_their_place_in_the_network(tmp_path):
+    """Local layer 0 of one run is network layer 2 and of the other network layer 8.
+    The widths and the grid agree, so the old check passed; what it compared was
+    two different places of one network."""
+    shallow = _placed(write_latent_archive(tmp_path / "shallow"), [2, 3, 4])
+    deep = _placed(write_latent_archive(tmp_path / "deep"), [8, 9, 10])
+    twin = _placed(write_latent_archive(tmp_path / "twin"), [2, 3, 4])
+    with pytest.raises(RequestError, match="network layer 2 in .*shallow and network layer 8"):
+        difference(shallow, deep, time=1, layer=0)
+    with pytest.raises(RequestError, match="different places"):
+        difference_growth(shallow, deep, layers=[0])
+    # A known mismatch is not something either override can wave through.
+    with pytest.raises(RequestError, match="different places"):
+        difference(shallow, deep, time=1, layer=0, across_models=True, allow_unverified=True)
+    assert difference(shallow, twin, time=1, layer=0).rms.max() == 0.0
+    # One side declaring where its layers sit and the other not is an assumption.
+    plain = open_source(write_latent_archive(tmp_path / "plain"))
+    counted = _placed(write_latent_archive(tmp_path / "counted"), [0, 1, 2])
+    with pytest.raises(RequestError, match=r"undeclared: network layer in .*plain"):
+        difference(plain, counted, time=1, layer=0)
+    assert difference(plain, counted, time=1, layer=2, allow_unverified=True).rms.max() == 0.0
+    with pytest.raises(RequestError, match="different places"):  # index 0 is place 0, not 2
+        difference(plain, twin, time=1, layer=0, allow_unverified=True)
+    # Two that both count by index are what they have always been.
+    assert difference(plain, open_source(tmp_path / "plain"), time=1, layer=0).rms.max() == 0.0
 
 
 @pytest.mark.parametrize("offset", [0.0, 1e3, 1e6])
