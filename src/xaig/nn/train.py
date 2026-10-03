@@ -13,7 +13,7 @@ it is; making it better is what the modules being separate is for.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from xaig import __version__
@@ -198,3 +198,23 @@ def fit_sae(
         output_scale=None if target_layer is None else goal.scale,
         **meta,
     )
+
+
+def fit_sweep(
+    source: LatentSource, settings: Sequence[Mapping[str, Any]], **common: Any
+) -> list[Dictionary]:
+    """One ``fit_sae`` per entry of ``settings`` (``k``, ``l1``, ``n_features``, ``seed`` ...
+    over ``common``), in order: the dictionaries a fidelity-sparsity curve is drawn from.
+    Pass ``times=split.train`` so that none of them sees a held-out time."""
+    if not settings:
+        raise RequestError("settings is empty: there is nothing to fit")
+    clash = sorted({key for each in settings for key in each} & {"source"})
+    if clash:
+        raise RequestError(f"settings cannot name {clash[0]!r}")
+    return [fit_sae(source, **{**common, **each}) for each in settings]
+
+
+def fit_seeds(source: LatentSource, seeds: Sequence[int], **common: Any) -> list[Dictionary]:
+    """The same dictionary trained under each of ``seeds``: what ``latents.seed_stability``
+    compares. The seed moves the initial weights and the order and draws of the batches."""
+    return fit_sweep(source, [{"seed": seed} for seed in seeds], **common)

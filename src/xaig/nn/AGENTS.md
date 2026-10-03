@@ -7,7 +7,7 @@ it. Needs the `nn` extra (torch), which a plain `uv sync` leaves out:
 | Module | Holds |
 |---|---|
 | `sae.py` | `SparseAutoencoder` (also a transcoder), `BSplineActivation` — plain `nn.Module`s |
-| `train.py` | `fit_sae`: the loop over `latents.iter_batches`, returning a `Dictionary` |
+| `train.py` | `fit_sae`: the loop over `latents.iter_batches`, returning a `Dictionary`; `fit_sweep` and `fit_seeds` call it over settings and seeds |
 | `cli.py` | `xaig nn sae …`; writes a basis file |
 
 ## Rules
