@@ -15,10 +15,16 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
-from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
-from xaig.latents.basis import PCA, Decomposition, _floating, fit_pca, top_loadings
+from xaig.latents.basis import (
+    PCA,
+    Decomposition,
+    _floating,
+    fit_pca,
+    result_provenance,
+    top_loadings,
+)
 from xaig.latents.grid import Grid, small_circle
 from xaig.latents.source import LatentSource, check_basis_fits, read_latents
 
@@ -385,7 +391,7 @@ def analyse_region(
     }
     return RegionAnalysis(
         settings=settings,
-        provenance={**info.provenance(), "xaig": __version__},
+        provenance=result_provenance(info, basis=basis),
         nodes=nodes,
         ranking=ranking,
         similarity=similarity,

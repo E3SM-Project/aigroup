@@ -455,9 +455,16 @@ def _field_tab(path, mask_variable, settings, field, lead, region) -> None:
         f"xaig latents profile {shlex.quote(path)} --layer {layer}",
         *(f"--time {shlex.quote(t)}" for t in chosen),
     ]
+    commit = _open(path, mask_variable).info().commit
+    if commit:  # a branch or tag moves; the commit it was opened at does not
+        command.append(f"--revision {commit}")
+        profile_command.append(f"--revision {commit}")
     if basis:
-        command.append(f"--basis {shlex.quote(basis)}")
-        profile_command += [f"--basis {shlex.quote(basis)}", f"--feature {column}"]
+        pinned = (
+            f"--basis {shlex.quote(basis)} --basis-sha256 {_basis(basis, stamp).meta['sha256']}"
+        )
+        command.append(pinned)
+        profile_command += [pinned, f"--feature {column}"]
     else:
         profile_command.append(f"--channel {column}")
     if lead:
@@ -479,10 +486,16 @@ def _source_times(path: str, mask_variable: str | None) -> tuple[str, ...]:
     return tuple(_open(path, mask_variable).info().times)
 
 
-def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[str, str]:
+def reproduction(
+    path: str, mask_variable: str | None, settings: dict, provenance: dict
+) -> tuple[str, str]:
     """The shell command and the Python that redo an analysis, one option a line.
-    Numbers are written in full: a rounded latitude is a different region."""
+    Numbers are written in full: a rounded latitude is a different region. From the
+    result's ``provenance`` they also pin what moves: the commit a hub archive was
+    opened at, and the content hash of the basis, which a reproduction must match."""
     s, r = settings, settings["region"]
+    commit = (provenance.get("revision") or {}).get("commit")
+    digest = (provenance.get("basis") or {}).get("sha256")
     options = [
         ("--time", s["time"]), ("--layer", s["layer"]), ("--rank-layer", s["rank_layer"]),
         ("--lat", repr(r["lat"])), ("--lon", repr(r["lon"])),
@@ -492,6 +505,10 @@ def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[
     ]  # fmt: skip
     if s.get("basis"):
         options.append(("--basis", s["basis"]))
+        if digest:
+            options.append(("--basis-sha256", digest))
+    if commit:
+        options.append(("--revision", commit))
     if mask_variable:
         options.append(("--mask-variable", mask_variable))
     lines = [shlex.join(["xaig", "latents", "region", path])]
@@ -500,9 +517,10 @@ def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[
     lines += ["--allow-unverified-basis"] if s.get("allow_unverified_basis") else []
     command = " \\\n    ".join(lines)
 
-    opened = f"open_source({path!r}" + (
-        f", mask_variable={mask_variable!r})" if mask_variable else ")"
+    pins = ([f"mask_variable={mask_variable!r}"] if mask_variable else []) + (
+        [f"revision={commit!r}"] if commit else []
     )
+    opened = f"open_source({', '.join([repr(path), *pins])})"
     region = ", ".join(f"{k}={v!r}" for k, v in r.items())
     arguments = [f"region=Region({region})"]
     unsaid = ("region", "basis") + (
@@ -511,7 +529,8 @@ def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[
     arguments += [f"{k}={v!r}" for k, v in s.items() if k not in unsaid]
     names = ["Region", "analyse_region", "open_source"]
     if s.get("basis"):
-        arguments.append(f"basis=load_basis({s['basis']!r})")
+        pin = f", sha256={digest!r}" if digest else ""
+        arguments.append(f"basis=load_basis({s['basis']!r}{pin})")
         names.insert(2, "load_basis")
     python = (
         f"from xaig.latents import {', '.join(names)}\n\n"
@@ -522,7 +541,7 @@ def reproduction(path: str, mask_variable: str | None, settings: dict) -> tuple[
 
 
 def _reproduce(path: str, mask_variable: str | None, result: RegionAnalysis) -> None:
-    command, python = reproduction(path, mask_variable, result.settings)
+    command, python = reproduction(path, mask_variable, result.settings, result.provenance)
     st.markdown("**From a terminal**")
     st.code(command, language="bash")
     st.markdown("**From Python**")

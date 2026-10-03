@@ -40,6 +40,14 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   things up by index checks who they are first, never only that widths match:
   `check_comparable` for two runs, `check_basis_fits` for a basis against a layer. Their
   docstrings say what is checked and what `allow_unverified` and `across_models` lift.
+- **Provenance pins what moves.** A result's provenance names the commit a versioned source
+  was opened at (`LatentInfo.revision`: a branch, a tag or the default resolved, a full
+  commit taken as given) and, through `result_provenance`, the content hash of every basis used. A new
+  result builds its provenance with `result_provenance(info, basis=...)`, never by hand. A
+  basis file's `sha256` is checked on load and is over its arrays, scalars and
+  `fitted_on`; a file without one is `unhashed` and needs `allow_unverified_basis`.
+  Whatever a client prints to reproduce a result pins both (`--revision`,
+  `--basis-sha256`).
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
   product. `nn` keeps directions at unit length so that the two agree.

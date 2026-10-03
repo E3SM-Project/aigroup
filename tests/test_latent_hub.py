@@ -6,77 +6,15 @@ what was downloaded, so laziness is asserted, not assumed.
 
 from __future__ import annotations
 
-import shutil
-import sys
-import types
+import json
 
 import pytest
 
 np = pytest.importorskip("numpy")
 
-from conftest import write_latent_archive  # noqa: E402
+from conftest import URL  # noqa: E402
 from xaig.core.errors import AdapterError  # noqa: E402
 from xaig.latents import open_source  # noqa: E402
-
-
-class _EntryNotFound(Exception):
-    pass
-
-
-@pytest.fixture
-def hub(tmp_path, monkeypatch):
-    """A fake ``huggingface_hub`` serving ``tmp_path/remote`` as the dataset
-    ``owner/latents`` at revision ``abc``, into a cache under ``tmp_path/cache``."""
-    remote = tmp_path / "remote"
-    write_latent_archive(remote / "control")
-    (remote / "control" / "bases" / "old").mkdir(parents=True)
-    np.savez(remote / "control" / "bases" / "pca_L02.npz", placeholder=np.zeros(1))
-    cache = tmp_path / "cache"
-    fetched: list[str] = []
-    asked = {}
-
-    class HfApi:
-        def repo_info(self, repo_id, repo_type):
-            asked["repo"] = (repo_id, repo_type)
-            if repo_id != "owner/latents":
-                raise RuntimeError("404 Client Error")
-            return types.SimpleNamespace(sha="abc")
-
-        def list_repo_tree(self, repo_id, path_in_repo, repo_type, revision):
-            folder = remote / path_in_repo
-            if not folder.is_dir():
-                raise _EntryNotFound(path_in_repo)
-            for entry in sorted(folder.iterdir()):
-                name = f"{path_in_repo}/{entry.name}"
-                if entry.is_file():
-                    yield types.SimpleNamespace(path=name, size=entry.stat().st_size)
-                else:
-                    yield types.SimpleNamespace(path=name, tree_id="t")
-
-    def hf_hub_download(repo_id, filename, repo_type, revision):
-        assert (repo_id, repo_type) == ("owner/latents", "dataset")
-        asked.setdefault("revisions", set()).add(revision)
-        source = remote / filename
-        if not source.is_file():
-            raise _EntryNotFound(filename)
-        target = cache / "snapshots" / revision / filename
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if not target.exists():
-            shutil.copy(source, target)
-            fetched.append(filename)
-        return str(target)
-
-    module = types.ModuleType("huggingface_hub")
-    module.HfApi, module.hf_hub_download = HfApi, hf_hub_download
-    utils = types.ModuleType("huggingface_hub.utils")
-    utils.EntryNotFoundError = _EntryNotFound
-    module.utils = utils
-    monkeypatch.setitem(sys.modules, "huggingface_hub", module)
-    monkeypatch.setitem(sys.modules, "huggingface_hub.utils", utils)
-    return types.SimpleNamespace(fetched=fetched, asked=asked)
-
-
-URL = "hf://datasets/owner/latents/control"
 
 
 def test_a_hub_archive_downloads_only_what_is_read(hub):
@@ -111,9 +49,79 @@ def test_every_file_comes_from_one_revision(hub):
     assert hub.asked["revisions"] == {"abc"}  # the one the repository was at when opened
 
 
-def test_a_pinned_revision_needs_no_lookup(hub):
-    open_source(URL, revision="v1").grid()
-    assert "repo" not in hub.asked and hub.asked["revisions"] == {"v1"}
+def test_the_default_revision_is_resolved_and_recorded(hub):
+    info = open_source(URL).info()
+    assert info.provenance()["revision"] == {"requested": None, "commit": "abc"}
+    assert info.commit == "abc"
+
+
+def test_a_tag_is_resolved_to_its_commit_and_both_are_recorded(hub):
+    source = open_source(URL, revision="v1")
+    source.grid()
+    # The files come from the commit, not from a name that can be moved under us.
+    assert hub.asked["revisions"] == {"def"}
+    assert source.info().provenance()["revision"] == {"requested": "v1", "commit": "def"}
+
+    hub.heads["v1"] = "ghi"  # the tag is moved after the fact
+    assert open_source(URL, revision="v1").info().commit == "ghi"
+    assert source.info().commit == "def"  # a result already made still says what it read
+
+
+def test_a_full_commit_is_not_asked_of_the_hub(hub):
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    source = open_source(URL, revision=sha)
+    source.grid()  # still readable: the files come from that commit
+    assert hub.asked["lookups"] == []
+    assert source.info().provenance()["revision"] == {"requested": sha, "commit": sha}
+    assert hub.asked["revisions"] == {sha}
+    assert open_source(URL, revision="ghi").info().commit == "ghi"
+    assert hub.asked["lookups"] == ["ghi"]  # a short commit, like a branch or a tag, is asked
+
+
+def test_a_revision_the_hub_does_not_know_is_refused(hub):
+    with pytest.raises(AdapterError, match="cannot reach.*not found"):
+        open_source(URL, revision="nope")
+
+
+def test_a_hub_with_no_commit_to_name_is_refused(hub):
+    hub.heads["main"] = ""
+    with pytest.raises(AdapterError, match="named no commit"):
+        open_source(URL)
+
+
+def test_the_commit_reaches_every_result_a_hub_source_makes(hub):
+    from xaig.latents import Region, analyse_region, difference, region_series
+
+    here = Region(lat=7.5, lon=45.0, radius_km=2500.0)
+    source = open_source(URL, revision="v1")
+    expected = {"requested": "v1", "commit": "def"}
+    analysed = analyse_region(source, time=0, layer=2, region=here)
+    assert analysed.summary()["provenance"]["revision"] == expected
+    assert region_series(source, layer=2, region=here).provenance["revision"] == expected
+    # A comparison names the commit of each side: the two may be different revisions.
+    paired = difference(source, open_source(URL), layer=2, time=0, allow_unverified=True)
+    assert paired.provenance["control"]["revision"] == expected
+    assert paired.provenance["experiment"]["revision"] == {"requested": None, "commit": "abc"}
+
+
+def test_the_command_line_pins_a_revision_and_reports_the_commit(hub):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    run = CliRunner().invoke(cli, ["latents", "info", URL, "--revision", "v1"])
+    assert run.exit_code == 0, run.output
+    assert "def" in run.output and "v1" in run.output
+    region = ["latents", "region", URL, "--time", "0", "--layer", "2", "--lat", "7.5"]
+    region += ["--lon", "45", "--radius-km", "2500", "--json", "--revision", "v1"]
+    run = CliRunner().invoke(cli, region)
+    assert run.exit_code == 0, run.output
+    assert json.loads(run.output)["provenance"]["revision"] == {"requested": "v1", "commit": "def"}
+    assert hub.asked["revisions"] == {"def"}
+
+
+def test_a_revision_means_nothing_to_a_local_archive(latent_archive):
+    assert "revision" not in open_source(latent_archive).info().provenance()
 
 
 def test_what_a_hub_source_cannot_be(hub, latent_archive):
@@ -135,3 +143,27 @@ def test_a_local_archive_is_unchanged(latent_archive):
     (latent_archive / "bases" / "old").mkdir(parents=True)
     (latent_archive / "bases" / "sae_L02.npz").write_bytes(b"")
     assert source.files("bases") == ("bases/sae_L02.npz",) and source.files("nothing") == ()
+
+
+def test_a_revision_needs_a_hub_source_on_the_command(hub, latent_archive):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    run = CliRunner().invoke(cli, ["latents", "info", str(latent_archive), "--revision", "v1"])
+    assert run.exit_code != 0 and "--revision" in run.output and "hf://" in run.output
+    diff = ["latents", "diff", URL, str(latent_archive), "--layer", "2", "--time", "0"]
+    diff += ["--revision", "v1"]
+    run = CliRunner().invoke(cli, diff)
+    assert "--revision applies to hf://" not in run.output  # one hub source is enough
+
+
+def test_a_basis_hash_needs_a_basis(latent_archive):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    region = ["latents", "region", str(latent_archive), "--time", "0", "--layer", "2"]
+    region += ["--lat", "7.5", "--lon", "45", "--radius-km", "2500", "--basis-sha256", "ab"]
+    run = CliRunner().invoke(cli, region)
+    assert run.exit_code != 0 and "--basis-sha256" in run.output and "--basis" in run.output

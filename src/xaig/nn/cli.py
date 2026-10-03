@@ -6,6 +6,7 @@ from __future__ import annotations
 import click
 
 from xaig.core.extras import require
+from xaig.latents.cli import open_for_cli, revision_option
 
 
 @click.group(name="nn")
@@ -20,6 +21,7 @@ def nn() -> None:
     "--mask-variable",
     help="Reference-file variable that is missing where nodes mean nothing (e.g. sst).",
 )
+@revision_option
 @click.option("--layer", type=int, help="Layer to read.  [default: the last]")
 @click.option("--target-layer", type=int, help="Write this layer instead: a transcoder.")
 @click.option("--features", "n_features", type=int, default=1024, show_default=True)
@@ -47,11 +49,10 @@ def sae_cmd(source, adapter, mask_variable, layer, out, times, k, activation, **
     # Asked for first: whoever wants to train should be pointed at the one extra that
     # brings everything, not at numpy's and then ours.
     require("torch", "nn")
-    from xaig.latents import open_source, parse_time, save_basis
+    from xaig.latents import basis_hash, parse_time, save_basis
     from xaig.nn.train import fit_sae
 
-    options = {"mask_variable": mask_variable} if mask_variable else {}
-    opened = open_source(source, adapter=adapter, **options)
+    opened = open_for_cli(source, adapter, mask_variable)
     layer = opened.info().last_layer if layer is None else layer
 
     def progress(step: int, error: float) -> None:
@@ -72,7 +73,8 @@ def sae_cmd(source, adapter, mask_variable, layer, out, times, k, activation, **
         f"wrote {out}: {dictionary.n_features} feature(s) of layer {layer}; "
         f"{100 * metrics['explained_variance']:.1f}% of the variance explained, "
         f"{metrics['mean_active_features']:.1f} active per node, "
-        f"{100 * metrics['dead_fraction']:.1f}% dead"
+        f"{100 * metrics['dead_fraction']:.1f}% dead; "
+        f"--basis-sha256 {basis_hash(dictionary)}"
     )
 
 

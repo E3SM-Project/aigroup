@@ -16,12 +16,14 @@ a row of ``directions`` and steer along it.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from xaig import __version__
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 
@@ -363,34 +365,105 @@ _DICTIONARY_ARRAYS = (
     "encoder", "encoder_bias", "decoder", "decoder_bias", "input_mean", "output_mean", "spline",
 )  # fmt: skip
 _DICTIONARY_SCALARS = ("input_scale", "output_scale", "activation", "k", "spline_upper")
+_LOADED = ("sha256", "hash_status")
+
+
+def _parts(basis: Decomposition) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+    """The arrays and scalars a basis file holds, by name."""
+    if isinstance(basis, PCA):
+        return {name: getattr(basis, name) for name in _PCA_ARRAYS}, {}
+    if isinstance(basis, Dictionary):
+        arrays = {n: getattr(basis, n) for n in _DICTIONARY_ARRAYS if getattr(basis, n) is not None}
+        return arrays, {n: getattr(basis, n) for n in _DICTIONARY_SCALARS}
+    raise TypeError(f"do not know how to save a {type(basis).__name__}")
+
+
+def _digest(
+    kind: str, arrays: Mapping[str, np.ndarray], scalars: Mapping[str, Any], fitted_on: Any
+) -> str:
+    """SHA-256 over what makes a basis the basis it is: its kind, every array by name
+    (dtype, shape and C-order bytes) and its scalars, and what it says it was fitted on.
+    Metrics, paths and the rest of ``meta`` are about the file, not the basis, and stay
+    out, so a refit that changes nothing keeps its hash."""
+    digest = hashlib.sha256()
+    head = {"kind": kind, "scalars": scalars, "fitted_on": fitted_on}
+    digest.update(json.dumps(head, sort_keys=True, separators=(",", ":")).encode())
+    for name in sorted(arrays):
+        array = np.ascontiguousarray(arrays[name])
+        digest.update(f"|{name}|{array.dtype.str}|{array.shape}|".encode())
+        digest.update(array.tobytes())
+    return digest.hexdigest()
+
+
+def basis_hash(basis: Decomposition) -> str:
+    """The content hash of a basis as it stands, ``meta["fitted_on"]`` included: what
+    ``save_basis`` stores unless its own ``meta`` names another ``fitted_on``."""
+    arrays, scalars = _parts(basis)
+    scalars = json.loads(json.dumps(scalars))  # as a file would hand them back
+    return _digest(basis.kind, arrays, scalars, json.loads(json.dumps(basis.meta.get("fitted_on"))))
+
+
+def basis_provenance(basis: Decomposition) -> dict[str, Any]:
+    """Which basis a result used: its file, its content hash, and whether the file
+    carried that hash (``verified``), predates hashes (``unhashed``) or never was
+    a file (``computed``). The hash is of the arrays in hand, so it identifies the
+    basis even where the file does not vouch for it."""
+    return {
+        "path": basis.meta.get("path"),
+        "sha256": basis.meta.get("sha256") or basis_hash(basis),
+        "status": basis.meta.get("hash_status", "computed"),
+    }
+
+
+def result_provenance(
+    info: Any, basis: Decomposition | None = None, bases: Mapping[int, Decomposition] | None = None
+) -> dict[str, Any]:
+    """A result's provenance: the source's (with the commit it was opened at), this
+    version of xaig, and each basis used, by file and content hash. ``bases`` is one
+    per layer."""
+    out = {**info.provenance(), "xaig": __version__}
+    if basis is not None:
+        out["basis"] = basis_provenance(basis)
+    if bases:
+        out["bases"] = {int(k): basis_provenance(v) for k, v in bases.items()}
+    return out
 
 
 def save_basis(path: str | Path, basis: Decomposition, **meta: Any) -> Path:
     """Write a basis as one ``.npz``: its arrays, plus ``kind`` and a JSON ``meta``
     (the basis's own, with ``meta`` over it -- say what it was fitted on).
 
+    The record also holds a ``sha256`` of the content (see ``basis_hash``), which
+    ``load_basis`` checks: a file edited or damaged afterwards is refused.
+
     Anything with numpy can read it back, including the environment that runs the
     model: ``np.load(path)["components"][0]`` is a direction to steer along.
     """
     path = Path(path)
-    if isinstance(basis, PCA):
-        arrays = {name: getattr(basis, name) for name in _PCA_ARRAYS}
-        scalars: dict[str, Any] = {}
-    elif isinstance(basis, Dictionary):
-        arrays = {n: getattr(basis, n) for n in _DICTIONARY_ARRAYS if getattr(basis, n) is not None}
-        scalars = {n: getattr(basis, n) for n in _DICTIONARY_SCALARS}
-    else:
-        raise TypeError(f"do not know how to save a {type(basis).__name__}")
-    record = {"format": FORMAT, **scalars, "meta": {**basis.meta, **meta}}
+    arrays, scalars = _parts(basis)
+    # What a load noted about the file it read is not the basis's own.
+    merged = {k: v for k, v in {**basis.meta, **meta}.items() if k not in _LOADED}
+    record = {"format": FORMAT, **scalars, "meta": merged}
+    record = json.loads(json.dumps(record))  # what a reader will see: JSON types, no more
+    record["sha256"] = _digest(
+        basis.kind, arrays, {n: record[n] for n in scalars}, record["meta"].get("fitted_on")
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("wb") as handle:  # a handle, so numpy cannot append a second ".npz"
         np.savez(handle, kind=np.array(basis.kind), record=np.array(json.dumps(record)), **arrays)
     return path
 
 
-def load_basis(path: str | Path) -> PCA | Dictionary:
-    """Read what ``save_basis`` wrote. The file's own path is noted in ``meta`` so
-    a result can say which basis it used."""
+def load_basis(path: str | Path, *, sha256: str | None = None) -> PCA | Dictionary:
+    """Read what ``save_basis`` wrote. The file's own path, and its content hash, are
+    noted in ``meta`` so a result can say which basis it used.
+
+    A file that carries a hash is verified against its content: a mismatch is a
+    ``RequestError``. A file from before hashes loads, with ``meta["hash_status"]``
+    ``"unhashed"``, which ``check_basis_fits`` will not accept without an explicit
+    override. ``sha256`` pins the content the caller expects (a reproduction command
+    gives it), and refuses anything else, hashed file or not.
+    """
     path = Path(path)
     if not path.is_file():
         raise RequestError(f"no basis file: {path}")
@@ -403,8 +476,23 @@ def load_basis(path: str | Path) -> PCA | Dictionary:
         raise RequestError(f"{path} is not a basis file written by xaig ({exc!r})") from exc
     if record.get("format") != FORMAT:
         raise RequestError(f"{path}: basis format {record.get('format')!r}, expected {FORMAT}")
+    recorded = record.pop("sha256", None)
     meta = {**record.pop("meta", {}), "path": str(path)}
     record.pop("format")
+    scalars = {n: record[n] for n in _DICTIONARY_SCALARS if n in record}
+    actual = _digest(kind, arrays, scalars, meta.get("fitted_on"))
+    if recorded is not None and recorded != actual:
+        raise RequestError(
+            f"{path}: the content hash does not match (file says {recorded[:12]}, content is "
+            f"{actual[:12]}); the file was changed or damaged after it was written"
+        )
+    if sha256 is not None and sha256 != actual:
+        raise RequestError(
+            f"{path}: expected content sha256 {sha256[:12]}, found {actual[:12]}; "
+            "this is not the basis that was used"
+        )
+    meta["sha256"] = actual
+    meta["hash_status"] = "unhashed" if recorded is None else "verified"
     try:
         if kind == "pca":
             return PCA(**arrays, meta=meta)

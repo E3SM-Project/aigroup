@@ -219,7 +219,11 @@ def test_cli_fits_and_the_file_is_a_basis_anywhere(latent_archive, tmp_path):
     fitted = CliRunner().invoke(cli, [*args, "--batch-size", "96", "--device", "cpu", "--out", out])
     assert fitted.exit_code == 0, fitted.output
     assert "8 feature(s) of layer 2" in fitted.output and "active per node" in fitted.output
-    assert load_basis(out).meta["training"]["activation"] == "topk"
+    loaded = load_basis(out)
+    assert loaded.meta["training"]["activation"] == "topk"
+    # The line it prints is the pin a later command gives back, and the file verifies.
+    assert loaded.meta["hash_status"] == "verified"
+    assert f"--basis-sha256 {loaded.meta['sha256']}" in fitted.output
     region = ["latents", "region", str(latent_archive), "--lat", "7.5", "--lon", "45"]
     shown = CliRunner().invoke(
         cli, [*region, "--radius-km", "2500", "--features", "2", "--basis", out]

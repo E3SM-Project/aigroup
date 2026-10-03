@@ -9,14 +9,17 @@ import pytest
 
 np = pytest.importorskip("numpy")
 
-from conftest import BUMP  # noqa: E402
+from conftest import BUMP, URL  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
+    PCA,
     Decomposition,
     Dictionary,
     Region,
     accumulate_moments,
     analyse_region,
+    basis_hash,
+    basis_provenance,
     bspline_activation,
     cosine_similarity,
     fit_pca,
@@ -102,7 +105,12 @@ def test_a_basis_survives_its_file(tmp_path, kind):
     x = np.random.default_rng(1).normal(size=(7, basis.n_channels))
     assert type(back) is type(basis)
     assert np.array_equal(back.transform(x), basis.transform(x))
-    assert back.meta == {"note": "why it exists", "path": str(path)}
+    assert back.meta == {
+        "note": "why it exists",
+        "path": str(path),
+        "sha256": basis_hash(basis),
+        "hash_status": "verified",
+    }
     # The model's environment needs only numpy to find a direction to steer along.
     with np.load(path) as plain:
         name = "components" if kind == "pca" else "decoder"
@@ -404,3 +412,186 @@ def test_a_basis_is_matched_to_a_layer_by_its_place_in_the_network(latent_archiv
     check_basis_fits(older, kept, 1)
     with pytest.raises(RequestError, match="against the layer 2 it was fitted on"):
         check_basis_fits(older, kept, 2)
+
+
+# -- the hash a basis file carries ----------------------------------------
+
+
+def _rewrite(path, *, array=None, record=None):
+    """The file as someone else might have left it: an array nudged, or the record edited."""
+    with np.load(path) as stored:
+        parts = {name: stored[name] for name in stored.files}
+    if array is not None:
+        name, change = array
+        parts[name] = change(parts[name])
+    if record is not None:
+        edited = json.loads(str(parts["record"]))
+        record(edited)
+        parts["record"] = np.array(json.dumps(edited))
+    with open(path, "wb") as handle:
+        np.savez(handle, **parts)
+
+
+@pytest.fixture
+def fitted(latent_archive, tmp_path):
+    """A global PCA of the toy archive, saved: a basis that says what it was fitted on."""
+    basis = pca_from_moments(accumulate_moments(open_source(latent_archive), layer=2), 3)
+    return basis, save_basis(tmp_path / "global.npz", basis)
+
+
+@pytest.mark.parametrize("kind", ["pca", "relu", "topk", "bspline"])
+def test_a_saved_basis_carries_a_hash_of_its_content_that_loading_verifies(tmp_path, kind):
+    if kind == "pca":
+        basis = fit_pca(np.random.default_rng(0).normal(size=(20, 3)), 2)
+    else:
+        extra = {"topk": {"k": 2}, "bspline": {"spline": np.ones((3, 11)), "spline_upper": 4.0}}
+        basis = _dictionary(activation=kind, **extra.get(kind, {}))
+    path = save_basis(tmp_path / "basis.npz", basis)
+    with np.load(path) as stored:
+        assert json.loads(str(stored["record"]))["sha256"] == basis_hash(basis)
+    back = load_basis(path)
+    assert back.meta["hash_status"] == "verified" and back.meta["sha256"] == basis_hash(basis)
+    assert basis_hash(back) == basis_hash(basis)  # saved and in hand, one hash
+    assert basis_provenance(back) == {
+        "path": str(path),
+        "sha256": basis_hash(basis),
+        "status": "verified",
+    }
+
+
+def test_the_hash_is_of_the_basis_not_of_the_note_or_the_file_it_is_in(tmp_path):
+    basis = fit_pca(np.random.default_rng(0).normal(size=(20, 3)), 2)
+    one = load_basis(save_basis(tmp_path / "one.npz", basis, note="first"))
+    two = load_basis(save_basis(tmp_path / "elsewhere" / "two.npz", basis, note="second"))
+    assert one.meta["sha256"] == two.meta["sha256"]
+    nudged = fit_pca(np.random.default_rng(1).normal(size=(20, 3)), 2)
+    assert basis_hash(nudged) != basis_hash(basis)
+    # Saving what was loaded does not smuggle the old file's hash in as meta.
+    again = load_basis(save_basis(tmp_path / "again.npz", one))
+    assert again.meta["sha256"] == one.meta["sha256"] and "path" in again.meta
+
+
+def test_a_planted_hash_known_by_hand():
+    """Not a tautology: the digest of a one-component PCA is spelt out here."""
+    import hashlib
+
+    pca = PCA(
+        mean=np.array([1.0, 2.0]),
+        components=np.array([[0.0, 1.0]]),
+        explained_variance_ratio=np.array([0.5]),
+    )
+    digest = hashlib.sha256()
+    digest.update(b'{"fitted_on":null,"kind":"pca","scalars":{}}')
+    for name, array in (
+        ("components", pca.components),
+        ("explained_variance_ratio", pca.explained_variance_ratio),
+        ("mean", pca.mean),
+    ):
+        digest.update(f"|{name}|<f8|{array.shape}|".encode() + array.tobytes())
+    assert basis_hash(pca) == digest.hexdigest()
+
+
+def test_a_file_changed_after_it_was_written_is_refused(fitted):
+    _, path = fitted
+    _rewrite(path, array=("components", lambda a: a + 1e-3))
+    with pytest.raises(RequestError, match="content hash does not match"):
+        load_basis(path)
+
+
+def test_what_a_basis_says_it_was_fitted_on_is_part_of_what_is_hashed(fitted):
+    _, path = fitted
+    _rewrite(path, record=lambda r: r["meta"]["fitted_on"].update(layer=7))
+    with pytest.raises(RequestError, match="content hash does not match"):
+        load_basis(path)
+
+
+def test_a_caller_can_pin_the_content_it_expects(fitted):
+    basis, path = fitted
+    assert load_basis(path, sha256=basis_hash(basis)).meta["path"] == str(path)
+    with pytest.raises(RequestError, match="not the basis that was used"):
+        load_basis(path, sha256="0" * 64)
+
+
+def test_a_file_from_before_hashes_loads_marked_unhashed_and_can_still_be_pinned(fitted):
+    basis, path = fitted
+    _rewrite(path, record=lambda r: r.pop("sha256"))
+    old = load_basis(path)
+    assert old.meta["hash_status"] == "unhashed"
+    assert basis_provenance(old)["status"] == "unhashed"
+    assert basis_provenance(old)["sha256"] == basis_hash(basis)  # the content hash, all the same
+    assert load_basis(path, sha256=basis_hash(basis)).meta["hash_status"] == "unhashed"
+    with pytest.raises(RequestError, match="not the basis that was used"):
+        load_basis(path, sha256="1" * 64)
+
+
+def test_a_basis_that_never_was_a_file_says_so_in_provenance():
+    basis = fit_pca(np.random.default_rng(0).normal(size=(20, 3)), 2)
+    assert basis_provenance(basis) == {
+        "path": None,
+        "sha256": basis_hash(basis),
+        "status": "computed",
+    }
+
+
+def test_an_unhashed_file_needs_the_same_explicit_acceptance_as_unverified_identity(
+    fitted, latent_archive
+):
+    """Its identity is complete and right; only the hash is missing."""
+    _, path = fitted
+    source = open_source(latent_archive)
+    here = {"time": 0, "layer": 2, "region": HERE, "n_components": 0}
+    analyse_region(source, basis=load_basis(path), **here)  # hashed: no flag needed
+    _rewrite(path, record=lambda r: r.pop("sha256"))
+    with pytest.raises(RequestError, match="unverified.*content hash"):
+        analyse_region(source, basis=load_basis(path), **here)
+    allowed = analyse_region(
+        source, basis=load_basis(path), allow_unverified_basis=True, **here
+    ).summary()
+    assert allowed["provenance"]["basis"]["status"] == "unhashed"
+
+
+def test_results_carry_the_hash_of_the_basis_they_used(fitted, latent_archive):
+    from xaig.latents import region_series
+
+    basis, path = fitted
+    source = open_source(latent_archive)
+    used = load_basis(path)
+    expected = {"path": str(path), "sha256": basis_hash(basis), "status": "verified"}
+    result = analyse_region(source, time=0, layer=2, region=HERE, basis=used, n_components=2)
+    assert result.summary()["provenance"]["basis"] == expected
+    assert region_series(source, layer=2, region=HERE, basis=used).provenance["basis"] == expected
+    # No basis, nothing claimed.
+    assert "basis" not in analyse_region(source, time=0, layer=2, region=HERE).provenance
+
+
+def test_the_hash_of_a_basis_fitted_on_a_hub_archive_includes_the_commit(hub):
+    """What a basis was fitted on is part of it: the same arrays fitted at another
+    commit are another basis."""
+    at_abc = pca_from_moments(accumulate_moments(open_source(URL), layer=2), 2)
+    at_def = pca_from_moments(accumulate_moments(open_source(URL, revision="v1"), layer=2), 2)
+    assert np.array_equal(at_abc.components, at_def.components)
+    assert at_abc.meta["fitted_on"]["provenance"]["revision"]["commit"] == "abc"
+    assert basis_hash(at_abc) != basis_hash(at_def)
+
+
+def test_the_command_line_prints_the_hash_and_refuses_another(latent_archive, tmp_path):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    out = tmp_path / "pca.npz"
+    run = CliRunner().invoke(
+        cli,
+        ["latents", "pca", str(latent_archive), "--layer", "2", "--components", "3"]
+        + ["--out", str(out)],
+    )
+    assert run.exit_code == 0, run.output
+    digest = load_basis(out).meta["sha256"]
+    assert f"--basis-sha256 {digest}" in run.output
+    use = ["latents", "region", str(latent_archive), "--time", "0", "--layer", "2"]
+    use += ["--lat", "7.5", "--lon", "45", "--radius-km", "2500", "--basis", str(out), "--json"]
+    run = CliRunner().invoke(cli, [*use, "--basis-sha256", digest])
+    assert run.exit_code == 0, run.output
+    assert json.loads(run.output)["provenance"]["basis"]["sha256"] == digest
+    run = CliRunner().invoke(cli, [*use, "--basis-sha256", "f" * 64])
+    assert run.exit_code != 0 and "not the basis that was used" in run.output
