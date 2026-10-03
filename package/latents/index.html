@@ -672,6 +672,8 @@
       
         
       
+        
+      
     
     
     
@@ -1085,6 +1087,34 @@
     
   
     Evaluating a dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../steering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Steering
   
 
     
@@ -1636,7 +1666,7 @@ yardstick is a third run: the control again, with another seed.</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>xaig<span class="w"> </span>latents<span class="w"> </span>diff<span class="w"> </span>latents/control<span class="w"> </span>latents/steered<span class="w"> </span>--growth<span class="w"> </span>--noise<span class="w"> </span>latents/control-seed1
 </span></code></pre></div>
 <p>The second table it prints is the experiment's difference as a multiple of the one a new
-noise draw makes, layer by layer and time by time: above 1, the intervention moved the
+noise draw makes, layer by layer and time by time: above 1, the steer moved the
 layer more than chance does. From Python, <code>difference_growth(control, steered,
 noise=reseeded)</code> returns the same as <code>noise_rms</code> and <code>signal_to_noise</code>.</p>
 <p>For two archives to be told apart at all, the exporter has to say what it did. Anything
