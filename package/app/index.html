@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://e3sm-project.github.io/aigroup/package/app/">
       
       
-        <link rel="prev" href="../steering/">
+        <link rel="prev" href="../records/">
       
       
       
@@ -672,6 +672,8 @@
       
         
       
+        
+      
     
     
     
@@ -845,6 +847,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../records/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiment records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -934,6 +964,17 @@
     <span class="md-ellipsis">
       
         Latents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Records
       
     </span>
   </a>
@@ -1031,6 +1072,17 @@
     <span class="md-ellipsis">
       
         Latents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Records
       
     </span>
   </a>
@@ -1138,6 +1190,10 @@ coastlines there, fetch the data once from a login node:</p>
 <td>a latent archive, a directory of them, or a Hugging Face path (<code>hf://datasets/&lt;owner&gt;/&lt;repo&gt;/&lt;folder&gt;</code>, with <code>xaig[hf]</code>) to offer in the explorer; repeatable</td>
 </tr>
 <tr>
+<td><code>--record</code></td>
+<td>an <a href="../records/">experiment record</a> (from <code>latents evaluate --record</code> or <code>latents steer --record</code>) to offer under Records; repeatable</td>
+</tr>
+<tr>
 <td><code>--port</code></td>
 <td>8501 by default</td>
 </tr>
@@ -1201,6 +1257,24 @@ told apart — then a time, a layer and a region. The view is
   hash, so they rerun the same inputs
   (<a href="../latents/#provenance-what-a-result-was-made-from">provenance</a>).</li>
 </ul>
+<h2 id="records">Records</h2>
+<p>The second page, <em>Records</em>, opens an <a href="../records/">experiment record</a>: choose one from
+<code>--record</code> or type a path in the sidebar. It is presentation only, like the page above — it
+holds what the file holds, computes nothing, and a file that is not a record this xaig reads
+(another version, another format, a part missing) is a warning on the page and not a
+traceback.</p>
+<ul>
+<li><strong>Where it came from</strong> — the source, the network it declares, the commit a hub archive was
+  opened at, the options and the exporter's notes, and each basis by content hash.</li>
+<li><strong>Held-out evaluation</strong> (for an evaluation) — how many times were fitted on, scored on and
+  left between; the split as time labels; a table per basis; the fidelity-sparsity curve
+  and the seed stability if the run asked for them.</li>
+<li><strong>Steering, against random directions</strong> (for a steering run) — a row per field with the
+  feature's response, the reconstruction-only arm's and the random draws' mean magnitude,
+  and the feature's rank among the draws. <em>Field</em> chooses the histogram of that field's
+  random draws with the two arms marked on it.</li>
+<li><strong>Reproduce</strong> — the command, and a download of the record.</li>
+</ul>
 <p>Maps follow the page's theme. Signed quantities use a diverging blue–red scale symmetric
 about zero — with a light midpoint on a light page and a dark one on a dark page, so that
 zero always recedes — and nodes the grid marks invalid are a flat grey that belongs to no
@@ -1236,6 +1310,7 @@ analysis, and results and rendered maps are cached, bounded.</p>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Rank channels and features against a reference field (<code>latents fields</code>),
       and profile one</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A PDF report of a session</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Two records side by side, and a record against the files it names</li>
 </ul>
 
 
@@ -1274,7 +1349,7 @@ analysis, and results and rendered maps are cached, bounded.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../steering/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Steering">
+          <a href="../records/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Experiment records">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1284,7 +1359,7 @@ analysis, and results and rendered maps are cached, bounded.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Steering
+                Experiment records
               </div>
             </div>
           </a>

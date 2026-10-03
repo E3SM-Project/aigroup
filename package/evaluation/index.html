@@ -674,6 +674,8 @@
       
         
       
+        
+      
     
     
     
@@ -876,6 +878,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#keeping-a-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping a run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#python-api" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -921,6 +934,34 @@
     
   
     Steering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../records/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiment records
   
 
     
@@ -1011,6 +1052,17 @@
     <span class="md-ellipsis">
       
         What each number tells you, and what it does not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keeping-a-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping a run
       
     </span>
   </a>
@@ -1181,6 +1233,12 @@ PCA curve at a dictionary's sparsity, and is empty where the PCA curve does not 
 It compares <em>at equal L0</em>, which is not equal cost, equal interpretability or equal
 width: a dictionary has more features than channels and a PCA has not. It says
 nothing about which is better for steering or naming a feature.</p>
+<h2 id="keeping-a-run">Keeping a run</h2>
+<p>The command ends with a <code>reproduce:</code> line that names the archive's commit (for an <code>hf://</code>
+source), the split, every basis file and the thresholds, and <code>--record FILE</code> writes the
+numbers, the split and that command as an <a href="../records/">experiment record</a>, which
+<code>xaig app --record FILE</code> opens. <code>--out</code> still writes the whole result. The line does not
+pin the bases by hash, since <code>--basis-sha256</code> holds one; the record lists each basis's hash.</p>
 <h2 id="python-api">Python API</h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">evaluate_basis</span><span class="p">,</span>

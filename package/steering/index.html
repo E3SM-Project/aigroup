@@ -16,7 +16,7 @@
         <link rel="prev" href="../evaluation/">
       
       
-        <link rel="next" href="../app/">
+        <link rel="next" href="../records/">
       
       
         
@@ -674,6 +674,8 @@
       
         
       
+        
+      
     
     
     
@@ -984,6 +986,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../records/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiment records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1378,6 +1408,9 @@ noise and the standard error is no longer zero:</p>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="go">FIELD        RESPONSE  +-      RECON_ONLY  RANDOM_|RESP|  EFFECT_SIZE  RANK  PERCENTILE</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="go">temperature  0.4099    0.0045  0.3335      0.1375         2.52         1/21  100</span>
 </span></code></pre></div>
+<p><code>--record FILE</code> also writes a <a href="../records/">record</a> of this: its spec, each field's response
+and every random draw, the basis by hash and the <code>reproduce:</code> command, in 4.8 KB where <code>--out</code>
+is 110 KB. <code>xaig app --record FILE</code> draws each field's response against the draws.</p>
 <p>From Python, <code>run_steering(system, basis, Steer(layer=1, feature=0, amount=1.5,
 times=(1,)), steps=5, seeds=(0, 1, 2))</code> returns the same as an object, and <code>save_result</code>
 writes it.</p>
@@ -1397,7 +1430,8 @@ writes it.</p>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> The protocol, the runner and a toy system to test it against.</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>xaig latents steer</code>.</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A real adapter, in the model's environment.</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> A view in the app, and a figure of the feature's response against the random draws.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> A view in the app, and a figure of the feature's response against the random draws
+      (<a href="../records/">records</a>; <code>xaig.figures.response_figure</code>).</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Fitted dictionaries on the toy system, to show a learned feature that is not planted.</li>
 </ul>
 
@@ -1454,13 +1488,13 @@ writes it.</p>
         
         
           
-          <a href="../app/" class="md-footer__link md-footer__link--next" aria-label="Next: Web app">
+          <a href="../records/" class="md-footer__link md-footer__link--next" aria-label="Next: Experiment records">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Web app
+                Experiment records
               </div>
             </div>
             <div class="md-footer__button md-icon">
