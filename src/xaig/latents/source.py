@@ -237,6 +237,45 @@ class ReferenceFields(Protocol):
     def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray: ...
 
 
+def read_latents(
+    source: LatentSource,
+    time: str | int,
+    layer: int,
+    *,
+    channels: Sequence[int] | None = None,
+    nodes: Sequence[int] | None = None,
+) -> np.ndarray:
+    """``source.load``, refusing activations that are not numbers where they must be.
+
+    A node the grid marks invalid may hold anything, NaN included, and is never
+    counted. A *valid* node holding NaN or infinity is a source that failed to
+    say so (an exporter that wrote NaN for land and forgot the mask, a run that
+    diverged), and one such value would turn every mean, moment and loss it
+    touches into NaN, far from the cause. It is refused here, naming the layer, the
+    time and the channels, so everything that reads latents to analyse or train on
+    reads them through this.
+    """
+    values = source.load(time, layer, channels=channels, nodes=nodes)
+    valid = source.grid().valid
+    if nodes is not None:
+        valid = valid[np.asarray(nodes, dtype=np.intp)]
+    ok = np.isfinite(values)
+    ok[~valid] = True
+    if not ok.all():
+        n_bad = int(np.count_nonzero(~ok.all(axis=1)))
+        bad_channels = ~ok.all(axis=0)
+        info = source.info()
+        chosen = np.arange(values.shape[1]) if channels is None else np.asarray(channels)
+        named = ", ".join(str(int(c)) for c in chosen[bad_channels][:5])
+        more = "" if int(bad_channels.sum()) <= 5 else ", ..."
+        raise RequestError(
+            f"layer {layer} at {info.times[info.time_index(time)]} holds {n_bad} valid node(s) "
+            f"with activations that are not finite (channel {named}{more}) in {info.source}; "
+            "a node the source cannot supply belongs in its mask, not left NaN"
+        )
+    return values
+
+
 def parse_time(text: str) -> str | int:
     """A time as a person types it: a position (``0``, ``-1``) or a label."""
     return int(text) if _POSITION.fullmatch(text) else text
@@ -261,10 +300,16 @@ def differing_identity(ours: Mapping[str, Any], theirs: Mapping[str, Any]) -> li
 
 
 def check_comparable(
-    a: LatentSource, b: LatentSource, *, layer: int, across_models: bool = False
+    a: LatentSource,
+    b: LatentSource,
+    *,
+    layer: int,
+    across_models: bool = False,
+    allow_unverified: bool = False,
 ) -> None:
     """Refuse to set two sources against each other unless node ``i`` of one is
-    node ``i`` of the other and channel ``c`` of ``layer`` is the same channel.
+    node ``i`` of the other and channel ``c`` of ``layer`` is the same channel of
+    the same place in the same network.
 
     A perturbed run is compared with its control node for node and channel for
     channel, so a differing grid or width is not a detail: the difference would
@@ -273,16 +318,34 @@ def check_comparable(
     so sources that declare different identities are refused too. ``across_models``
     lifts that one check, for the cases where the index does carry over (a
     fine-tune of the same weights), and it is the caller's to justify.
+
+    ``layer`` is a place in each source, and two sources may keep different layers
+    of one network: it is the layer's place in the *network*
+    (``LayerInfo.position``) that must agree, and a known mismatch is refused
+    whatever else is passed. A model, component, checkpoint or layer position that
+    either side does not declare cannot be compared and is refused too, unless
+    ``allow_unverified=True`` accepts that, as ``check_basis_fits`` does for a basis.
     """
     info_a, info_b = a.info(), b.info()
-    apart = differing_identity(info_a.identity(), info_b.identity())
+    declared_a, declared_b = info_a.identity(), info_b.identity()
+    apart = differing_identity(declared_a, declared_b)
     if apart and not across_models:
         raise RequestError(
             f"{info_a.source} and {info_b.source} are different networks ({'; '.join(apart)}), "
             "and a channel's index means nothing between two; pass across_models=True "
             "only if it does here"
         )
-    width_a, width_b = info_a.layer(layer).n_channels, info_b.layer(layer).n_channels
+    place_a, place_b = info_a.layer(layer), info_b.layer(layer)
+    # Only a position both sides declare can disagree: a side that declares nothing
+    # has an undeclared place, not place ``index``, and that is incomplete identity.
+    both_declare = place_a.network_layer is not None and place_b.network_layer is not None
+    if both_declare and place_a.position != place_b.position:
+        raise RequestError(
+            f"layer {layer} is network layer {place_a.position} in {info_a.source} "
+            f"and network layer {place_b.position} in {info_b.source}; "
+            "they are different places in the network"
+        )
+    width_a, width_b = place_a.n_channels, place_b.n_channels
     if width_a != width_b:
         raise RequestError(
             f"layer {layer} has {width_a} channel(s) in {info_a.source} "
@@ -299,19 +362,38 @@ def check_comparable(
         raise RequestError(
             f"{info_a.source} and {info_b.source} have the same number of nodes in different places"
         )
+    missing = [
+        f"{key} in {name}"
+        for name, declared in ((info_a.source, declared_a), (info_b.source, declared_b))
+        for key in ("model", "component", "checkpoint")
+        if key not in declared
+    ]
+    # Two sources that both count layers by index agree by construction; one that
+    # declares where its layers sit and one that does not have only been assumed to.
+    if (place_a.network_layer is None) != (place_b.network_layer is None):
+        silent = info_a if place_a.network_layer is None else info_b
+        missing.append(f"network layer in {silent.source}")
+    if missing and not allow_unverified:
+        raise RequestError(
+            f"the sources cannot be shown to be comparable (undeclared: {', '.join(missing)}); "
+            "pass allow_unverified=True (CLI: --allow-unverified-sources) to compare them anyway"
+        )
 
 
-def shared_grid(a: LatentSource, b: LatentSource) -> Grid:
-    """The first source's grid, valid only where both are: what a comparison of
-    the two may weigh and map. A node one run marks invalid holds whatever it
+def shared_grid(a: LatentSource, b: LatentSource, *more: LatentSource) -> Grid:
+    """The first source's grid, valid only where all are: what a comparison of
+    them may weigh and map. A node one run marks invalid holds whatever it
     holds there -- NaN, or a number that means nothing -- and one such node would
     otherwise decide the whole difference."""
-    grid_a, grid_b = a.grid(), b.grid()
+    grid_a = a.grid()
+    valid = grid_a.valid & b.grid().valid
+    for other in more:
+        valid = valid & other.grid().valid
     return Grid(
         lat=grid_a.lat,
         lon=grid_a.lon,
         shape=grid_a.shape,
-        mask=grid_a.valid & grid_b.valid,
+        mask=valid,
         area=grid_a.area,
     )
 
@@ -338,6 +420,7 @@ def check_basis_fits(
     # different layers, and index 4 of one is then not index 4 of the other.
     position = info.layer(layer).position
     fitted_at = fitted.get("network_layer", fitted.get("layer"))
+    # A basis always records a place (an index, if undeclared), so index matches index.
     if fitted_at is not None and int(fitted_at) != position:
         here = f"layer {layer}" + ("" if position == layer else f" (network layer {position})")
         there = "layer" if "network_layer" not in fitted else "network layer"

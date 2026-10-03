@@ -38,7 +38,7 @@ from xaig.latents import (
     rank_by_field,
     region_series,
 )
-from xaig.latents.source import check_basis_fits
+from xaig.latents.source import check_basis_fits, read_latents
 
 _CACHED = 16
 _COLUMNS = 3
@@ -166,8 +166,10 @@ def _columns(path, mask_variable, time, layer, columns, basis, stamp) -> np.ndar
     """``(n_nodes, len(columns))``: channels as recorded, or a basis's features."""
     source = _open(path, mask_variable)
     if basis:
-        return _basis(basis, stamp).transform(source.load(time, layer), features=list(columns))
-    return np.asarray(source.load(time, layer, channels=list(columns)), dtype=np.float64)
+        return _basis(basis, stamp).transform(
+            read_latents(source, time, layer), features=list(columns)
+        )
+    return np.asarray(read_latents(source, time, layer, channels=list(columns)), dtype=np.float64)
 
 
 @st.cache_data(max_entries=_CACHED, show_spinner="Profiling it against every field…")

@@ -6,7 +6,14 @@ import pytest
 
 np = pytest.importorskip("numpy")
 
-from conftest import N_CHANNELS, N_LAT, N_LON, N_TIMES, write_latent_archive  # noqa: E402
+from conftest import (  # noqa: E402
+    N_CHANNELS,
+    N_LAT,
+    N_LON,
+    N_TIMES,
+    MemorySource,
+    write_latent_archive,
+)
 from xaig.core.errors import RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
     accumulate_moments,
@@ -101,3 +108,24 @@ def test_a_transcoder_gets_the_same_nodes_at_two_layers(latent_archive):
 def test_batches_need_something_to_draw_from(latent_archive):
     with pytest.raises(RequestError, match="batch_size"):
         next(iter_batches(open_source(latent_archive), layer=0, batch_size=0))
+
+
+def test_moments_do_not_cancel_beside_a_large_offset():
+    """A float32 channel that is 1e8 everywhere has no variance. Raw second moments
+    minus the square of the mean went negative for it on a grid with unequal areas,
+    and a scale of NaN for everything trained on it."""
+    rng = np.random.default_rng(3)
+    planted = rng.normal(0.0, 2.0, (2, 48, 3)).astype(np.float32)
+    data = np.concatenate([np.full((2, 48, 1), 1e8, dtype=np.float32), planted], axis=2)
+    source = MemorySource({0: data})
+    moments = accumulate_moments(source, layer=0)
+    latents = data.astype(np.float64).reshape(-1, 4)
+    weights = np.tile(source.grid().weights(), 2) / 2
+    mean = weights @ latents
+    centred = latents - mean
+    exact = (centred * weights[:, None]).T @ centred
+    assert moments.mean == pytest.approx(mean, rel=1e-12)
+    assert moments.covariance[0, 0] == pytest.approx(0.0, abs=1e-6)
+    assert moments.covariance[1:, 1:] == pytest.approx(exact[1:, 1:], rel=1e-9)
+    assert moments.covariance[0, 1:] == pytest.approx(0.0, abs=1e-3)
+    assert moments.scale == pytest.approx(np.sqrt(np.trace(exact) / 4), rel=1e-9)

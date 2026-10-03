@@ -37,12 +37,9 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   alone.
 - **An index is not an identity.** Channel 42 of one trained network is not channel 42
   of another, and every layer of a model is as wide as the next. Whatever lines two
-  things up by index checks who they are first: `check_comparable` for a run against its
-  control (one network, one grid, nodes valid in both), `check_basis_fits` for a basis
-  against a layer (the network and layer its file says it was fitted on). Widths
-  matching is never the check. Region-fitted bases record their source and layer
-  automatically. Missing identity requires `allow_unverified_basis=True` (CLI:
-  `--allow-unverified-basis`); known mismatches are always refused.
+  things up by index checks who they are first, never only that widths match:
+  `check_comparable` for two runs, `check_basis_fits` for a basis against a layer. Their
+  docstrings say what is checked and what `allow_unverified` and `across_models` lift.
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
   product. `nn` keeps directions at unit length so that the two agree.
@@ -53,6 +50,9 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
 - **Area and mask hold for training data too.** `iter_batches` draws nodes by area and
   never where the grid is invalid, so a plain mean over a batch is the area-weighted
   loss. Do not train on `source.load()` directly.
+- **Read latents through `read_latents`.** It is `source.load` plus one rule: a valid node
+  holding NaN or infinity is a `RequestError` naming layer, time and channel, never a NaN
+  carried into a mean. Masked nodes may hold anything.
 - **Refuse before reading.** Whatever can be wrong with a request is checked before the
   first 100 MB is loaded, and raised as `RequestError`.
 - **Positions are not lead times.** An exporter keeps the forward calls it was asked to.

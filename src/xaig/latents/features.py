@@ -26,7 +26,7 @@ from xaig.core.extras import missing_extra
 from xaig.latents.analysis import AnyRegion
 from xaig.latents.basis import Decomposition
 from xaig.latents.samples import _time_labels
-from xaig.latents.source import LatentSource, ReferenceFields, check_basis_fits
+from xaig.latents.source import LatentSource, ReferenceFields, check_basis_fits, read_latents
 from xaig.latents.through import _field_at
 
 try:
@@ -129,11 +129,10 @@ def feature_census(
     nodes = _nodes(source, region)
     weights = grid.weights()[nodes]
     weights = weights / weights.sum()
-    latents = source.load(label, layer, nodes=nodes)
+    latents = read_latents(source, label, layer, nodes=nodes)
 
-    # A missing activation (NaN) is left out of its column, which is then read over
-    # the area it has values for: not counted inactive, and not allowed to poison
-    # the mean or hide the peak.
+    # The latents are finite (``read_latents``), but a basis is any ``Decomposition``:
+    # a value it returns that is not is left out of its column, read over the rest.
     area, total, finite = np.zeros(n_columns), np.zeros(n_columns), np.zeros(n_columns)
     active_total = np.zeros(n_columns)
     peak = np.full(n_columns, -np.inf)
@@ -269,13 +268,13 @@ def feature_profile(
     active_area = total_area = 0.0
     for label in labels:
         if basis is not None:  # a feature mixes every channel
-            latents = source.load(label, layer, nodes=nodes)
+            latents = read_latents(source, label, layer, nodes=nodes)
             values = basis.transform(latents, features=[column])[:, 0]
             del latents
         else:
-            values = source.load(label, layer, channels=[column], nodes=nodes)[:, 0]
+            values = read_latents(source, label, layer, channels=[column], nodes=nodes)[:, 0]
             values = values.astype(np.float64)
-        read = np.isfinite(values)  # a missing activation is on neither side
+        read = np.isfinite(values)  # what a basis returns may not be finite
         on = read & (values > threshold)
         active_area += float(weights[on].sum())
         total_area += float(weights[read].sum())

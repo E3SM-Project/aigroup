@@ -32,6 +32,7 @@ from xaig.latents.source import (
     LatentSource,
     check_basis_fits,
     check_comparable,
+    read_latents,
     shared_grid,
 )
 
@@ -117,12 +118,14 @@ def region_series(
     rows = []
     for label in labels:
         if basis is not None:
-            local = basis.transform(source.load(label, layer, nodes=nodes), features=columns)
+            local = basis.transform(
+                read_latents(source, label, layer, nodes=nodes), features=columns
+            )
         elif centred:
-            full = source.load(label, layer, channels=list(columns))
+            full = read_latents(source, label, layer, channels=list(columns))
             local = (full - grid.mean(full))[nodes]
         else:
-            local = source.load(label, layer, channels=list(columns), nodes=nodes)
+            local = read_latents(source, label, layer, channels=list(columns), nodes=nodes)
         rows.append(weights @ local.astype(np.float64))
     settings = {
         "layer": layer,
@@ -214,20 +217,28 @@ def difference(
     layer: int,
     top: int = 15,
     across_models: bool = False,
+    allow_unverified: bool = False,
 ) -> PairedDifference:
     """Which channels a perturbation reached, and where: ``experiment - control``
     at one layer and time, channels ranked by how much they moved.
 
-    The two must be one network on one grid (``check_comparable``); what is
-    compared is the nodes valid in both.
+    The two must be one network on one grid (``check_comparable``, which says what
+    ``across_models`` and ``allow_unverified`` lift); what is compared is the nodes
+    valid in both.
     """
-    check_comparable(control, experiment, layer=layer, across_models=across_models)
+    check_comparable(
+        control,
+        experiment,
+        layer=layer,
+        across_models=across_models,
+        allow_unverified=allow_unverified,
+    )
     label = control.info().times[control.info().time_index(time)]
     experiment.info().time_index(label)
     grid = shared_grid(control, experiment)
     weights = grid.weights()
-    delta = experiment.load(label, layer)
-    delta -= control.load(label, layer)
+    delta = read_latents(experiment, label, layer)
+    delta -= read_latents(control, label, layer)
     rms = np.sqrt(_mean_square(weights, delta))
     chosen = np.argsort(rms, kind="stable")[::-1][: max(top, 0)]
     maps = np.where(grid.valid[:, None], delta[:, chosen].astype(np.float64), np.nan)
@@ -237,6 +248,7 @@ def difference(
             "layer": layer,
             "top": top,
             "across_models": across_models,
+            "allow_unverified": allow_unverified,
             "n_nodes_compared": int(grid.valid.sum()),
         },
         provenance=_pair_provenance(control, experiment),
@@ -295,35 +307,40 @@ def difference_growth(
     layers: Sequence[int] | None = None,
     times: Sequence[str | int] | None = None,
     across_models: bool = False,
+    allow_unverified: bool = False,
     noise: LatentSource | None = None,
 ) -> DifferenceGrowth:
     """Follow a perturbation through the network and through time: the size of
     ``experiment - control`` at every layer and every time the two share, over
-    the nodes valid in both. ``noise``, a rerun of the control with another seed,
-    adds the baseline a stochastic model's differences have to clear."""
+    the nodes valid in both (and in ``noise``, if given). ``noise``, a rerun of the
+    control with another seed, adds the baseline a stochastic model's differences have to clear."""
     chosen = tuple(x.index for x in control.info().layers) if layers is None else tuple(layers)
+    others = (experiment,) if noise is None else (experiment, noise)
     for layer in chosen:
-        check_comparable(control, experiment, layer=layer, across_models=across_models)
-        if noise is not None:
-            check_comparable(control, noise, layer=layer, across_models=across_models)
+        for other in others:
+            check_comparable(
+                control,
+                other,
+                layer=layer,
+                across_models=across_models,
+                allow_unverified=allow_unverified,
+            )
     labels = _common_times(control, experiment, times)
     if noise is not None:
         labels = _common_times(control, noise, labels)
-    grid = shared_grid(control, experiment)
-    if noise is not None:
-        shared_grid(control, noise)
+    grid = shared_grid(control, *others)
     weights = grid.weights()
     rms = np.zeros((len(labels), len(chosen)))
     relative = np.zeros_like(rms)
     noise_rms = None if noise is None else np.zeros_like(rms)
     for i, label in enumerate(labels):
         for j, layer in enumerate(chosen):
-            reference = control.load(label, layer)
-            delta = experiment.load(label, layer)
+            reference = read_latents(control, label, layer)
+            delta = read_latents(experiment, label, layer)
             delta -= reference
             rms[i, j] = np.sqrt(_mean_square(weights, delta).mean())
             if noise is not None:
-                delta = noise.load(label, layer)
+                delta = read_latents(noise, label, layer)
                 delta -= reference
                 noise_rms[i, j] = np.sqrt(_mean_square(weights, delta).mean())
             reference -= grid.mean(reference).astype(reference.dtype)
@@ -336,6 +353,7 @@ def difference_growth(
         settings={
             "layers": list(chosen),
             "across_models": across_models,
+            "allow_unverified": allow_unverified,
             "n_nodes_compared": int(grid.valid.sum()),
             "noise": None if noise is None else noise.info().source,
         },
@@ -479,7 +497,7 @@ def rank_by_field(
     if basis is not None:
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
     values = _field_with_values(source, field, label, lead)
-    latents = source.load(label, layer)
+    latents = read_latents(source, label, layer)
     weights = grid.weights()
     if basis is None:
         correlation = correlate_field(latents, values, weights)
@@ -610,7 +628,7 @@ def field_storyline(
         if not np.isfinite(values[grid.valid]).any():
             continue
         for j, layer in enumerate(chosen):
-            latents = source.load(label, layer)
+            latents = read_latents(source, label, layer)
             basis = bases.get(layer)
             if basis is None:
                 r = correlate_field(latents, values, weights)
@@ -718,9 +736,11 @@ def hovmoller(
         if by_field:
             band = source.field(field, label)[nodes]
         elif by_channel:
-            band = source.load(label, layer, channels=[channel], nodes=nodes)[:, 0]
+            band = read_latents(source, label, layer, channels=[channel], nodes=nodes)[:, 0]
         else:
-            band = basis.transform(source.load(label, layer, nodes=nodes), features=[feature])[:, 0]
+            band = basis.transform(
+                read_latents(source, label, layer, nodes=nodes), features=[feature]
+            )[:, 0]
         band = band.reshape(rows.size, n_lon)
         w = np.where(np.isfinite(band), weights, 0.0)
         total = w.sum(axis=0)

@@ -310,6 +310,12 @@ def pca_cmd(source, adapter, mask_variable, layer, components, times, out) -> No
     "nothing between checkpoints trained apart; this is for when it does (a fine-tune).",
 )
 @click.option(
+    "--allow-unverified-sources",
+    is_flag=True,
+    help="Compare although a model, component, checkpoint or network layer is undeclared by "
+    "either run; known mismatches still fail.",
+)
+@click.option(
     "--noise",
     type=click.Path(),
     help="With --growth: the control rerun with another seed. Adds the difference that "
@@ -317,8 +323,8 @@ def pca_cmd(source, adapter, mask_variable, layer, components, times, out) -> No
 )
 @_json_option
 def diff_cmd(
-    control, experiment, adapter, mask_variable, time, layer, top, growth, across_models, noise,
-    as_json,
+    control, experiment, adapter, mask_variable, time, layer, top, growth, across_models,
+    allow_unverified_sources, noise, as_json,
 ):  # fmt: skip
     """Set a perturbed or steered run against its CONTROL, node for node."""
     from xaig.latents import difference, difference_growth
@@ -332,6 +338,7 @@ def diff_cmd(
             b,
             layers=None if layer is None else [layer],
             across_models=across_models,
+            allow_unverified=allow_unverified_sources,
             noise=None if noise is None else _open(noise, adapter, mask_variable),
         )
         if as_json:
@@ -351,6 +358,7 @@ def diff_cmd(
         layer=a.info().last_layer if layer is None else layer,
         top=top,
         across_models=across_models,
+        allow_unverified=allow_unverified_sources,
     )
     summary = result.summary()
     if as_json:

@@ -26,8 +26,10 @@ it. Needs the `nn` extra (torch), which a plain `uv sync` leaves out:
   training; the mean and scale go into the `Dictionary`, which is handed raw latents.
 - **Train on `iter_batches`, not on `source.load()`:** valid nodes only, drawn by area, so
   the plain mean in the loss is the area-weighted one.
-- **Say how good it is.** A fit reports explained variance, mean active features and the
-  dead fraction in `meta["metrics"]`, with everything needed to refit it beside them.
+- **Say how good it is, of what it returns.** A fit reports explained variance, mean active
+  features and the dead fraction in `meta["metrics"]`, with everything needed to refit it
+  beside them, measured on the *exported* dictionary (`training_metrics` is a monitor). A
+  test holds `metrics` to an independent numpy evaluation of the `Dictionary`.
 - Import torch behind the extra, at the top of the module that needs it and never in
   `__init__.py` or `cli.py`: `xaig --help` imports every cli module on a base install.
 - The loop is a toy on purpose. Quote what it measures; do not tune it in secret.

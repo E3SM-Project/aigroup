@@ -20,7 +20,7 @@ from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.basis import PCA, Decomposition, _floating, fit_pca, top_loadings
 from xaig.latents.grid import Grid, small_circle
-from xaig.latents.source import LatentSource, check_basis_fits
+from xaig.latents.source import LatentSource, check_basis_fits, read_latents
 
 try:
     import numpy as np
@@ -176,7 +176,7 @@ def load_channels(
     memory; how little is *read* is up to the source (an archive stores a node's
     channels side by side, so its pages are touched all the same)."""
     grid = source.grid()
-    values = source.load(time, layer, channels=list(channels)).astype(np.float64)
+    values = read_latents(source, time, layer, channels=list(channels)).astype(np.float64)
     if centred:
         values -= grid.mean(values)
     values[~grid.valid] = np.nan
@@ -320,13 +320,13 @@ def analyse_region(
         # handful of nodes; uncentred, only the region is read. Either way this
         # layer is let go before the next is loaded.
         if centred:
-            ranked_at = centre(source.load(time_label, rank_layer))[nodes]
+            ranked_at = centre(read_latents(source, time_label, rank_layer))[nodes]
         else:
-            ranked_at = source.load(time_label, rank_layer, nodes=nodes)
+            ranked_at = read_latents(source, time_label, rank_layer, nodes=nodes)
         ranking = rank_channels(ranked_at, top=top, pinned=pinned)
         del ranked_at
 
-    latents = source.load(time_label, layer)
+    latents = read_latents(source, time_label, layer)
     scores, pca, feature_info = None, None, ()
     if n_components and basis is not None:
         local = np.abs(basis.transform(latents[nodes])).max(axis=0)

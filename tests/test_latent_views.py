@@ -65,6 +65,23 @@ def test_a_difference_is_measured_against_what_noise_alone_does(tmp_path):
     assert difference_growth(control, steered).signal_to_noise is None
 
 
+def test_a_node_masked_in_the_noise_run_is_left_out_of_both(tmp_path):
+    """The noise run's mask counts as much as the experiment's: a node it marks
+    invalid holds garbage, and must not reach ``noise_rms`` -- or ``rms``."""
+    mask = np.arange(N_LAT * N_LON) != 5
+    control = open_source(write_latent_archive(tmp_path / "control"))
+    steered = open_source(write_latent_archive(tmp_path / "steered"))
+    path = write_latent_archive(tmp_path / "reseeded", mask=mask)
+    for step in path.glob("step_*.npy"):
+        stored = np.load(step)
+        stored[:, ~mask, :] = 1e4
+        np.save(step, stored)
+    growth = difference_growth(control, steered, noise=open_source(path))
+    assert growth.settings["n_nodes_compared"] == int(mask.sum())
+    assert (growth.noise_rms == 0.0).all()
+    assert (growth.rms == 0.0).all()
+
+
 def test_a_noise_run_must_be_comparable_too(tmp_path):
     control = open_source(write_latent_archive(tmp_path / "control"))
     other = write_latent_archive(tmp_path / "other")

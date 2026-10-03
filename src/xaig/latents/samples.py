@@ -27,7 +27,7 @@ from typing import Any
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.basis import PCA, fix_signs
-from xaig.latents.source import LatentSource
+from xaig.latents.source import LatentSource, read_latents
 
 try:
     import numpy as np
@@ -38,10 +38,12 @@ _BLOCK = 8192
 
 
 def _time_labels(source: LatentSource, times: Sequence[str | int] | None) -> list[str]:
+    """The labels of the times asked for (all by default); none is refused."""
     info = source.info()
-    if times is None:
-        return list(info.times)
-    return [info.times[info.time_index(t)] for t in times]
+    labels = list(info.times) if times is None else [info.times[info.time_index(t)] for t in times]
+    if not labels:
+        raise RequestError(f"no times selected from {info.source}")
+    return labels
 
 
 @dataclass(frozen=True, eq=False)
@@ -65,7 +67,7 @@ class Moments:
         """One number to divide a centred layer by so that a node's vector has
         unit mean square per channel: what a dictionary is trained on, keeping the
         channels' relative sizes (a per-channel scale would not)."""
-        return float(np.sqrt(np.trace(self.covariance) / self.covariance.shape[0])) or 1.0
+        return float(np.sqrt(np.trace(self.covariance) / self.covariance.shape[0]))
 
 
 def accumulate_moments(
@@ -75,25 +77,39 @@ def accumulate_moments(
 
     Accumulated in float64 a block of nodes at a time: one layer is in memory,
     and the sums are ``(n_channels, n_channels)`` however many times there are.
+    The covariance is built from centred sums, each block merged into the running
+    mean and scatter as it arrives, rather than as ``E[x x'] - E[x] E[x]'``, which
+    loses every digit of a channel whose mean dwarfs its spread.
     """
     info, labels = source.info(), _time_labels(source, times)
-    if not labels:
-        raise RequestError("no times to accumulate over")
     n_channels = info.layer(layer).n_channels
     weights = source.grid().weights() / len(labels)
-    first = np.zeros(n_channels)
-    second = np.zeros((n_channels, n_channels))
+    total = 0.0
+    shift = None  # one node's vector, taken off everything: a constant channel is then exactly 0
+    mean = np.zeros(n_channels)
+    scatter = np.zeros((n_channels, n_channels))  # weighted sum of centred outer products
     for label in labels:
-        latents = source.load(label, layer)
+        latents = read_latents(source, label, layer)
         for start in range(0, latents.shape[0], _BLOCK):
             keep = np.flatnonzero(weights[start : start + _BLOCK] > 0.0) + start
             if keep.size:
                 block = latents[keep].astype(np.float64)
-                first += weights[keep] @ block
-                second += (block * weights[keep, None]).T @ block
+                if shift is None:
+                    shift = block[0].copy()
+                block -= shift
+                w = weights[keep]
+                block_weight = float(w.sum())
+                block_mean = (w @ block) / block_weight
+                block -= block_mean
+                block_scatter = (block * w[:, None]).T @ block
+                merged = total + block_weight
+                gap = block_mean - mean
+                scatter += block_scatter + np.outer(gap, gap) * (total * block_weight / merged)
+                mean += gap * (block_weight / merged)
+                total = merged
     return Moments(
-        mean=first,
-        covariance=second - np.outer(first, first),
+        mean=mean + (0.0 if shift is None else shift),
+        covariance=scatter / total,
         times=tuple(labels),
         layer=layer,
         provenance=info.provenance(),
@@ -150,8 +166,6 @@ def iter_batches(
     nodes at two layers, which is what a transcoder trains on.
     """
     labels = _time_labels(source, times)
-    if not labels:
-        raise RequestError("no times to draw batches from")
     if batch_size < 1:
         raise RequestError("batch_size must be at least 1")
     probability = source.grid().weights()
@@ -161,11 +175,11 @@ def iter_batches(
         for position in rng.permutation(len(labels)):
             label = labels[position]
             nodes = rng.choice(probability.size, size=n_draws, replace=True, p=probability)
-            inputs = source.load(label, layer, nodes=nodes)
+            inputs = read_latents(source, label, layer, nodes=nodes)
             if target_layer is None:
                 targets = None
             else:
-                targets = source.load(label, target_layer, nodes=nodes)
+                targets = read_latents(source, label, target_layer, nodes=nodes)
             for start in range(0, n_draws, batch_size):
                 stop = start + batch_size
                 if targets is None:

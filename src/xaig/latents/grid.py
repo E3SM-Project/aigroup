@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 
 try:
@@ -145,7 +146,7 @@ class Grid:
         w[~self.valid] = 0.0
         total = w.sum()
         if total <= 0.0:
-            raise ValueError("no valid nodes to weight")
+            raise RequestError("no valid nodes: the mask leaves every node out")
         return w / total
 
     def distance_km(self, lat: float, lon: float) -> np.ndarray:
