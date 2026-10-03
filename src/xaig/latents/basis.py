@@ -142,6 +142,15 @@ class PCA:
             out[start : start + _BLOCK] = block @ components.T
         return out
 
+    def decode(self, scores: np.ndarray) -> np.ndarray:
+        """Scores ``(n_nodes, k)`` back to channels: what the first ``k`` components
+        keep of the nodes they were projected from."""
+        return np.asarray(scores) @ self.components.astype(np.float64) + self.mean
+
+    def reconstruct(self, latents: np.ndarray) -> np.ndarray:
+        """``latents`` as the components remember them, in the units of the layer."""
+        return self.decode(self.transform(latents))
+
     def directions(self) -> np.ndarray:
         return self.components
 
@@ -340,16 +349,28 @@ class Dictionary:
             out[start : start + _BLOCK] = active
         return out
 
-    def reconstruct(self, latents: np.ndarray) -> np.ndarray:
-        """What the dictionary makes of ``latents``, back in the units of the layer
-        it writes: the input layer for an autoencoder, another for a transcoder."""
+    def decode(self, active: np.ndarray) -> np.ndarray:
+        """Activations ``(n_nodes, n_features)`` written out as the layer the dictionary
+        writes, in that layer's own units: the input layer for an autoencoder, another
+        for a transcoder."""
         mean = self.input_mean if self.output_mean is None else self.output_mean
         scale = self.input_scale if self.output_scale is None else self.output_scale
+        out = np.empty((np.shape(active)[0], self.decoder.shape[1]), dtype=np.float32)
+        for start in range(0, out.shape[0], _BLOCK):
+            block = np.asarray(active[start : start + _BLOCK]).astype(np.float32)
+            out[start : start + _BLOCK] = (block @ self.decoder + self.decoder_bias) * scale
+        return out + mean.astype(np.float32)
+
+    def reconstruct(self, latents: np.ndarray) -> np.ndarray:
+        """What the dictionary makes of ``latents``, back in the units of the layer
+        it writes. A block of nodes at a time: the activations of a whole layer
+        would be as wide as the dictionary."""
         out = np.empty((np.shape(latents)[0], self.decoder.shape[1]), dtype=np.float32)
         for start in range(0, out.shape[0], _BLOCK):
-            active = self.transform(latents[start : start + _BLOCK]).astype(np.float32)
-            out[start : start + _BLOCK] = (active @ self.decoder + self.decoder_bias) * scale
-        return out + mean.astype(np.float32)
+            out[start : start + _BLOCK] = self.decode(
+                self.transform(latents[start : start + _BLOCK])
+            )
+        return out
 
     def directions(self) -> np.ndarray:
         return self.decoder

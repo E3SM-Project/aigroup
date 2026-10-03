@@ -19,6 +19,8 @@ Reading is an adapter's job (see ``LatentSource``); this package computes.
 - ``samples``   many times at once: moments, a global PCA, batches to train on
 - ``through``   through time and between runs: series, differences, field correlation,
                 storylines, Hovmoller diagrams
+- ``evaluate``  a frozen basis on held-out times: splits, fidelity and sparsity, dead and
+                redundant features, stability across seeds, PCA against a dictionary
 - ``features``  what a feature is, without a field in mind: a census of a layer, and one
                 feature's profile against every field
 - ``toy``       a toy emulator in numpy, so an archive can be made with no model
@@ -59,6 +61,19 @@ if TYPE_CHECKING:
         save_basis,
         spline_knots,
         top_loadings,
+    )
+    from xaig.latents.evaluate import (
+        Evaluation,
+        FidelityCurve,
+        Split,
+        Stability,
+        evaluate_basis,
+        fidelity_curve,
+        save_result,
+        seed_stability,
+        split_archives,
+        split_groups,
+        split_time_blocks,
     )
     from xaig.latents.features import (
         FeatureCensus,
@@ -121,6 +136,17 @@ _LAZY = {
     "save_basis": "basis",
     "spline_knots": "basis",
     "top_loadings": "basis",
+    "Evaluation": "evaluate",
+    "FidelityCurve": "evaluate",
+    "Split": "evaluate",
+    "Stability": "evaluate",
+    "evaluate_basis": "evaluate",
+    "fidelity_curve": "evaluate",
+    "save_result": "evaluate",
+    "seed_stability": "evaluate",
+    "split_archives": "evaluate",
+    "split_groups": "evaluate",
+    "split_time_blocks": "evaluate",
     "FeatureCensus": "features",
     "FeatureProfile": "features",
     "feature_census": "features",
@@ -171,8 +197,10 @@ __all__ = [
     "Decomposition",
     "Dictionary",
     "DifferenceGrowth",
+    "Evaluation",
     "FeatureCensus",
     "FeatureProfile",
+    "FidelityCurve",
     "FieldRanking",
     "FieldStoryline",
     "Hovmoller",
@@ -187,6 +215,8 @@ __all__ = [
     "Region",
     "RegionAnalysis",
     "RegionSeries",
+    "Split",
+    "Stability",
     "accumulate_moments",
     "analyse_region",
     "basis_hash",
@@ -197,8 +227,10 @@ __all__ = [
     "cosine_similarity",
     "difference",
     "difference_growth",
+    "evaluate_basis",
     "feature_census",
     "feature_profile",
+    "fidelity_curve",
     "field_storyline",
     "hovmoller",
     "fit_pca",
@@ -214,6 +246,11 @@ __all__ = [
     "region_series",
     "result_provenance",
     "save_basis",
+    "save_result",
+    "seed_stability",
     "spline_knots",
+    "split_archives",
+    "split_groups",
+    "split_time_blocks",
     "top_loadings",
 ]
