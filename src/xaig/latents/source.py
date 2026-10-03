@@ -250,6 +250,26 @@ class ReferenceFields(Protocol):
     def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray: ...
 
 
+def selection(indices: Sequence[int], size: int, what: str, held: str = "") -> np.ndarray:
+    """``indices`` as an index array into an axis of ``size``, for an adapter's ``load``.
+
+    Every index lies in ``0..size-1``: a negative one is refused like one past the end,
+    where numpy would count it from the end and an adapter would return another channel
+    or node than the one named, silently. ``held`` says what the source holds, for the
+    message.
+    """
+    import numpy as np  # here and not above: this module imports on a base install
+
+    chosen = np.asarray(indices, dtype=np.intp)
+    bad = chosen[(chosen < 0) | (chosen >= size)]
+    if bad.size:
+        raise RequestError(
+            f"{what} index {int(bad[0])} is out of range: there are {size} {what}(s), "
+            f"numbered from 0" + (f" ({held})" if held else "")
+        )
+    return chosen
+
+
 def read_latents(
     source: LatentSource,
     time: str | int,

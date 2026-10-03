@@ -37,7 +37,7 @@ from typing import Any
 from xaig.core.errors import AdapterError, RequestError
 from xaig.core.extras import missing_extra, require
 from xaig.latents.grid import Grid
-from xaig.latents.source import LatentInfo, LayerInfo
+from xaig.latents.source import LatentInfo, LayerInfo, selection
 
 try:
     import numpy as np
@@ -365,18 +365,13 @@ class LatentArchive:
         nodes: Sequence[int] | None = None,
     ) -> np.ndarray:
         block = self._array(layer)[self._info.time_index(time)]
+        held = f"layer {layer} holds {block.shape[0]} nodes x {block.shape[1]} channels"
         # Rows first: on a memory map this touches only the pages those nodes
         # live in, which is what keeps a regional read cheap.
-        try:
-            if nodes is not None:
-                block = block[np.asarray(nodes, dtype=np.intp)]
-            if channels is not None:
-                block = block[:, np.asarray(channels, dtype=np.intp)]
-        except IndexError as exc:
-            shape = self._array(layer).shape[1:]
-            raise RequestError(
-                f"layer {layer} holds {shape[0]} nodes x {shape[1]} channels ({exc})"
-            ) from exc
+        if nodes is not None:
+            block = block[selection(nodes, block.shape[0], "node", held)]
+        if channels is not None:
+            block = block[:, selection(channels, block.shape[1], "channel", held)]
         return np.array(block, dtype=np.float32)  # always a copy: the caller may modify it
 
 
