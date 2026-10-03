@@ -28,6 +28,15 @@ with `isinstance`, so everything one framework can supply travels under one name
 |---|---|---|
 | `latents.LatentSource` | `info()`, `grid()`, `load(time, layer, …)` | `latents`, `nn` |
 | `latents.ReferenceFields` | `field_names()`, `field(name, time)` → per-node values | `latents` |
+| `latents.Intervenable` | `info()`, `grid()`, `initial_state()`, `run(state, steps, hooks, noise_seed=, record=)` → `Rollout` | `latents.intervene` |
+
+`Intervenable` is the one protocol that *writes into a model*: a hook at `(layer, time)`
+receives the latents the forward pass produced and returns what it continues with. It is
+separate from `LatentSource` because running a model is neither cheap nor repeatable, and
+most sources cannot. Its adapter must make noise a function of `noise_seed` alone (not of
+what the hooks did), or arms cannot be paired; must refuse a place that does not exist
+with a `RequestError`; and hands only numpy across, so the model's framework stays on its
+side. An adapter that reads nothing declares its options keyword-only.
 
 An adapter may also *write* what it reads: a `write(path, **contents)` on the class the
 registry hands out. `latents.toy` reaches the archive writer that way, by
@@ -67,6 +76,9 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 
 ## Present adapters
 
+- `toy_dynamics.py` — `toy-dynamics`: a small linear system with latent layers, noise seeds
+  and a planted feature, an `Intervenable` that reads nothing. For tests and docs only;
+  nothing in it is a model of anything (`docs/package/interventions.md`).
 - `latent_archive.py` — activations recorded from a model, as a directory of
   memory-mapped arrays, with the physical fields kept beside them; `write_archive` writes
   one (`xaig[latents]`; format in `docs/package/latents.md`). The same reader takes an

@@ -21,6 +21,8 @@ Reading is an adapter's job (see ``LatentSource``); this package computes.
                 storylines, Hovmoller diagrams
 - ``evaluate``  a frozen basis on held-out times: splits, fidelity and sparsity, dead and
                 redundant features, stability across seeds, PCA against a dictionary
+- ``intervene`` steering: edit a feature inside a running model, four arms, paired noise,
+                the response against random directions
 - ``features``  what a feature is, without a field in mind: a census of a layer, and one
                 feature's profile against every field
 - ``toy``       a toy emulator in numpy, so an archive can be made with no model
@@ -81,6 +83,19 @@ if TYPE_CHECKING:
         feature_census,
         feature_profile,
     )
+    from xaig.latents.intervene import (
+        Effect,
+        Hook,
+        Intervenable,
+        Intervention,
+        Pairing,
+        Rollout,
+        Run,
+        SteeringResult,
+        feature_direction,
+        open_intervenable,
+        run_steering,
+    )
     from xaig.latents.samples import (
         Moments,
         accumulate_moments,
@@ -136,6 +151,17 @@ _LAZY = {
     "save_basis": "basis",
     "spline_knots": "basis",
     "top_loadings": "basis",
+    "Effect": "intervene",
+    "Hook": "intervene",
+    "Intervenable": "intervene",
+    "Intervention": "intervene",
+    "Pairing": "intervene",
+    "Rollout": "intervene",
+    "Run": "intervene",
+    "SteeringResult": "intervene",
+    "feature_direction": "intervene",
+    "open_intervenable": "intervene",
+    "run_steering": "intervene",
     "Evaluation": "evaluate",
     "FidelityCurve": "evaluate",
     "Split": "evaluate",
@@ -192,6 +218,17 @@ def __dir__() -> list[str]:
 
 
 __all__ = [
+    "Effect",
+    "Hook",
+    "Intervenable",
+    "Intervention",
+    "Pairing",
+    "Rollout",
+    "Run",
+    "SteeringResult",
+    "feature_direction",
+    "open_intervenable",
+    "run_steering",
     "PCA",
     "ChannelRanking",
     "Decomposition",
