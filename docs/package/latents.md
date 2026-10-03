@@ -644,6 +644,10 @@ source = open_source("/path/to/latents", adapter="graphcast-latents")
 Meshes need no special handling: without a `grid_shape` everything works except
 `to_map`, and weights are uniform unless the adapter supplies `area`.
 
+`bundle-dir` is a second layout shipped to show this: channels first, one file per level
+and time. How to write one, and the contract tests that every adapter is asked to pass,
+are in [the overview](index.md#writing-one).
+
 ## Remaining tasks
 
 - [ ] A GraphCast mesh adapter, including the *translator* of Tempest et al. (2026), which

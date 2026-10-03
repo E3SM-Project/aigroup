@@ -42,6 +42,25 @@ An adapter may also *write* what it reads: a `write(path, **contents)` on the cl
 registry hands out. `latents.toy` reaches the archive writer that way, by
 name, and a writer is always tested against its own reader.
 
+## Passing the contract
+
+Every adapter is asked the same questions, in `tests/test_adapter_contracts.py`, and a
+registered adapter that is not in it fails the suite. Add a `LatentCase` (how to make a
+source, and the options to open it with; an adapter with a `write` can write the module's
+*planted* arrays and be asked for them back exactly) and, if it can be run, an entry in
+`INTERVENABLE_CASES`. The module asks of a `LatentSource`: the protocol and what `info()`
+says, float32 `(nodes, channels)` in the order requested, a time as label or position, a
+copy the caller may modify, `RequestError` for what cannot be had (an index past the end or a
+negative one: `latents.source.selection` checks both), a grid that marks and
+weighs masked nodes (NaN may sit on a masked node and `read_latents` refuses it on a valid
+one), a calendar the labels are read under (28 February to 1 March in year 424 is one step),
+the provenance keys, the same answers from two openings, an undeclared option refused by
+name, a missing or foreign source an `AdapterError`; of an `Intervenable`: float32 latents
+at exactly the places recorded, noise a function of the seed alone, hooks that see what the
+pass produced and are continued with, a state that is not modified, places that do not
+exist refused. Layout-specific behaviour goes in its own test module
+(`tests/test_bundle_dir.py`); what is asked of every adapter does not.
+
 ## Registering
 
 Entry points are the only mechanism, for the adapters shipped here and for one living in
@@ -79,6 +98,12 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 - `toy_dynamics.py` — `toy-dynamics`: a small linear system with latent layers, noise seeds
   and a planted feature, an `Intervenable` that reads nothing. For tests and docs only;
   nothing in it is a model of anything (`docs/package/steering.md`).
+- `bundle_dir.py` — `bundle-dir`: a second layout, unlike the first on purpose: channels
+  first `(width, n_lat, n_lon)`, one `.npy` per level and time, a JSON manifest in its own
+  words, memory-mapped. It was added with no change to anything that reads latents, which
+  is what it is there to show. Reads `ReferenceFields` too; its `write` takes what
+  `write_archive` takes, so `write_toy(path, adapter="bundle-dir")` works. Its only option,
+  `unmasked`, ignores the bundle's mask.
 - `latent_archive.py` — activations recorded from a model, as a directory of
   memory-mapped arrays, with the physical fields kept beside them; `write_archive` writes
   one (`xaig[latents]`; format in `docs/package/latents.md`). The same reader takes an
