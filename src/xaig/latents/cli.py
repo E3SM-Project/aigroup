@@ -1013,7 +1013,7 @@ def steer_cmd(
     --random-draws with a random direction of the same length changed by the same amount.
     Each field's response to the feature is reported against the random directions'.
     """
-    from xaig.latents import Intervention, open_intervenable, run_steering
+    from xaig.latents import Steer, open_intervenable, run_steering
     from xaig.latents.evaluate import jsonable, save_result
 
     basis = _basis(basis_path)
@@ -1021,11 +1021,11 @@ def steer_cmd(
         raise click.UsageError("--basis FILE is required")
     options = _adapter_options(adapter_options)
     system = open_intervenable(source, adapter, **options)
-    intervention = Intervention(
+    steer = Steer(
         layer=layer, feature=feature, mode=mode, amount=amount, times=tuple(times) or (0,)
     )
     result = run_steering(
-        system, basis, intervention, steps=steps, seeds=_ints(seeds_text),
+        system, basis, steer, steps=steps, seeds=_ints(seeds_text),
         n_random=random_draws, random_seed=random_seed, fields=list(fields) or None,
         record_layers=list(record_layers) or None,
         allow_unverified_basis=allow_unverified_basis,
@@ -1038,7 +1038,7 @@ def steer_cmd(
     spec = result.spec
     click.echo(
         f"{mode} {amount:g} on feature {feature} of layer {layer} at time(s) "
-        f"{', '.join(map(str, spec['intervention']['times']))}; {steps} step(s), "
+        f"{', '.join(map(str, spec['steer']['times']))}; {steps} step(s), "
         f"seed(s) {', '.join(map(str, spec['seeds']))}, {spec['n_random']} random direction(s)"
     )
     rows = [
@@ -1063,7 +1063,7 @@ def steer_cmd(
     if allow_unverified_basis:
         pinned.append("--allow-unverified-basis")
     pinned += [f"--layer {layer}", f"--feature {feature}", f"--mode {mode}", f"--amount {amount!r}"]
-    pinned += [f"--time {t}" for t in spec["intervention"]["times"]]
+    pinned += [f"--time {t}" for t in spec["steer"]["times"]]
     pinned += [f"--steps {steps}", f"--seeds {','.join(map(str, spec['seeds']))}"]
     pinned += [f"--random-draws {random_draws}", f"--random-seed {random_seed}"]
     pinned += [f"--field {shlex.quote(name)}" for name in fields]

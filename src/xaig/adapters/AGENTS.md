@@ -78,7 +78,7 @@ own names win a clash, so a plugin can add adapters but never silently replace o
 
 - `toy_dynamics.py` — `toy-dynamics`: a small linear system with latent layers, noise seeds
   and a planted feature, an `Intervenable` that reads nothing. For tests and docs only;
-  nothing in it is a model of anything (`docs/package/interventions.md`).
+  nothing in it is a model of anything (`docs/package/steering.md`).
 - `latent_archive.py` — activations recorded from a model, as a directory of
   memory-mapped arrays, with the physical fields kept beside them; `write_archive` writes
   one (`xaig[latents]`; format in `docs/package/latents.md`). The same reader takes an

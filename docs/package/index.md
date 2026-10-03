@@ -5,7 +5,7 @@ this repo alongside the guides, as a peer rather than an appendix.
 
 | Subpackage | Scope |
 | --- | --- |
-| `latents` | [what emulators hold inside](latents.md), and [steering them](interventions.md) |
+| `latents` | [what emulators hold inside](latents.md), and [steering them](steering.md) |
 | `nn` | torch modules trained on those latents: [sparse autoencoders](nn.md), [evaluated held out](evaluation.md) |
 | `figures` | figures, with no web framework in them |
 | `app` | [a local web app](app.md) over `latents` |

@@ -23,8 +23,8 @@ from xaig.latents import (  # noqa: E402
     Dictionary,
     Hook,
     Intervenable,
-    Intervention,
     LatentSource,
+    Steer,
     basis_hash,
     feature_direction,
     open_intervenable,
@@ -53,7 +53,7 @@ def _planted_series(first, amount=AMOUNT, steps=STEPS):
 
 
 def _feature(layer=1, **kwargs):
-    return Intervention(layer=layer, feature=0, **{"amount": AMOUNT, "times": (T0,), **kwargs})
+    return Steer(layer=layer, feature=0, **{"amount": AMOUNT, "times": (T0,), **kwargs})
 
 
 def _control_latents(system, layer, seed, steps=STEPS):
@@ -301,7 +301,7 @@ def test_the_result_carries_where_it_ran_and_with_which_basis(system, tmp_path):
     assert provenance["xaig"]
     path = save_result(tmp_path / "out" / "steer.json", result)
     written = json.loads(path.read_text())
-    assert written["spec"]["intervention"]["amount"] == AMOUNT
+    assert written["spec"]["steer"]["amount"] == AMOUNT
     assert written["provenance"]["basis"]["sha256"] == basis_hash(basis)
     assert written["effects"]["temperature"]["rank"] == 1
     assert {r["arm"] for r in written["runs"]} == {"control", "reconstruction", "feature", "random"}
@@ -349,19 +349,19 @@ def test_what_cannot_be_asked_is_refused(system, change, match):
 
 
 @pytest.mark.parametrize(
-    ("intervention", "match"),
+    ("steer", "match"),
     [
         (_feature(layer=5), "no layer 5"),
-        (Intervention(layer=1, feature=9), "feature 9"),
+        (Steer(layer=1, feature=9), "feature 9"),
         (_feature(times=(STEPS,)), "cannot act"),
         (_feature(times=(-1,)), "cannot act"),
         (_feature(nodes=(0, 1)), "masked out"),
         (_feature(nodes=(999,)), "nodes must lie"),
     ],
 )
-def test_an_intervention_that_does_not_exist_is_refused(system, intervention, match):
+def test_a_steer_that_does_not_exist_is_refused(system, steer, match):
     with pytest.raises(RequestError, match=match):
-        run_steering(system, system.planted_dictionary(), intervention, steps=STEPS, n_random=2)
+        run_steering(system, system.planted_dictionary(), steer, steps=STEPS, n_random=2)
 
 
 @pytest.mark.parametrize(
@@ -374,9 +374,9 @@ def test_an_intervention_that_does_not_exist_is_refused(system, intervention, ma
         ({"nodes": ()}, "no nodes"),
     ],
 )
-def test_an_intervention_is_checked_when_it_is_made(kwargs, match):
+def test_a_steer_is_checked_when_it_is_made(kwargs, match):
     with pytest.raises(RequestError, match=match):
-        Intervention(layer=1, feature=0, **kwargs)
+        Steer(layer=1, feature=0, **kwargs)
 
 
 def test_a_basis_fitted_on_another_network_does_not_steer_this_one(system):

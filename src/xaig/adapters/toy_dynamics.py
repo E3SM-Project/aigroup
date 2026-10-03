@@ -1,4 +1,4 @@
-"""A toy system that can be intervened on, with a planted answer. For tests and docs.
+"""A toy system that can be steered, with a planted answer. For tests and docs.
 
 Not a model of anything: a small linear dynamical system over a lat-lon grid, written so
 that what an edit at a latent layer does to the physical fields can be worked out by hand.
@@ -33,8 +33,8 @@ from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.basis import Dictionary
 from xaig.latents.grid import Grid
-from xaig.latents.intervene import Hook, Rollout
 from xaig.latents.source import LatentInfo, LayerInfo
+from xaig.latents.steering import Hook, Rollout
 
 try:
     import numpy as np

@@ -1,4 +1,4 @@
-# Interventions
+# Steering
 
 Everything in `xaig` so far *reads*: an adapter hands over activations a model produced,
 and the package computes on them. A steering experiment asks a different question, "what
@@ -8,14 +8,14 @@ the code and kept as its record, then updated as it shipped. Each section says w
 **implemented** and what is **planned**.
 
 !!! note "status"
-    Implemented: the protocol (`Intervenable`, `Hook`, `Intervention`), the runner
+    Implemented: the protocol (`Intervenable`, `Hook`, `Steer`), the runner
     (`run_steering`), the `xaig latents steer` command and a toy system to test them
     against. Planned: a real adapter, a view and a figure in the app, and fitted
     dictionaries on the toy system; see [Remaining tasks](#remaining-tasks).
 
-## What an intervention is
+## What a steer is
 
-An intervention edits the model's latents at one layer, along a feature's direction, and
+A steer edits the model's latents at one layer, along a feature's direction, and
 then lets the forward pass continue from the edited value. Three things name it:
 
 - **where**: a layer, and the forward steps (times) at which it acts, optionally on a
@@ -34,7 +34,7 @@ is what makes the arms below separable.
 
 The contract in `adapters/AGENTS.md` is a set of read protocols (`LatentSource`,
 `ReferenceFields`): the adapter is passive, and a result is a function of files that exist.
-An intervention is a *run*: the adapter owns the model, and the experiment owns what
+A steer is a *run*: the adapter owns the model, and the experiment owns what
 happens to the latents at a point inside it. Three consequences:
 
 1. **A new protocol, not a new method on `LatentSource`.** Reading a recorded archive is
@@ -104,7 +104,7 @@ reported as an effect size and an empirical rank within the random draws.
 
 A stochastic model run twice from one state differs for reasons that have nothing to do
 with the edit. All arms of one repetition therefore share a `noise_seed`, so the
-difference against control contains the edit and nothing else; with no intervention it is
+difference against control contains the edit and nothing else; with no steer it is
 exactly zero. Seeds are then repeated (`--seeds`) to get an uncertainty: the paired
 difference is computed per seed, and the spread across seeds says how far to trust the
 mean. The random draws are fixed across seeds, so a draw is one direction tested under
@@ -193,7 +193,7 @@ FIELD        RESPONSE  +-      RECON_ONLY  RANDOM_|RESP|  EFFECT_SIZE  RANK  PER
 temperature  0.4099    0.0045  0.3335      0.1375         2.52         1/21  100
 ```
 
-From Python, `run_steering(system, basis, Intervention(layer=1, feature=0, amount=1.5,
+From Python, `run_steering(system, basis, Steer(layer=1, feature=0, amount=1.5,
 times=(1,)), steps=5, seeds=(0, 1, 2))` returns the same as an object, and `save_result`
 writes it.
 
@@ -203,7 +203,7 @@ writes it.
   of work and lives in its own environment.
 - No search over features or amounts, and no claim that a feature "causes" anything beyond
   what the arms show; the numbers are evidence for a reader to weigh.
-- No intervention on several layers or features at once (a hook list can hold them, but
+- No steer on several layers or features at once (a hook list can hold them, but
   the runner varies one feature).
 - No gradients: an edit is a forward-pass substitution.
 - No plotting here; figures and the app may draw a result later.

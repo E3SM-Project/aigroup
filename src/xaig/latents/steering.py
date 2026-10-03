@@ -1,9 +1,9 @@
 """Steering: change a feature inside a running model and see what it does.
 
-Everything else in this package reads. An intervention is the first time an adapter
+Everything else in this package reads. Steering is the first time an adapter
 *writes*: the model is run, and at one layer and time the latents it produced are
 replaced by an edited copy, after which the forward pass continues. ``docs/package/
-interventions.md`` is the design note; in short, four arms are run from one initial
+steering.md`` is the design note; in short, four arms are run from one initial
 state with one noise seed, and compared pairwise with the first:
 
 - ``control``         no hooks;
@@ -144,7 +144,7 @@ def feature_direction(basis: Decomposition, feature: int) -> np.ndarray:
 
 
 @dataclass(frozen=True)
-class Intervention:
+class Steer:
     """One feature, changed at one layer, at some forward steps.
 
     ``mode`` says what ``amount`` is: ``add`` it to the feature's activation, ``scale``
@@ -166,9 +166,9 @@ class Intervention:
         if not np.isfinite(self.amount):
             raise RequestError(f"the amount must be a finite number, not {self.amount!r}")
         if not self.times:
-            raise RequestError("an intervention needs at least one time to act at")
+            raise RequestError("a steer needs at least one time to act at")
         if self.nodes is not None and not self.nodes:
-            raise RequestError("an intervention restricted to no nodes changes nothing")
+            raise RequestError("a steer restricted to no nodes changes nothing")
 
     def deltas(self, basis: Decomposition, latents: np.ndarray) -> np.ndarray:
         """The change in the feature's activation at each node, ``(n_nodes,)`` float64."""
@@ -401,7 +401,7 @@ def _summarise(
 def run_steering(
     system: Intervenable,
     basis: Decomposition,
-    intervention: Intervention,
+    steer: Steer,
     *,
     steps: int,
     seeds: Sequence[int] = (0,),
@@ -414,16 +414,16 @@ def run_steering(
 ) -> SteeringResult:
     """Run the four arms for every seed, and compare them with the control.
 
-    The control runs first and records the latents at each place the intervention
+    The control runs first and records the latents at each place the steer
     acts; ``delta`` is worked out from those, so every arm is edited by the same amount
     at the same nodes however the runs drift apart afterwards (it is worked out again for
     each seed, whose control differs). Within a seed all arms share the noise.
     ``record_layers`` are the layers whose latents are compared (default: the
-    intervention's own), at every step. ``fields`` default to every field the system
+    steer's own), at every step. ``fields`` default to every field the system
     writes.
     """
     info, grid = system.info(), system.grid()
-    layer = intervention.layer
+    layer = steer.layer
     steps, seeds = int(steps), [int(s) for s in seeds]
     if steps < 1:
         raise RequestError("steps must be at least 1")
@@ -433,22 +433,22 @@ def run_steering(
         raise RequestError("at least one random-direction draw is needed to say what is unusual")
     if fields is not None and not fields:
         raise RequestError("no fields were asked for")
-    late = [t for t in intervention.times if not 0 <= t < steps]
+    late = [t for t in steer.times if not 0 <= t < steps]
     if late:
         raise RequestError(f"cannot act at time(s) {late} in a run of {steps} step(s)")
-    if intervention.nodes is not None:
-        if any(not 0 <= n < grid.n_nodes for n in intervention.nodes):
+    if steer.nodes is not None:
+        if any(not 0 <= n < grid.n_nodes for n in steer.nodes):
             raise RequestError(f"nodes must lie in 0..{grid.n_nodes - 1}")
-        if not grid.valid[list(intervention.nodes)].any():
+        if not grid.valid[list(steer.nodes)].any():
             raise RequestError("every node asked for is masked out")
     check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
-    direction = feature_direction(basis, intervention.feature)
+    direction = feature_direction(basis, steer.feature)
     length = float(np.linalg.norm(direction))
     recorded = sorted({layer, *(record_layers or ())})
     if unknown := [r for r in recorded if r not in {e.index for e in info.layers}]:
         raise RequestError(f"cannot record layer(s) {unknown}: not in the system")
     places = [(r, t) for r in recorded for t in range(steps)]
-    times = sorted(set(intervention.times))
+    times = sorted(set(steer.times))
     first = times[0]
     state = system.initial_state() if initial_state is None else initial_state
     valid = grid.valid
@@ -472,7 +472,7 @@ def run_steering(
         series = _global_means(control.fields, names, grid, steps)
         runs.append(Run(CONTROL, seed, None, series, {place: 0.0 for place in places}))
         # this seed's control: a noisy run has its own activations
-        deltas = {t: intervention.deltas(basis, control.latents[(layer, t)]) for t in times}
+        deltas = {t: steer.deltas(basis, control.latents[(layer, t)]) for t in times}
         arms: list[tuple[str, int | None, np.ndarray | None]] = [
             (RECONSTRUCTION, None, None),
             (FEATURE, None, direction),
@@ -503,7 +503,7 @@ def run_steering(
             )  # fmt: skip
 
     spec = {
-        "intervention": intervention.to_dict(), "steps": steps, "seeds": seeds,
+        "steer": steer.to_dict(), "steps": steps, "seeds": seeds,
         "n_random": n_random, "random_seed": random_seed, "fields": names,
         "record_layers": recorded, "feature_length": length,
     }  # fmt: skip
