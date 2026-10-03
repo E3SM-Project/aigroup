@@ -1219,10 +1219,10 @@ JupyterHub proxy that is <code>https://&lt;hub&gt;/user/&lt;you&gt;/proxy/8501/<
 <p>Pick a model in the sidebar — the drop-down names each archive by the model and component
 its manifest declares, so SFNO's atmosphere, its ocean and a steered twin of either are
 told apart — then a time, a layer and a region. The view is
-<a href="../latents/#python-api"><code>analyse_region</code></a> with widgets on it:</p>
+<a href="../latents/#python-api"><code>analyze_region</code></a> with widgets on it:</p>
 <ul>
 <li><strong>Channels</strong> — the channels that respond most strongly in the region, and a map of
-  each. <em>One colour scale for every map</em> makes them comparable by eye; otherwise each
+  each. <em>One color scale for every map</em> makes them comparable by eye; otherwise each
   scales to its own range.</li>
 <li><strong>Similarity</strong> — where else the model looks like the region, over the ranked channels
   and over all of them, on the fixed scale −1 to 1.</li>
@@ -1249,7 +1249,7 @@ told apart — then a time, a layer and a region. The view is
   and <code>latents profile</code> commands that give the same numbers are under <em>Reproduce</em>.</li>
 <li><strong>Through time</strong> — the region's mean of the ranked channels (or the basis's features)
   at every time the archive holds, placed by its own calendar so that a gap between kept
-  steps looks like one. On request, since centred it reads every time once.</li>
+  steps looks like one. On request, since centered it reads every time once.</li>
 <li><strong>Reproduce</strong> — the settings, the <code>xaig latents region</code> command and the
   Python that produce exactly what is on screen, and a JSON download of all three. The
   test suite runs that command and that code and checks they agree with the app. For an
@@ -1277,19 +1277,19 @@ traceback.</p>
 </ul>
 <p>Maps follow the page's theme. Signed quantities use a diverging blue–red scale symmetric
 about zero — with a light midpoint on a light page and a dark one on a dark page, so that
-zero always recedes — and nodes the grid marks invalid are a flat grey that belongs to no
+zero always recedes — and nodes the grid marks invalid are a flat gray that belongs to no
 value.</p>
 <p>On the SamudrACE-E3SMv3 atmosphere archive (9 layers × 17 times × 64,800 nodes × 384
 channels, 7.6 GB) the analysis takes 0.1 s and each map 0.07 s on an Apple M1 Max, so a
 change of region redraws the default twelve maps in about a second. One layer is read per
 analysis, and results and rendered maps are cached, bounded.</p>
 <h2 id="the-same-figures-without-the-app">The same figures without the app</h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyse_region</span><span class="p">,</span> <span class="n">open_source</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Region</span><span class="p">,</span> <span class="n">analyze_region</span><span class="p">,</span> <span class="n">open_source</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.figures</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_figure</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">source</span> <span class="o">=</span> <span class="n">open_source</span><span class="p">(</span><span class="s2">"latents/atmosphere"</span><span class="p">)</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">region</span> <span class="o">=</span> <span class="n">Region</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">lon</span><span class="o">=-</span><span class="mi">140</span><span class="p">,</span> <span class="n">radius_km</span><span class="o">=</span><span class="mi">1500</span><span class="p">)</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyse_region</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">centred</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyze_region</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">,</span> <span class="n">centered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">map_figure</span><span class="p">(</span>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">source</span><span class="o">.</span><span class="n">grid</span><span class="p">(),</span>

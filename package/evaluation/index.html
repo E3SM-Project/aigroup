@@ -1125,7 +1125,7 @@
 
 
 <h1 id="evaluating-a-dictionary">Evaluating a dictionary</h1>
-<p>A sparse dictionary scored on the nodes it was fitted to says how well it memorised them.
+<p>A sparse dictionary scored on the nodes it was fitted to says how well it memorized them.
 <code>xaig.latents.evaluate</code> scores a <em>frozen</em> basis on times it never saw, and says what each
 number does and does not tell you. It is an API first (<code>evaluate_basis</code>, <code>seed_stability</code>,
 <code>fidelity_curve</code> return objects and print nothing) and <code>xaig latents evaluate</code> is a client
@@ -1140,7 +1140,7 @@ training the seeds and sweeps it compares is <a href="../nn/"><code>xaig.nn</cod
    held-out one). The alternatives are whole trajectories (<code>split_groups</code>) and a whole other
    archive of the same network (<code>split_archives</code>). A split is a list of time labels, and
    every result carries it.</li>
-<li><strong>Fit on the training times only.</strong> The standardisation, a PCA, a dictionary:
+<li><strong>Fit on the training times only.</strong> The standardization, a PCA, a dictionary:
    <code>fit_sae(times=split.train)</code>, <code>accumulate_moments(times=split.train)</code>. The basis file
    records the times it was fitted on, and <code>evaluate_basis</code> refuses one that lists a
    held-out time. A basis that records none is scored and marked <code>fitted_on: unknown</code>:
@@ -1211,7 +1211,7 @@ that only the held-out data wakes is evidence the splits differ.</p>
 <p><strong>Redundancy</strong> is the largest signed cosine between a feature's decoder direction and any
 other's; <code>n_near_duplicates</code> counts features with one at or above <code>--duplicate-above</code>
 (0.95), and <code>n_pairs</code> the pairs. It is a property of the directions, computed blockwise,
-and it includes dead features, whose directions are whatever initialisation left. An
+and it includes dead features, whose directions are whatever initialization left. An
 opposite direction is not a duplicate: activations are not negative. It finds copies, not
 features that are <em>combinations</em> of others.</p>
 <p><strong>Stability across seeds</strong> (<code>seed_stability</code>, <code>--stability</code>) matches the features of two

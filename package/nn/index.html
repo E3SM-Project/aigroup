@@ -1265,7 +1265,7 @@ the loop's own, taken while the weights were changing.</p>
 learnable cubic B-spline per feature and nothing else: no hard zero, nine control
 points that start at zero, one knot vector over the 1st–99th percentile of the
 pre-activations measured on a calibration sample, sparsity from the L1 penalty alone
-(annealed), decoder directions renormalised every step, and a feature counted alive by
+(annealed), decoder directions renormalized every step, and a feature counted alive by
 the size of its control points. The activation above was written before we read that
 paper and differs on every one of those points. Do not report it as KAN-SAE.</p>
 </div>
@@ -1276,11 +1276,11 @@ in-sample (the <a href="../evaluation/">evaluation</a> holds times out). It trai
 dictionary on a laptop in seconds and says how good it is; making it better is what
 the modules being separate is for.</p>
 </div>
-<p>Inputs are centred on the layer's area-weighted mean over the times used and divided by
+<p>Inputs are centered on the layer's area-weighted mean over the times used and divided by
 one number, so a node's vector has unit mean square per channel and the channels keep
-their relative sizes. That standardisation travels in the file: an analysis hands the
+their relative sizes. That standardization travels in the file: an analysis hands the
 basis raw latents. Every feature's direction is kept at unit length throughout training,
-so an activation is in the same units for every feature — how much of the standardised
+so an activation is in the same units for every feature — how much of the standardized
 layer it accounts for at that node — and two features can be compared by it. Batches come from
 <a href="../latents/#python-api"><code>iter_batches</code></a> — valid nodes only, drawn in proportion to area —
 so the plain mean the loop takes is already the area-weighted loss.</p>
@@ -1300,7 +1300,7 @@ file that is not this one. What a result used is recorded under its provenance; 
 </span></code></pre></div>
 <p><code>metrics</code> describes the dictionary you were given, measured in one more pass over the last
 epoch's batches with the final weights frozen; quote it, and use <code>training_metrics</code> only to
-watch a run. A layer with no variance to standardise by (every channel constant) is a
+watch a run. A layer with no variance to standardize by (every channel constant) is a
 <code>RequestError</code>, not a NaN loss.</p>
 <p><code>metrics</code> are in-sample. To score a dictionary on times it was not fitted to, fit it on
 the training side of a split (<code>fit_sae(..., times=split.train)</code>) and hand it to
@@ -1311,7 +1311,7 @@ archives, grids or loops, so they can be lifted into any harness:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.nn.sae</span><span class="w"> </span><span class="kn">import</span> <span class="n">BSplineActivation</span><span class="p">,</span> <span class="n">SparseAutoencoder</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">sae</span> <span class="o">=</span> <span class="n">SparseAutoencoder</span><span class="p">(</span><span class="mi">384</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s2">"bspline"</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">rebuilt</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">sae</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># x standardised, (n, 384)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">rebuilt</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">sae</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># x standardized, (n, 384)</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">total</span><span class="p">,</span> <span class="n">reconstruction</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">sae</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">l1</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">sae</span><span class="o">.</span><span class="n">to_dictionary</span><span class="p">(</span><span class="n">input_mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">input_scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>  <span class="c1"># plain arrays, for xaig.latents</span>
 </span></code></pre></div>
