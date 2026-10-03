@@ -213,7 +213,7 @@ $ xaig latents diff latents/control latents/steered --growth --noise latents/con
 ```
 
 The second table it prints is the experiment's difference as a multiple of the one a new
-noise draw makes, layer by layer and time by time: above 1, the intervention moved the
+noise draw makes, layer by layer and time by time: above 1, the steer moved the
 layer more than chance does. From Python, `difference_growth(control, steered,
 noise=reseeded)` returns the same as `noise_rms` and `signal_to_noise`.
 

@@ -12,6 +12,7 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
 | `samples.py` | many times at once: moments, a global PCA, batches to train on |
 | `through.py` | through time and between runs: series, differences, field correlation |
 | `evaluate.py` | a frozen basis on held-out times: time-block splits, fidelity and sparsity, dead and redundant features, stability across seeds, PCA against a dictionary |
+| `steering.py` | steering: the `Intervenable` contract, four arms (control, reconstruction, feature, random direction) under paired noise, the response set against the random draws |
 | `features.py` | a feature without a field in mind: a census of a layer, one feature's profile |
 | `cli.py` | `xaig latents …`, a thin client of the above |
 | `__init__.py` | the public names, re-exported lazily (see the first rule) |
@@ -55,6 +56,15 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   `evaluate_basis` refuses a basis whose `fitted_on.times` includes a held-out time, and
   marks one that says nothing `unknown`. A result is built with `result_provenance`; this
   package does not train (seeds and sweeps are `nn`'s, handed in as `Dictionary`s).
+- **A steer is compared with its control, under one noise, and against chance.**
+  Every arm of a seed shares the control's initial state and `noise_seed`, and the edit's
+  size is fixed from the control's latents, so a paired difference holds the edit and
+  nothing else (exactly zero when the edit is). The feature's response is reported against
+  random directions of the same length and size, never alone, and beside what merely
+  passing through the dictionary does (the reconstruction arm). Edits and fields are held to
+  the same finiteness rule as `read_latents`. Nothing here imports a model: a system is an
+  `Intervenable`, reached through the registry, and tested on `adapters/toy_dynamics.py`,
+  whose answers are planted. See `docs/package/steering.md`.
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
   product. `nn` keeps directions at unit length so that the two agree.

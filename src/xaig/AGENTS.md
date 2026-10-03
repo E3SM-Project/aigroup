@@ -53,7 +53,7 @@ suite, so the decision is always made on purpose.
 ## Contracts
 
 Keep shared contracts few and small. A contract whose consumers all sit on one subpackage
-lives in it — `latents.LatentSource`, `ReferenceFields`, `Decomposition` — and
+lives in it — `latents.LatentSource`, `ReferenceFields`, `Decomposition`, `Intervenable` — and
 is promoted to core when something that does not import that subpackage needs it, not
 before.
 

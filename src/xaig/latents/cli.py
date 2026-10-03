@@ -960,4 +960,115 @@ def evaluate_cmd(
     click.echo("\nreproduce: " + " ".join(reproduce))
 
 
+def _adapter_options(pairs: tuple[str, ...]) -> dict:
+    """``KEY=VALUE`` pairs as adapter options; a value is JSON where it can be (``3``,
+    ``true``, ``0.5``) and text otherwise."""
+    options = {}
+    for pair in pairs:
+        key, equals, value = pair.partition("=")
+        if not equals or not key:
+            raise click.BadParameter(f"{pair!r} is not KEY=VALUE", param_hint="--adapter-option")
+        try:
+            options[key] = json.loads(value)
+        except ValueError:
+            options[key] = value
+    return options
+
+
+@latents.command("steer")
+@click.argument("source", required=False)
+@click.option("--adapter", required=True, help="An adapter that can be run (Intervenable).")
+@click.option("--adapter-option", "adapter_options", multiple=True, metavar="KEY=VALUE",
+              help="An option of the adapter; repeatable.")  # fmt: skip
+@_basis_option
+@click.option("--layer", type=int, required=True, help="Layer the basis reads; the edit acts here.")
+@click.option("--feature", type=int, required=True, help="The feature of the basis to change.")
+@click.option("--mode", type=click.Choice(["add", "scale", "clamp"]), default="add",
+              show_default=True, help="What --amount does to the activation.")  # fmt: skip
+@click.option("--amount", type=float, required=True, help="Added, scaled by, or clamped to.")
+@click.option("--time", "times", type=int, multiple=True,
+              help="Forward step to act at; repeatable.  [default: 0]")  # fmt: skip
+@click.option("--steps", type=int, required=True, help="Forward steps to run.")
+@click.option("--seeds", "seeds_text", default="0", show_default=True, metavar="N,N,...",
+              help="Noise seeds; every arm of a seed shares its noise.")  # fmt: skip
+@click.option("--random-draws", type=int, default=20, show_default=True,
+              help="Random directions of the same size, to set the feature against.")  # fmt: skip
+@click.option("--random-seed", type=int, default=0, show_default=True)
+@click.option("--field", "fields", multiple=True, help="A physical field to measure; repeatable.  "
+              "[default: all]")  # fmt: skip
+@click.option("--record-layer", "record_layers", type=int, multiple=True,
+              help="Also compare the latents of this layer; repeatable.")  # fmt: skip
+@click.option("--out", type=click.Path(dir_okay=False), help="Also write the result (JSON).")
+@_unverified_option
+@_json_option
+def steer_cmd(
+    source, adapter, adapter_options, basis_path, layer, feature, mode, amount, times, steps,
+    seeds_text, random_draws, random_seed, fields, record_layers, out, allow_unverified_basis,
+    as_json,
+):  # fmt: skip
+    """Change a feature inside a running system and set what happens against chance.
+
+    Four arms share one initial state and one noise seed per seed: a control, one with the
+    latents replaced by the dictionary's reconstruction, one with the feature changed, and
+    --random-draws with a random direction of the same length changed by the same amount.
+    Each field's response to the feature is reported against the random directions'.
+    """
+    from xaig.latents import Steer, open_intervenable, run_steering
+    from xaig.latents.evaluate import jsonable, save_result
+
+    basis = _basis(basis_path)
+    if basis is None:
+        raise click.UsageError("--basis FILE is required")
+    options = _adapter_options(adapter_options)
+    system = open_intervenable(source, adapter, **options)
+    steer = Steer(
+        layer=layer, feature=feature, mode=mode, amount=amount, times=tuple(times) or (0,)
+    )
+    result = run_steering(
+        system, basis, steer, steps=steps, seeds=_ints(seeds_text),
+        n_random=random_draws, random_seed=random_seed, fields=list(fields) or None,
+        record_layers=list(record_layers) or None,
+        allow_unverified_basis=allow_unverified_basis,
+    )  # fmt: skip
+    if out:
+        save_result(out, result)
+    if as_json:
+        click.echo(json.dumps(jsonable(result.to_dict()), indent=2))
+        return
+    spec = result.spec
+    click.echo(
+        f"{mode} {amount:g} on feature {feature} of layer {layer} at time(s) "
+        f"{', '.join(map(str, spec['steer']['times']))}; {steps} step(s), "
+        f"seed(s) {', '.join(map(str, spec['seeds']))}, {spec['n_random']} random direction(s)"
+    )
+    rows = [
+        {
+            "field": name, "response": f"{e.feature_response:.4g}",
+            "+-": "-" if e.feature_se is None else f"{e.feature_se:.2g}",
+            "recon_only": f"{e.reconstruction_response:.4g}",
+            "random_|resp|": f"{float(abs(e.random_responses).mean()):.4g}",
+            "effect_size": "-" if e.effect_size is None else f"{e.effect_size:.2f}",
+            "rank": f"{e.rank}/{e.random_responses.size + 1}", "p": f"{e.p_value:.2g}",
+        }
+        for name, e in result.effects.items()
+    ]  # fmt: skip
+    click.echo("\n" + _render.table(rows))
+    provenance = result.provenance
+    pinned = ["xaig", "latents", "steer"] + ([shlex.quote(source)] if source else [])
+    pinned.append(f"--adapter {shlex.quote(adapter)}")
+    for key, value in options.items():
+        pinned.append(f"--adapter-option {shlex.quote(f'{key}={json.dumps(value)}')}")
+    pinned += [f"--basis {shlex.quote(basis_path)}"]
+    pinned += [f"--basis-sha256 {provenance['basis']['sha256']}"]
+    if allow_unverified_basis:
+        pinned.append("--allow-unverified-basis")
+    pinned += [f"--layer {layer}", f"--feature {feature}", f"--mode {mode}", f"--amount {amount!r}"]
+    pinned += [f"--time {t}" for t in spec["steer"]["times"]]
+    pinned += [f"--steps {steps}", f"--seeds {','.join(map(str, spec['seeds']))}"]
+    pinned += [f"--random-draws {random_draws}", f"--random-seed {random_seed}"]
+    pinned += [f"--field {shlex.quote(name)}" for name in fields]
+    pinned += [f"--record-layer {r}" for r in record_layers]
+    click.echo(f"\nreproduce: {' '.join(pinned)}")
+
+
 __all__ = ["latents"]
