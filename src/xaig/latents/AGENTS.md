@@ -13,6 +13,7 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
 | `through.py` | through time and between runs: series, differences, field correlation |
 | `evaluate.py` | a frozen basis on held-out times: time-block splits, fidelity and sparsity, dead and redundant features, stability across seeds, PCA against a dictionary |
 | `steering.py` | steering: the `Intervenable` contract, four arms (control, reconstruction, feature, random direction) under paired noise, the response set against the random draws |
+| `record.py` | the experiment record: a versioned, compact JSON file of one evaluation or steering run, its loader, and the writers the commands call |
 | `features.py` | a feature without a field in mind: a census of a layer, one feature's profile |
 | `cli.py` | `xaig latents …`, a thin client of the above |
 | `__init__.py` | the public names, re-exported lazily (see the first rule) |
@@ -32,11 +33,13 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
 - **No user interface and no foreign file formats here.** Functions take arrays or a
   source and return structured results carrying their settings and provenance. Reading
   what a framework wrote is an adapter's job (`LatentSource`); drawing is a client's.
-  Third-party imports are capped at numpy and click by `tests/test_purity.py`. The one
-  file this package itself reads and writes is its own: the basis `.npz` (`basis.py`),
+  Third-party imports are capped at numpy and click by `tests/test_purity.py`. The two
+  files this package itself reads and writes are its own: the basis `.npz` (`basis.py`),
   plain arrays and a JSON record, because a basis is fitted once — often by `nn`,
   with torch — and used many times, including from the model's environment, with numpy
-  alone.
+  alone; and the experiment record (`record.py`), plain JSON that a client opens without
+  rerunning anything, versioned and validated on the way in. Nothing else is read or
+  written as a file format here.
 - **An index is not an identity.** Channel 42 of one trained network is not channel 42
   of another, and every layer of a model is as wide as the next. Whatever lines two
   things up by index checks who they are first, never only that widths match:
@@ -65,6 +68,15 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
   the same finiteness rule as `read_latents`. Nothing here imports a model: a system is an
   `Intervenable`, reached through the registry, and tested on `adapters/toy_dynamics.py`,
   whose answers are planted. See `docs/package/steering.md`.
+- **A record is a contract, so it is versioned and validated.** `record.py` holds the one
+  file other things read (the app today): provenance with the commit and the bases by
+  hash, settings, the split as time labels, the numbers, and the command that reproduces
+  it. `load_record` refuses an unknown version, format or kind with a `RequestError` and
+  checks what a view relies on; a writer may add keys within a version, and removing or
+  renaming one is `VERSION + 1`. It keeps results and not runs (every pairing stays with
+  `SteeringResult.to_dict`). The command is built by the `cli` that ran it, from what that
+  command was asked, and tested by running it again (`tests/test_latent_record.py`). It
+  lives here and not in core because every writer and reader sits on `latents`.
 - **A feature's size is what it contributes.** Activation times the length of its
   direction: a dictionary may trade one for the other, so rank and compare by the
   product. `nn` keeps directions at unit length so that the two agree.

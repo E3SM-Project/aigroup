@@ -10,7 +10,7 @@ from pathlib import Path
 
 import click
 
-from xaig.app.config import LATENTS_ENV, discover_archives
+from xaig.app.config import LATENTS_ENV, RECORDS_ENV, discover_archives
 from xaig.core.extras import missing_extra
 
 
@@ -20,6 +20,14 @@ from xaig.core.extras import missing_extra
     multiple=True,
     type=click.Path(exists=True, file_okay=False),
     help="A latent archive, or a directory of them, to offer in the explorer; repeatable.",
+)
+@click.option(
+    "--record",
+    "records",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="An experiment record (from `latents evaluate --record` or `latents steer --record`) "
+    "to offer under Records; repeatable.",
 )
 @click.option("--port", type=int, default=8501, show_default=True)
 @click.option(
@@ -32,7 +40,7 @@ from xaig.core.extras import missing_extra
 @click.option(
     "--headless", is_flag=True, help="Do not open a browser (a remote or proxied session)."
 )
-def app(latents, port, address, headless) -> None:
+def app(latents, records, port, address, headless) -> None:
     """Explore latents in a local web app.
 
     Runs on this machine and reads what is on disk; nothing is uploaded and no
@@ -44,6 +52,7 @@ def app(latents, port, address, headless) -> None:
     env = dict(os.environ)
     found = [archive for path in latents for archive in discover_archives(path)]
     env[LATENTS_ENV] = "\n".join(dict.fromkeys(found))
+    env[RECORDS_ENV] = "\n".join(dict.fromkeys(str(Path(r).resolve()) for r in records))
     command = [
         sys.executable, "-m", "streamlit", "run", str(Path(__file__).with_name("main.py")),
         "--server.port", str(port),

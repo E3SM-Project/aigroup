@@ -36,6 +36,10 @@ import `core`, `latents` and `figures`; **nothing may import it**.
   (`config.py`)
 - `main.py` — the script Streamlit runs: page configuration and navigation only
 - `latent.py` — a view, as a `page()` function
+- `theme.py` — what pages share about looks (`dark_page`); a page imports it, never another page
+- `record.py` — the Records view: opens an experiment record (`xaig.latents.load_record`) and
+  shows what it holds. It computes nothing; its command is the record's own, and the tests
+  run it. `xaig app --record FILE` offers files (`XAIG_APP_RECORDS`)
 
 Adding a view is a module with a `page()` and a line in `main.py`.
 

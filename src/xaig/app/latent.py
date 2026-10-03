@@ -21,6 +21,7 @@ import numpy as np
 import streamlit as st
 
 from xaig.app.config import configured_latents
+from xaig.app.theme import dark_page
 from xaig.core.errors import RequestError, XaigError
 from xaig.figures import map_figure, profile_figure, series_figure, to_png, why_no_coastlines
 from xaig.latents import (
@@ -201,12 +202,6 @@ def _map(
     return to_png(fig)
 
 
-def _dark_page() -> bool:
-    """Whether the viewer's theme is dark, where Streamlit is new enough to say."""
-    theme = getattr(st.context, "theme", None)
-    return getattr(theme, "type", "light") == "dark"
-
-
 def _parse_channels(text: str, n_channels: int) -> tuple[list[int], list[str]]:
     wanted, refused = [], []
     for token in text.replace(";", ",").split(","):
@@ -358,7 +353,7 @@ def _gallery(
 ) -> None:
     """``symmetric`` is one flag per map, or None for a scale centred on zero throughout."""
     columns = st.columns(across)
-    dark = _dark_page()
+    dark = dark_page()
     symmetric = [True] * len(titles) if symmetric is None else symmetric
     for i, (values, title) in enumerate(zip(fields, titles, strict=True)):
         png = _map(path, mask_variable, values, title, label, region, limit, dark, symmetric[i])
@@ -443,7 +438,7 @@ def _field_tab(path, mask_variable, settings, field, lead, region) -> None:
         )
         fig = profile_figure(
             profile.fields, profile.effect, title=f"{kind} {column} of layer {layer}",
-            dark=_dark_page(),
+            dark=dark_page(),
         )  # fmt: skip
         st.image(to_png(fig), width="stretch")
 
@@ -601,7 +596,7 @@ def _through_time(path, mask_variable, settings, result: RegionAnalysis) -> None
         x_label=None if hours is None else f"hours since {series.times[0]}",
         y_label="regional mean",
         title=f"Layer {settings['layer']} through time",
-        dark=_dark_page(),
+        dark=dark_page(),
     )
     st.image(to_png(fig), width="stretch")
     st.dataframe(

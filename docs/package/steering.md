@@ -193,6 +193,10 @@ FIELD        RESPONSE  +-      RECON_ONLY  RANDOM_|RESP|  EFFECT_SIZE  RANK  PER
 temperature  0.4099    0.0045  0.3335      0.1375         2.52         1/21  100
 ```
 
+`--record FILE` also writes a [record](records.md) of this: its spec, each field's response
+and every random draw, the basis by hash and the `reproduce:` command, in 4.8 KB where `--out`
+is 110 KB. `xaig app --record FILE` draws each field's response against the draws.
+
 From Python, `run_steering(system, basis, Steer(layer=1, feature=0, amount=1.5,
 times=(1,)), steps=5, seeds=(0, 1, 2))` returns the same as an object, and `save_result`
 writes it.
@@ -213,5 +217,6 @@ writes it.
 - [x] The protocol, the runner and a toy system to test it against.
 - [x] `xaig latents steer`.
 - [ ] A real adapter, in the model's environment.
-- [ ] A view in the app, and a figure of the feature's response against the random draws.
+- [x] A view in the app, and a figure of the feature's response against the random draws
+      ([records](records.md); `xaig.figures.response_figure`).
 - [ ] Fitted dictionaries on the toy system, to show a learned feature that is not planted.

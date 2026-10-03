@@ -9,7 +9,12 @@ from click.testing import CliRunner
 
 from xaig._cli import cli
 from xaig.app import cli as app_cli
-from xaig.app.config import LATENTS_ENV, configured_latents, discover_archives
+from xaig.app.config import (
+    LATENTS_ENV,
+    RECORDS_ENV,
+    configured_latents,
+    discover_archives,
+)
 
 # -- the launcher works on a base install ----------------------------------
 
@@ -64,6 +69,7 @@ pytest.importorskip("streamlit")
 pytest.importorskip("matplotlib")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
+from conftest import write_evaluation_record, write_steering_record  # noqa: E402
 from xaig.figures import maps  # noqa: E402
 
 APP = str(app_cli.Path(app_cli.__file__).with_name("main.py"))
@@ -74,6 +80,7 @@ def offline(monkeypatch):
     monkeypatch.setenv("XAIG_NO_COASTLINES", "1")
     maps._coastlines.cache_clear()
     monkeypatch.delenv(LATENTS_ENV, raising=False)
+    monkeypatch.delenv(RECORDS_ENV, raising=False)
 
 
 def _run(**env) -> AppTest:
@@ -489,3 +496,122 @@ def test_a_reproduction_pins_the_commit_and_the_basis_it_came_from(hub, tmp_path
     # A local archive has no commit to pin, and its reproduction does not claim one.
     plain, _ = reproduction("/some/archive", None, settings, {"basis": {"sha256": digest}})
     assert "--revision" not in plain and f"--basis-sha256 {digest}" in plain
+
+
+# -- the records view ------------------------------------------------------------------
+#
+# Records are written by the commands (conftest), opened here, and what is on screen is
+# held to what the file says and to what its own command says when run again.
+
+RECORDS_PAGE = "from xaig.app import record\nrecord.page()"
+
+
+def _records(monkeypatch, *files) -> AppTest:
+    monkeypatch.setenv(RECORDS_ENV, "\n".join(str(f) for f in files))
+    return AppTest.from_string(RECORDS_PAGE, default_timeout=60).run()
+
+
+def _table(at: AppTest, index: int):
+    return at.dataframe[index].value
+
+
+def test_the_launcher_offers_records_to_the_app(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(app_cli, "find_spec", lambda name: object())
+    monkeypatch.setattr(app_cli.subprocess, "call", lambda c, env: seen.update(env=env) or 0)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "r.json").write_text("{}")
+    result = CliRunner().invoke(cli, ["app", "--record", "r.json", "--headless"])
+    assert result.exit_code == 0, result.output
+    assert seen["env"][RECORDS_ENV] == str(tmp_path.resolve() / "r.json")
+    missing = CliRunner().invoke(cli, ["app", "--record", "absent.json"])
+    assert missing.exit_code != 0
+
+
+def test_with_no_record_to_open_it_says_how(monkeypatch):
+    at = _records(monkeypatch)
+    assert not at.exception
+    assert "xaig app --record" in at.info[0].value and "steer --record" in at.info[0].value
+
+
+def test_a_steering_record_shows_where_it_came_from_and_what_it_found(monkeypatch, tmp_path):
+    full, path = write_steering_record(tmp_path)
+    at = _records(monkeypatch, path)
+    assert not at.exception, at.exception
+    assert at.caption[0].value.startswith("steering record · schema version 1")
+
+    where = _table(at, 0)
+    identity = dict(zip(where[""], where["value"], strict=True))
+    assert identity["network"] == "toy-dynamics · linear · planted-0"
+    assert identity["commit"].startswith("none: a local source")
+    bases = _table(at, 1)
+    assert bases["sha256"].tolist() == [full["provenance"]["basis"]["sha256"]]
+    assert bases["status"].tolist() == ["verified"]
+
+    # The arms against chance: the planted response, in the one field it reaches.
+    arms = _table(at, 2).set_index("field")
+    assert arms.loc["temperature", "feature"] == pytest.approx(1.40625, abs=1e-4)
+    assert arms.loc["temperature", "rank"] == "1/13"
+    assert arms.loc["moisture", "feature"] == 0.0 and arms.loc["moisture", "rank"] == "13/13"
+    assert len(at.get("image")) == 1  # the response against the draws, for the chosen field
+
+    # Changing the field changes what is shown, and the rank is read from the record.
+    assert "Rank 13 of 13" in at.caption[1].value
+    _widget(at.selectbox, "Field").set_value("temperature")
+    at.run()
+    assert not at.exception and "Rank 1 of 13" in at.caption[1].value
+
+
+def test_the_command_a_steering_record_shows_reproduces_what_it_shows(monkeypatch, tmp_path):
+    _, path = write_steering_record(tmp_path)
+    at = _records(monkeypatch, path)
+    command = at.code[0].value
+    shown = _table(at, 2).set_index("field")
+    argv = shlex.split(command)
+    assert argv[:3] == ["xaig", "latents", "steer"] and "--record" not in argv
+    assert f"--basis-sha256 {_table(at, 1)['sha256'].iloc[0]}" in command
+    rerun = CliRunner().invoke(cli, [*argv[1:], "--json"])
+    assert rerun.exit_code == 0, rerun.output
+    for name, effect in json.loads(rerun.output)["effects"].items():
+        assert shown.loc[name, "feature"] == pytest.approx(effect["feature_response"])
+        assert shown.loc[name, "reconstruction only"] == pytest.approx(
+            effect["reconstruction_response"]
+        )
+    assert json.loads(at.json[0].value)["adapter"] == "toy-dynamics"
+
+
+def test_an_evaluation_record_shows_the_split_and_the_held_out_numbers(monkeypatch, tmp_path):
+    full, path, fits = write_evaluation_record(tmp_path)
+    at = _records(monkeypatch, path)
+    assert not at.exception, at.exception
+    assert at.caption[0].value.startswith("evaluation record")
+    assert _table(at, 1)["file"].tolist() == fits
+
+    split = full["split"]
+    split_text = next(m.value for m in at.markdown if m.value.startswith("Fitted on"))
+    assert f"**{len(split['train'])}** time(s)" in split_text
+    assert f"**{len(split['test'])}** it was not fitted on" in split_text
+    assert json.loads(at.json[0].value)["test"] == split["test"]  # time labels, as held
+
+    table = _table(at, 2)
+    held_out = full["evaluations"][0]["test"]["explained_variance"]
+    assert table["EV held out"].iloc[0] == f"{100 * held_out:.1f}%"
+    assert table["fitted on"].tolist() == ["train", "train"]
+    curve = _table(at, 3)
+    assert curve["point"].tolist() == ["pca-1", "pca-4"]
+    assert any("Stability" in m.value and "2 bases" in m.value for m in at.markdown)
+    assert at.code[0].value.startswith("xaig latents evaluate")
+
+
+def test_a_file_that_is_not_a_record_is_a_warning_and_not_a_traceback(monkeypatch, tmp_path):
+    _, path = write_steering_record(tmp_path)
+    newer = tmp_path / "newer.json"
+    newer.write_text(json.dumps({**json.loads(path.read_text()), "schema_version": 2}))
+    at = _records(monkeypatch, newer)
+    assert not at.exception and "schema version 2" in at.warning[0].value
+
+    at = _records(monkeypatch)  # and one typed into the sidebar
+    at.sidebar.text_input[0].set_value(str(path)).run()
+    assert not at.exception and at.caption[0].value.startswith("steering record")
+    at.sidebar.text_input[0].set_value(str(tmp_path / "absent.json")).run()
+    assert not at.exception and "cannot read" in at.warning[0].value

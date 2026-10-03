@@ -248,6 +248,7 @@ class Effect:
             "feature_se": self.feature_se,
             "reconstruction_response": self.reconstruction_response,
             "random_responses": self.random_responses, "effect_size": self.effect_size,
+            "random_mean_magnitude": float(np.abs(self.random_responses).mean()),
             "rank": self.rank, "n_draws": int(self.random_responses.size),
             "p_value": self.p_value,
         }  # fmt: skip
