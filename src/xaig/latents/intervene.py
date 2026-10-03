@@ -479,9 +479,8 @@ def run_steering(
         controls[seed] = (control, series)
         runs.append(Run(CONTROL, seed, None, series, {place: 0.0 for place in places}))
         deltas = {}  # this seed's control: a noisy run has its own activations
+        _require_recorded(control, places, CONTROL, seed)
         for t in times:
-            if (layer, t) not in control.latents:
-                raise RequestError(f"the system did not record layer {layer} at time {t}")
             deltas[t] = intervention.deltas(basis, control.latents[(layer, t)])
         arms: list[tuple[str, int | None, np.ndarray | None]] = [
             (RECONSTRUCTION, None, None),
@@ -492,6 +491,7 @@ def run_steering(
         for arm, draw, vector in arms:
             hooks = [Hook(layer, t, _edit(basis, deltas[t], vector)) for t in times]
             rollout = run([_guarded(h.edit, h, valid) for h in hooks], seed)
+            _require_recorded(rollout, places, arm, seed, draw)
             outcomes = _global_means(rollout.fields, names, grid, steps)
             first = times[0]
             differences = {n: outcomes[n] - series[n] for n in names}
@@ -523,6 +523,21 @@ def run_steering(
         pairings=tuple(pairings),
         effects=_summarise(names, pairings, seeds, n_random),
     )
+
+
+def _require_recorded(
+    rollout: Rollout,
+    places: Sequence[tuple[int, int]],
+    arm: str,
+    seed: int,
+    draw: int | None = None,
+) -> None:
+    """Every place asked for must have come back, in every arm: an adapter that skips one in
+    a hooked run is named, not left to a bare ``KeyError`` further on."""
+    for layer, time in places:
+        if (layer, time) not in rollout.latents:
+            which = f"arm {arm!r}, seed {seed}" + ("" if draw is None else f", draw {draw}")
+            raise RequestError(f"the system did not record layer {layer} at time {time} ({which})")
 
 
 def _edit(basis: Decomposition, deltas: np.ndarray, vector: np.ndarray | None):

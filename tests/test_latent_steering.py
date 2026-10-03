@@ -521,3 +521,59 @@ def test_the_command_refuses_a_basis_whose_content_is_not_the_one_pinned(tmp_pat
     assert out.exit_code != 0 and "sha256" in out.output
     bad = CliRunner().invoke(cli, [*_steer_args(basis)[:-2], "--random-draws", "0"])
     assert bad.exit_code != 0 and "random" in bad.output
+
+
+def test_the_reproduce_line_carries_the_amount_exactly_and_every_flag(tmp_path):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    planted = ToyDynamics(masked=3).planted_dictionary()
+    bare = Dictionary(
+        encoder=planted.encoder, encoder_bias=planted.encoder_bias, decoder=planted.decoder,
+        decoder_bias=planted.decoder_bias, input_mean=planted.input_mean,
+    )  # fmt: skip
+    basis = tmp_path / "bare.npz"
+    save_basis(basis, bare)
+    labels = []
+
+    def factory(*, label="a", masked=3):
+        labels.append(label)
+        return ToyDynamics(masked=masked)
+
+    registry.register("toy-labelled", factory)
+    try:
+        args = [
+            "latents", "steer", "--adapter", "toy-labelled", "--adapter-option", "label=two words",
+            "--adapter-option", "masked=3", "--basis", str(basis), "--allow-unverified-basis",
+            "--layer", "1", "--feature", "0", "--amount", "1.23456789", "--time", "1",
+            "--steps", "5", "--random-draws", "4",
+        ]  # fmt: skip
+        run = CliRunner()
+        first = run.invoke(cli, [*args, "--json"])
+        assert first.exit_code == 0, first.output
+        text = run.invoke(cli, args)
+        line = next(x for x in text.output.splitlines() if x.startswith("reproduce:"))
+        assert "--allow-unverified-basis" in line and "1.23456789" in line
+        again = run.invoke(cli, [*shlex.split(line.removeprefix("reproduce: xaig ")), "--json"])
+        assert again.exit_code == 0, again.output
+        assert json.loads(again.output) == json.loads(first.output)
+        assert set(labels) == {"two words"}
+    finally:
+        registry.unregister("toy-labelled")
+
+
+def test_an_arm_that_loses_a_recorded_place_is_named_not_a_key_error(system):
+    class Skips(ToyDynamics):
+        def run(self, state, steps, hooks=(), **kwargs):
+            out = super().run(state, steps, hooks, **kwargs)
+            if hooks:
+                out.latents.pop((1, 2), None)
+            return out
+
+    skipper = Skips(masked=3)
+    with pytest.raises(RequestError, match=r"layer 1 at time 2 \(arm 'reconstruction', seed 0"):
+        run_steering(
+            skipper, skipper.planted_dictionary(), _feature(), steps=STEPS, n_random=1,
+            record_layers=[1],
+        )  # fmt: skip

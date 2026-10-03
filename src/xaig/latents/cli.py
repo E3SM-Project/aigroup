@@ -1014,7 +1014,7 @@ def steer_cmd(
     Each field's response to the feature is reported against the random directions'.
     """
     from xaig.latents import Intervention, open_intervenable, run_steering
-    from xaig.latents.evaluate import jsonable
+    from xaig.latents.evaluate import jsonable, save_result
 
     basis = _basis(basis_path)
     if basis is None:
@@ -1030,12 +1030,10 @@ def steer_cmd(
         record_layers=list(record_layers) or None,
         allow_unverified_basis=allow_unverified_basis,
     )  # fmt: skip
-    payload = jsonable(result.to_dict())
     if out:
-        Path(out).parent.mkdir(parents=True, exist_ok=True)
-        Path(out).write_text(json.dumps(payload, indent=2) + "\n")
+        save_result(out, result)
     if as_json:
-        click.echo(json.dumps(payload, indent=2))
+        click.echo(json.dumps(jsonable(result.to_dict()), indent=2))
         return
     spec = result.spec
     click.echo(
@@ -1062,7 +1060,9 @@ def steer_cmd(
         pinned.append(f"--adapter-option {shlex.quote(f'{key}={json.dumps(value)}')}")
     pinned += [f"--basis {shlex.quote(basis_path)}"]
     pinned += [f"--basis-sha256 {provenance['basis']['sha256']}"]
-    pinned += [f"--layer {layer}", f"--feature {feature}", f"--mode {mode}", f"--amount {amount:g}"]
+    if allow_unverified_basis:
+        pinned.append("--allow-unverified-basis")
+    pinned += [f"--layer {layer}", f"--feature {feature}", f"--mode {mode}", f"--amount {amount!r}"]
     pinned += [f"--time {t}" for t in spec["intervention"]["times"]]
     pinned += [f"--steps {steps}", f"--seeds {','.join(map(str, spec['seeds']))}"]
     pinned += [f"--random-draws {random_draws}", f"--random-seed {random_seed}"]

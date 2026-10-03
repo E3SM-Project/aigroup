@@ -4,13 +4,14 @@ Everything in `xaig` so far *reads*: an adapter hands over activations a model p
 and the package computes on them. A steering experiment asks a different question, "what
 does the model do if this feature is changed?", and answering it means the first time an
 adapter **writes into** the model. This page is the design note for that, written before
-the code and kept as its record. Each section says what is **implemented** and what is
+the code and kept as its record, then updated as it shipped. Each section says what is **implemented** and what is
 **planned**.
 
 !!! note "status"
-    Planned: everything below. This commit adds the note only; the protocol, the runner,
-    the command and the toy system follow it, and this page is updated to say what
-    shipped.
+    Implemented: the protocol (`Intervenable`, `Hook`, `Intervention`), the runner
+    (`run_steering`), the `xaig latents steer` command and a toy system to test them
+    against. Planned: a real adapter, a view and a figure in the app, and fitted
+    dictionaries on the toy system; see [Remaining tasks](#remaining-tasks).
 
 ## What an intervention is
 
