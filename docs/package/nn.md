@@ -104,8 +104,17 @@ from xaig.nn.train import fit_sae
 source = open_source("latents/atmosphere")
 dictionary = fit_sae(source, layer=8, n_features=1024, activation="topk", k=32)
 dictionary.meta["metrics"]  # explained_variance, mean_active_features, dead_fraction
+dictionary.meta["training_metrics"]  # the same three, as the loop saw them while learning
 save_basis("sae8.npz", dictionary)
 ```
+
+`metrics` describes the dictionary you were given: after the last update, the loop makes one
+more pass over the last epoch's batches with the final weights frozen (no gradients) and
+measures that. `training_metrics` is the running tally from that epoch, taken while the
+weights were still changing; after a single update it describes the model *before* it. Use
+the first for results and the second to watch a run. Before training starts the moments are
+checked: a layer with no variance to standardise by (every channel constant), or a
+covariance that is not finite, is a `RequestError` and not a NaN loss.
 
 The modules are plain `nn.Module`s that take and return tensors and know nothing of
 archives, grids or loops, so they can be lifted into any harness:

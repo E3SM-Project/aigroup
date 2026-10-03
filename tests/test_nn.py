@@ -40,6 +40,7 @@ from xaig.latents import (  # noqa: E402
     Region,
     analyse_region,
     bspline_activation,
+    iter_batches,
     load_basis,
     open_source,
 )
@@ -127,6 +128,67 @@ def test_fitting_finds_the_planted_bump(latent_archive):
     assert result.feature_info[0]["top_loadings"][0]["channel"] == 4
     centre = source.grid().nearest(*BUMP)
     assert result.scores[centre, 0] == pytest.approx(np.nanmax(result.scores[:, 0]))
+
+
+def _evaluated_in_numpy(source, dictionary, *, layer, target_layer=None, batch_size, times, seed):
+    """What the exported dictionary does to the batches of the last epoch, worked out
+    from its arrays alone: no torch, and no running numbers of the training."""
+    error = power = active = n = 0.0
+    fired = np.zeros(dictionary.n_features, dtype=bool)
+    batches = iter_batches(
+        source, layer=layer, target_layer=target_layer, batch_size=batch_size, times=times,
+        seed=seed,
+    )  # fmt: skip
+    for batch in batches:
+        x, wanted = (batch, batch) if target_layer is None else batch
+        written = dictionary.reconstruct(x).astype(np.float64)
+        centre = dictionary.input_mean if target_layer is None else dictionary.output_mean
+        scale = dictionary.input_scale if target_layer is None else dictionary.output_scale
+        error += ((written - wanted) ** 2).sum() / scale**2
+        power += ((wanted - centre) ** 2).sum() / scale**2
+        features = dictionary.transform(x)
+        active += (features > 0).sum()
+        fired |= (features > 0).any(axis=0)
+        n += x.shape[0]
+    return {
+        "explained_variance": 1.0 - error / power,
+        "mean_active_features": active / n,
+        "dead_fraction": float((~fired).mean()),
+    }
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "fit"),
+    [
+        ({"activation": "topk", "k": 2}, {"epochs": 1, "times": [0], "batch_size": 4096}),
+        ({"activation": "relu", "l1": 0.05}, {"epochs": 3, "times": None, "batch_size": 96}),
+        ({"activation": "relu", "target_layer": 2}, {"epochs": 2, "times": None, "batch_size": 96}),
+    ],
+    ids=["one update", "several epochs", "transcoder"],
+)
+def test_reported_metrics_are_those_of_the_exported_dictionary(latent_archive, kwargs, fit):
+    """The metrics used to be summed over the last epoch while the weights still
+    moved: after one update they described the model before it. What is reported is
+    now what an independent evaluation of the exported arrays gives, on the same
+    batches."""
+    source = open_source(latent_archive)
+    dictionary = fit_sae(
+        source, layer=0, n_features=8, lr=3e-3, device="cpu", seed=4, **kwargs, **fit
+    )  # fmt: skip
+    expected = _evaluated_in_numpy(
+        source, dictionary, layer=0, target_layer=kwargs.get("target_layer"),
+        batch_size=fit["batch_size"], times=fit["times"], seed=4 + fit["epochs"] - 1,
+    )  # fmt: skip
+    reported = dictionary.meta["metrics"]
+    assert reported["explained_variance"] == pytest.approx(expected["explained_variance"], abs=1e-4)
+    assert reported["mean_active_features"] == pytest.approx(expected["mean_active_features"])
+    assert reported["dead_fraction"] == expected["dead_fraction"]
+    running = dictionary.meta["training_metrics"]  # what the loop saw while it learned
+    assert set(running) == set(reported)
+    if fit["epochs"] == 1:  # one update: the loop only ever saw the model before it
+        assert running["explained_variance"] != pytest.approx(
+            reported["explained_variance"], abs=1e-3
+        )
 
 
 def test_a_transcoder_writes_another_layer(latent_archive):
