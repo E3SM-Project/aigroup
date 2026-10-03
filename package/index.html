@@ -670,6 +670,8 @@
       
         
       
+        
+      
     
     
     
@@ -770,6 +772,34 @@
     
   
     Sparse autoencoders
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluating a dictionary
   
 
     
@@ -971,7 +1001,7 @@ this repo alongside the guides, as a peer rather than an appendix.</p>
 </tr>
 <tr>
 <td><code>nn</code></td>
-<td>torch modules trained on those latents: <a href="nn/">sparse autoencoders</a></td>
+<td>torch modules trained on those latents: <a href="nn/">sparse autoencoders</a>, <a href="evaluation/">evaluated held out</a></td>
 </tr>
 <tr>
 <td><code>figures</code></td>
@@ -1131,7 +1161,8 @@ Register it, from this repo or any other package:</p>
   (<a href="https://github.com/theodoremacmillan/graphcast-interpretability">code</a>). Sparse
   autoencoders on GraphCast's node embeddings, and interventions on the features they
   find. The TopK autoencoder in <a href="nn/"><code>nn</code></a> is theirs in form; their auxiliary
-  loss for dead features, their held-out evaluation and their steering are not here yet.</li>
+  loss for dead features and their steering are not here yet; held-out
+  <a href="evaluation/">evaluation</a> is.</li>
 <li><a href="https://arxiv.org/abs/2605.17493">Cheon (2026)</a>, <em>Beyond Linear Superposition: Discovering Climate Features in AI Weather
   Models with KAN-SAE</em>. A sparse autoencoder whose ReLU is replaced by a learnable
   B-spline per feature. <strong>Not implemented here yet</strong>: the <code>bspline</code> activation in <code>nn</code>
@@ -1143,7 +1174,7 @@ Register it, from this repo or any other package:</p>
       <code>LatentSource</code>, on the same <code>latents.grid</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>latents</code>: a GraphCast mesh adapter; the activation exporter as an
       adapter, with a steering hook</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>nn</code>: the B-spline autoencoder as its paper has it, held-out evaluation and an
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>nn</code>: the B-spline autoencoder as its paper has it, an
       auxiliary loss for dead features, steering — in that order (<a href="nn/#remaining-tasks">the list</a>)</li>
 </ul>
 
