@@ -595,9 +595,3 @@ def test_the_command_line_prints_the_hash_and_refuses_another(latent_archive, tm
     assert json.loads(run.output)["provenance"]["basis"]["sha256"] == digest
     run = CliRunner().invoke(cli, [*use, "--basis-sha256", "f" * 64])
     assert run.exit_code != 0 and "not the basis that was used" in run.output
-
-
-def test_a_pinned_hash_is_compared_without_case_or_padding(fitted):
-    basis, path = fitted
-    digest = basis_hash(basis)
-    assert load_basis(path, sha256=f"  {digest.upper()}\n").meta["sha256"] == digest

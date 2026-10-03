@@ -487,15 +487,15 @@ def _source_times(path: str, mask_variable: str | None) -> tuple[str, ...]:
 
 
 def reproduction(
-    path: str, mask_variable: str | None, settings: dict, provenance: dict | None = None
+    path: str, mask_variable: str | None, settings: dict, provenance: dict
 ) -> tuple[str, str]:
     """The shell command and the Python that redo an analysis, one option a line.
-    Numbers are written in full: a rounded latitude is a different region. With the
+    Numbers are written in full: a rounded latitude is a different region. From the
     result's ``provenance`` they also pin what moves: the commit a hub archive was
     opened at, and the content hash of the basis, which a reproduction must match."""
     s, r = settings, settings["region"]
-    commit = ((provenance or {}).get("revision") or {}).get("commit")
-    digest = ((provenance or {}).get("basis") or {}).get("sha256")
+    commit = (provenance.get("revision") or {}).get("commit")
+    digest = (provenance.get("basis") or {}).get("sha256")
     options = [
         ("--time", s["time"]), ("--layer", s["layer"]), ("--rank-layer", s["rank_layer"]),
         ("--lat", repr(r["lat"])), ("--lon", repr(r["lon"])),

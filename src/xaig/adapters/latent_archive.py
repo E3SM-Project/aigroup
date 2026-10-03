@@ -50,7 +50,7 @@ GRID = "grid.npz"
 REFERENCE = "reference.nc"
 
 
-_COMMIT = re.compile(r"[0-9a-fA-F]{40}")
+_COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
 class _HubFolder:
@@ -70,7 +70,7 @@ class _HubFolder:
         # reproduced: each is resolved to a commit. A full commit already names itself,
         # so it is not asked of the hub, and a pinned rerun works from a warm cache offline.
         if revision is not None and _COMMIT.fullmatch(revision):
-            commit = revision.lower()
+            commit = revision
         else:
             try:
                 commit = self._api.repo_info(

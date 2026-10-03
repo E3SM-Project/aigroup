@@ -445,12 +445,12 @@ def test_a_field_reproduces_with_an_unverified_basis(monkeypatch, with_fields, t
 def test_a_reproduction_pins_the_commit_and_the_basis_it_came_from(hub, tmp_path):
     """The archive was opened at a tag; what reproduces it names the commit the tag was
     at then, and the hash of the basis, and both rerun to the same answer."""
-    pytest.importorskip("numpy")
     from xaig.app.latent import reproduction
     from xaig.latents import (
         Region,
         accumulate_moments,
         analyse_region,
+        load_basis,
         open_source,
         pca_from_moments,
         save_basis,
@@ -461,8 +461,6 @@ def test_a_reproduction_pins_the_commit_and_the_basis_it_came_from(hub, tmp_path
     basis_path = save_basis(
         tmp_path / "global.npz", pca_from_moments(accumulate_moments(source, layer=2), 2)
     )
-    from xaig.latents import load_basis
-
     basis = load_basis(basis_path)
     here = {"lat": 7.5, "lon": 45.0, "radius_km": 2500.0}
     result = analyse_region(

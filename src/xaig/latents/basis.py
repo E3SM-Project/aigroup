@@ -364,8 +364,8 @@ _PCA_ARRAYS = ("mean", "components", "explained_variance_ratio")
 _DICTIONARY_ARRAYS = (
     "encoder", "encoder_bias", "decoder", "decoder_bias", "input_mean", "output_mean", "spline",
 )  # fmt: skip
-_LOADED = ("sha256", "hash_status")
 _DICTIONARY_SCALARS = ("input_scale", "output_scale", "activation", "k", "spline_upper")
+_LOADED = ("sha256", "hash_status")
 
 
 def _parts(basis: Decomposition) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
@@ -396,7 +396,8 @@ def _digest(
 
 
 def basis_hash(basis: Decomposition) -> str:
-    """The content hash of a basis, as ``save_basis`` would store it."""
+    """The content hash of a basis as it stands, ``meta["fitted_on"]`` included: what
+    ``save_basis`` stores unless its own ``meta`` names another ``fitted_on``."""
     arrays, scalars = _parts(basis)
     scalars = json.loads(json.dumps(scalars))  # as a file would hand them back
     return _digest(basis.kind, arrays, scalars, json.loads(json.dumps(basis.meta.get("fitted_on"))))
@@ -485,8 +486,6 @@ def load_basis(path: str | Path, *, sha256: str | None = None) -> PCA | Dictiona
             f"{path}: the content hash does not match (file says {recorded[:12]}, content is "
             f"{actual[:12]}); the file was changed or damaged after it was written"
         )
-    if sha256 is not None:
-        sha256 = sha256.strip().lower()
     if sha256 is not None and sha256 != actual:
         raise RequestError(
             f"{path}: expected content sha256 {sha256[:12]}, found {actual[:12]}; "

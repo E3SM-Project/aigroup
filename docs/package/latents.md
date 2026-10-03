@@ -367,33 +367,28 @@ A result that cannot be traced to its inputs cannot be rerun, and a branch name 
 path is not an input: both move. Everything a result was computed from is therefore
 pinned by content, and written into the `provenance` of its `--json` and `summary()`.
 
-**A hub archive is a commit.** Opening `hf://…` resolves the revision to a commit SHA
-through the hub, *every* time: the default branch, a branch, a tag, even a SHA
-(`LatentInfo.revision`). What was asked and what it became are both kept, and the files are
-fetched by the commit, so a tag moved halfway through a session changes nothing already
-open:
+**A hub archive is a commit.** Opening `hf://…` at the default branch, a branch or a tag
+resolves it to a commit SHA through the hub; a full 40-character commit is taken as given,
+so a pinned rerun works offline from a warm cache. What was asked and what it became are
+both kept (`LatentInfo.revision`), and the files are fetched by the commit, so a tag moved
+halfway through a session changes nothing already open:
 
 ```console
 $ xaig latents region hf://datasets/<owner>/<repo>/control --revision v1 --json …
 "revision": {"requested": "v1", "commit": "5b0e…"}
 ```
 
-A comparison (`diff` and `diff --growth`) says it for each side, under `control`, `experiment` and
-`noise`, since the sides need not be the same revision. `--revision` applies to every
-`hf://` source of a command and is passed over for a local one in a mixed command; a
-command with no `hf://` source refuses it. A full 40-character commit is taken as given,
-without asking the hub, so a rerun pinned to one works offline from a warm cache; a branch,
-a tag or the default is resolved when opened. From Python, give each `open_source` its
-own. A local archive has no revision and its provenance says none.
+A comparison (`diff` and `diff --growth`) says it for each side, under `control`,
+`experiment` and `noise`. `--revision` applies to every `hf://` source of a command and is
+passed over for a local one; a command with no `hf://` source refuses it. From Python, give
+each `open_source` its own. A local archive has no revision and its provenance says none.
 
 **A basis is a hash.** `save_basis` writes a `sha256` into the file's record: over the
 kind, every array (name, dtype, shape and bytes), the scalars, and what the basis says it
-was fitted on — which includes the commit of the archive it was fitted from, so the same
-arrays fitted at another commit are another basis. Paths, metrics and notes are about the
-file, not the basis, and stay out. `load_basis` recomputes it, and a mismatch is a
-`RequestError` that says the file changed after it was written. A result that used a basis
-carries `{"path", "sha256", "status"}` under `provenance.basis` (and `provenance.bases`,
-by layer, for a storyline):
+was fitted on — which includes the commit of the archive it was fitted from. `load_basis`
+recomputes it, and a mismatch is a `RequestError`. A result that used a basis carries
+`{"path", "sha256", "status"}` under `provenance.basis` (and `provenance.bases`, by layer,
+for a storyline):
 
 ```console
 $ xaig latents region scratch/prov/control --time 0 --lat 7.5 --lon 45 --radius-km 2500 \
@@ -406,22 +401,18 @@ $ xaig latents region scratch/prov/control --time 0 --lat 7.5 --lon 45 --radius-
 ```
 
 `status` is `verified` for a file that carried its hash and matched it, `computed` for a
-basis that never was a file (one fitted in the session), and `unhashed` for a file written
-before hashes existed. Those still load, and their `sha256` is still the hash of the
-arrays, so they can be pinned, but they are not vouched for: they need the same explicit
-acceptance as a basis of unverified identity (`--allow-unverified-basis`,
-`allow_unverified_basis=True`), and the result says `unhashed`. Resaving one with
-`save_basis` hashes it.
+basis fitted in the session, and `unhashed` for a file written before hashes existed.
+Those still load and can be pinned, but are not vouched for: they need
+`--allow-unverified-basis` (`allow_unverified_basis=True`), like a basis of unverified
+identity.
 
 **Reproduction pins both.** The [app](app.md)'s *Reproduce* tab and the commands above give
 `--revision <commit>` (never the tag) and `--basis-sha256 <hash>`; the Python gives
 `open_source(path, revision=<commit>)` and `load_basis(path, sha256=<hash>)`. Either refuses
-a basis whose content is not the one named. Rerunning a pinned command gives the same
-numbers; its provenance then reads `requested` = the commit, which is what was asked this
-time. `--basis-sha256` goes with `--basis` (alone it is refused), and is compared without regard
-to case or surrounding whitespace. **Known limitation:** the per-layer `--bases` of
-`storyline` are hashed into the result but cannot be pinned by a flag; pin those from
-Python with `load_basis(path, sha256=...)`.
+a basis whose content is not the one named, and `--basis-sha256` without `--basis` is
+refused. **Known limitation:** the per-layer `--bases` of `storyline` are hashed into the
+result but cannot be pinned by a flag; pin those from Python with
+`load_basis(path, sha256=...)`.
 
 ## Python API
 

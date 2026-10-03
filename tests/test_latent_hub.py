@@ -67,21 +67,15 @@ def test_a_tag_is_resolved_to_its_commit_and_both_are_recorded(hub):
     assert source.info().commit == "def"  # a result already made still says what it read
 
 
-def test_a_commit_given_as_the_revision_names_itself(hub):
-    info = open_source(URL, revision="ghi").info()
-    assert info.provenance()["revision"] == {"requested": "ghi", "commit": "ghi"}
-    assert hub.asked["lookups"] == ["ghi"]  # a short name is not a full commit: asked
-
-
 def test_a_full_commit_is_not_asked_of_the_hub(hub):
-    sha = "0123456789abcdef0123456789ABCDEF01234567"
+    sha = "0123456789abcdef0123456789abcdef01234567"
     source = open_source(URL, revision=sha)
     source.grid()  # still readable: the files come from that commit
     assert hub.asked["lookups"] == []
-    assert source.info().provenance()["revision"] == {"requested": sha, "commit": sha.lower()}
-    assert hub.asked["revisions"] == {sha.lower()}
-    open_source(URL, revision="v1")
-    assert hub.asked["lookups"] == ["v1"]  # a branch or a tag still is
+    assert source.info().provenance()["revision"] == {"requested": sha, "commit": sha}
+    assert hub.asked["revisions"] == {sha}
+    assert open_source(URL, revision="ghi").info().commit == "ghi"
+    assert hub.asked["lookups"] == ["ghi"]  # a short commit, like a branch or a tag, is asked
 
 
 def test_a_revision_the_hub_does_not_know_is_refused(hub):

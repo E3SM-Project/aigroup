@@ -92,15 +92,7 @@ def _mask_option(command):
 
 
 def _basis_option(command):
-    @functools.wraps(command)
-    def checked(*args, **kwargs):
-        if _remembered("basis_sha256") is not None and kwargs.get("basis_path") is None:
-            from xaig.core.errors import RequestError
-
-            raise RequestError("--basis-sha256 pins the --basis file, and no --basis is given")
-        return command(*args, **kwargs)
-
-    return _basis_sha_option(_basis_click_option(checked))
+    return _basis_sha_option(_basis_click_option(command))
 
 
 _unverified_option = click.option(
@@ -132,12 +124,17 @@ def open_for_cli(source: str, adapter: str, mask_variable: str | None):
     return open_source(source, adapter=adapter, **options)
 
 
-def _basis(path: str | None, pinned: bool = True):
+def _basis(path: str | None):
+    sha256 = _remembered("basis_sha256")
     if path is None:
+        if sha256 is not None:
+            from xaig.core.errors import RequestError
+
+            raise RequestError("--basis-sha256 pins the --basis file, and no --basis is given")
         return None
     from xaig.latents import load_basis
 
-    return load_basis(path, sha256=_remembered("basis_sha256") if pinned else None)
+    return load_basis(path, sha256=sha256)
 
 
 def _time(text: str) -> str | int:
@@ -500,7 +497,7 @@ def storyline_cmd(
         for layer in chosen:
             path = Path(bases.format(layer=layer))
             if path.is_file():
-                found[layer] = _basis(str(path), pinned=False)
+                found[layer] = _basis(str(path))
         if not found:
             raise click.UsageError(f"no basis file matches {bases!r} for layers {chosen}")
     result = field_storyline(
@@ -745,7 +742,7 @@ def profile_cmd(
         opened,
         layer=opened.info().last_layer if layer is None else layer,
         column=feature if channel is None else channel,
-        basis=_basis(basis_path) if channel is None else None,
+        basis=_basis(basis_path),
         times=[_time(t) for t in times] or None,
         fields=fields or None,
         region=_optional_region(lat, lon, radius_km),
