@@ -15,6 +15,9 @@
 - Three tiers. Tests needing numpy start with `pytest.importorskip("numpy")` and those
   needing torch with `pytest.importorskip("torch")`, so the suite passes on a base
   install and on a full one without torch; CI runs all three.
+- `test_adapter_contracts.py` asks every registered adapter the same questions (a `LatentSource`
+  and an `Intervenable` each have theirs). A new adapter needs a case there, and the suite fails
+  until it has one; what is particular to one layout goes in a module of its own.
 - What torch computes and numpy applies is tested for agreement: a block against the
   `Dictionary` exported from it, the torch spline against the numpy one.
 - Give a fixture a known right answer. The synthetic latent archive plants a bump in one

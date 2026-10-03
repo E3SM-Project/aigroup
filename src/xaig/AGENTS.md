@@ -80,7 +80,7 @@ so heavy imports happen inside the command that needs them.
 
 | To add | Do |
 |---|---|
-| support for a framework | a module in `adapters/` + an entry point in `pyproject.toml` |
+| support for a framework | a module in `adapters/` + an entry point in `pyproject.toml` + a case in `tests/test_adapter_contracts.py` (the suite fails without one) |
 | a diagnostic | a module in `latents/`, on `latents.grid` |
 | a way of finding features | something satisfying `latents.Decomposition`; if torch finds it, the module and its loop in `nn/` |
 | a figure | a function in `figures/` that returns a `Figure` |

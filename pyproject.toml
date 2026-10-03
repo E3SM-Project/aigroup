@@ -66,6 +66,7 @@ xaig = "xaig._cli:main"
 # `uv sync` so the installed metadata is refreshed.
 [project.entry-points."xaig.adapters"]
 latent-archive = "xaig.adapters.latent_archive:LatentArchive"
+bundle-dir = "xaig.adapters.bundle_dir:BundleDir"
 toy-dynamics = "xaig.adapters.toy_dynamics:ToyDynamics"
 
 [project.urls]
