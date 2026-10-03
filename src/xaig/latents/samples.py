@@ -27,14 +27,12 @@ from typing import Any
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.basis import PCA, fix_signs
-from xaig.latents.source import LatentSource, read_latents
+from xaig.latents.source import BLOCK, LatentSource, read_latents
 
 try:
     import numpy as np
 except ImportError as exc:
     raise missing_extra("numpy", "latents") from exc
-
-_BLOCK = 8192
 
 
 def _time_labels(source: LatentSource, times: Sequence[str | int] | None) -> list[str]:
@@ -130,8 +128,8 @@ def accumulate_moments(
     scatter = np.zeros((n_channels, n_channels))  # weighted sum of centred outer products
     for label in labels:
         latents = read_latents(source, label, layer)
-        for start in range(0, latents.shape[0], _BLOCK):
-            keep = np.flatnonzero(weights[start : start + _BLOCK] > 0.0) + start
+        for start in range(0, latents.shape[0], BLOCK):
+            keep = np.flatnonzero(weights[start : start + BLOCK] > 0.0) + start
             if keep.size:
                 block = latents[keep].astype(np.float64)
                 if shift is None:

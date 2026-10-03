@@ -26,18 +26,23 @@ $ uv pip install 'xaig[nn]'   # elsewhere, from PyPI
 ## Fit one
 
 ```console
-$ xaig nn sae latents/atmosphere --layer 8 --features 1024 --out sae8.npz
-  step     25  reconstruction 153.5
-  step    250  reconstruction 78.66
-  step    500  reconstruction 68.42
-wrote sae8.npz: 1024 feature(s) of layer 8; 82.1% of the variance explained, 32.0 active per node, 0.0% dead
+$ xaig latents toy scratch/toy/control
+$ xaig nn sae scratch/toy/control --layer 2 --features 64 --k 8 --epochs 30 \
+    --batch-size 512 --out scratch/toy/sae.npz
+  step     25  reconstruction 10.28
+  step    300  reconstruction 0.9374
+  step    600  reconstruction 0.2854
+wrote scratch/toy/sae.npz: 64 feature(s) of layer 2; 98.6% of the variance explained, 8.0 active per node, 14.1% dead
 ```
 
-That is 11 s on an Apple M1 Max (MPS), over the layer's 1.1 million node-times, twice.
-(That run, and the 82.1% above, predate the metrics being measured on the exported
-dictionary; rerun it before quoting the number.) Set
-against the [global PCA](latents.md#methods-a-basis-is-a-value) of the same layer, where
-32 components hold 69.1% of the variance, 32 active features out of 1,024 hold 82.1%.
+That is the [toy system](index.md) (1,152 nodes, a few seconds on a CPU), not a real
+model: its numbers show what the output looks like and say nothing about what a dictionary
+will explain on a real layer. The defaults (1,024 features, `k` of 32, two epochs) are
+sized for a layer of a million node-times, and on a toy this small they underfit; the
+options above are the ones used here. The percentage, the active count and the dead
+fraction are measured on the dictionary that is written, which costs one extra pass over
+the last epoch's batches after training; the running `reconstruction` lines are the
+loop's own, taken while the weights were changing.
 
 | Option | Meaning |
 | --- | --- |

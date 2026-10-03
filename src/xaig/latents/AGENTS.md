@@ -38,10 +38,11 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
 - **An index is not an identity.** Channel 42 of one trained network is not channel 42
   of another, and every layer of a model is as wide as the next. Whatever lines two
   things up by index checks who they are first: `check_comparable` for a run against its
-  control (one network, the same place in it, one grid, nodes valid in all), `check_basis_fits` for a basis
-  against a layer (the network and layer its file says it was fitted on). Widths
-  matching is never the check. Region-fitted bases record their source and layer
-  automatically. Missing identity requires `allow_unverified_basis=True` (CLI:
+  control (one network, the same place in it, one grid, nodes valid in all),
+  `check_basis_fits` for a basis against a layer (the network and layer its file says it
+  was fitted on). Widths matching is never the check. Region-fitted bases record their
+  source and layer automatically. Missing identity (including a layer position only one
+  of two runs declares) requires `allow_unverified_basis=True` (CLI:
   `--allow-unverified-basis`), and for two runs `allow_unverified=True` (CLI:
   `--allow-unverified-sources`); known mismatches are always refused, `across_models`
   lifts only a differing model, component or checkpoint, and layers are matched by

@@ -237,7 +237,7 @@ class ReferenceFields(Protocol):
     def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray: ...
 
 
-_BLOCK = 8192  # nodes per step of a blocked reduction
+BLOCK = 8192  # nodes per step of a blocked reduction
 
 
 def read_latents(
@@ -263,9 +263,9 @@ def read_latents(
     if nodes is not None:
         valid = valid[np.asarray(nodes, dtype=np.intp)]
     n_bad, bad_channels = 0, np.zeros(values.shape[1], dtype=bool)
-    for start in range(0, values.shape[0], _BLOCK):
-        keep = valid[start : start + _BLOCK]
-        ok = np.isfinite(values[start : start + _BLOCK][keep])
+    for start in range(0, values.shape[0], BLOCK):
+        keep = valid[start : start + BLOCK]
+        ok = np.isfinite(values[start : start + BLOCK][keep])
         n_bad += int(np.count_nonzero(~ok.all(axis=1)))
         bad_channels |= ~ok.all(axis=0)
     if n_bad:
@@ -340,7 +340,10 @@ def check_comparable(
             "only if it does here"
         )
     place_a, place_b = info_a.layer(layer), info_b.layer(layer)
-    if place_a.position != place_b.position:
+    # Only a position both sides declare can disagree: a side that declares nothing
+    # has an undeclared place, not place ``index``, and that is incomplete identity.
+    both_declare = place_a.network_layer is not None and place_b.network_layer is not None
+    if both_declare and place_a.position != place_b.position:
         raise RequestError(
             f"layer {layer} is network layer {place_a.position} in {info_a.source} "
             f"and network layer {place_b.position} in {info_b.source}; "
@@ -425,6 +428,9 @@ def check_basis_fits(
     # different layers, and index 4 of one is then not index 4 of the other.
     position = info.layer(layer).position
     fitted_at = fitted.get("network_layer", fitted.get("layer"))
+    # Unlike two runs, a basis always records the place it was fitted at (the layer's
+    # index, for a source that declares none), so an undeclared layer here is compared
+    # by index on purpose: the same index of an undeclared source is the same place.
     if fitted_at is not None and int(fitted_at) != position:
         here = f"layer {layer}" + ("" if position == layer else f" (network layer {position})")
         there = "layer" if "network_layer" not in fitted else "network layer"

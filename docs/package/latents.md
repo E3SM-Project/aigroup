@@ -181,7 +181,7 @@ seed is not channel 42 of this one, whatever number it carries — unless `--acr
 says the index does carry over (a fine-tune of the same weights); comparing networks
 trained apart needs a different tool altogether. The layer is matched by its place in the
 network (`network_layer` in the manifest, else its index), so a run whose layer 0 is
-network layer 2 is not set against one whose layer 0 is network layer 8, and nothing lifts
+network layer 2 is not set against one whose layer 0 is network layer 8 (when both declare one), and nothing lifts
 that refusal. Where either run leaves out its model, component, checkpoint or layer
 placement the comparison cannot be verified, and is refused until you pass
 `--allow-unverified-sources` (`allow_unverified=True` from Python; the result's settings
@@ -498,6 +498,10 @@ three steps later.
   (channel 41, 77) in latents/atmosphere; a node the source cannot supply belongs in its
   mask, not left NaN`. The remedy is the mask (`--mask-variable`, or `mask` in `grid.npz`).
   Fields are different: a reference field is NaN where it is missing, and stays so.
+  This is a change of behaviour: an analysis (`hovmoller`, `region_series`, `census`,
+  `profile`, the maps and the rest) used to tolerate NaN at nodes the mask calls valid,
+  skipping them silently, and now raises this `RequestError` instead. An archive written
+  without a mask, with NaN where the model has no values, must be given one.
 - **An empty selection.** No times, channels, features or layers, a region or box with no
   valid node in it, a mask that leaves no node, runs that share no valid node: each is a
   `RequestError` naming what was empty (`no times selected`, `no channels selected`,

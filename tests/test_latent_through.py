@@ -412,8 +412,13 @@ def test_layers_are_compared_by_their_place_in_the_network(tmp_path):
     with pytest.raises(RequestError, match=r"undeclared: network layer in .*plain"):
         difference(plain, counted, time=1, layer=0)
     assert difference(plain, counted, time=1, layer=2, allow_unverified=True).rms.max() == 0.0
-    with pytest.raises(RequestError, match="different places"):  # index 0 is place 0, not 2
-        difference(plain, twin, time=1, layer=0, allow_unverified=True)
+    # Whichever side is silent, and whatever the other declares: a place only one side
+    # declares is incomplete identity, refused alone and accepted with the override,
+    # never a "different places" mismatch against the silent side's local index.
+    for a, b in ((plain, twin), (twin, plain)):
+        with pytest.raises(RequestError, match=r"undeclared: network layer in .*plain"):
+            difference(a, b, time=1, layer=0)
+        assert difference(a, b, time=1, layer=0, allow_unverified=True).rms.max() == 0.0
     # Two that both count by index are what they have always been.
     assert difference(plain, open_source(tmp_path / "plain"), time=1, layer=0).rms.max() == 0.0
 
