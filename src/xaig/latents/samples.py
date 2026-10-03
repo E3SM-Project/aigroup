@@ -21,7 +21,7 @@ The two rules of ``latents.grid`` hold here as well, and are as easy to forget:
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from xaig.core.errors import RequestError
@@ -65,7 +65,41 @@ class Moments:
         """One number to divide a centred layer by so that a node's vector has
         unit mean square per channel: what a dictionary is trained on, keeping the
         channels' relative sizes (a per-channel scale would not)."""
-        return float(np.sqrt(np.trace(self.covariance) / self.covariance.shape[0])) or 1.0
+        return float(np.sqrt(np.trace(self.covariance) / self.covariance.shape[0]))
+
+
+def check_moments(moments: Moments) -> Moments:
+    """The moments, or a ``RequestError`` if they cannot be used: a covariance that is
+    not finite, or a variance below zero by more than round-off. A diagonal entry
+    negative by no more than ``1e-12`` of the largest is round-off and is set to zero."""
+    where = f"layer {moments.layer} over {len(moments.times)} time(s)"
+    covariance = moments.covariance
+    if not (np.isfinite(moments.mean).all() and np.isfinite(covariance).all()):
+        raise RequestError(f"the moments of {where} are not finite")
+    variance = np.diag(covariance)
+    floor = -1e-12 * float(np.abs(variance).max(initial=0.0))
+    if (variance < floor).any():
+        worst = int(np.argmin(variance))
+        raise RequestError(
+            f"the moments of {where} have negative variance ({variance[worst]:.3g} "
+            f"in channel {worst})"
+        )
+    if (variance < 0.0).any():
+        covariance = covariance.copy()
+        covariance[np.diag_indices_from(covariance)] = np.clip(variance, 0.0, None)
+        return replace(moments, covariance=covariance)
+    return moments
+
+
+def check_trainable(moments: Moments) -> None:
+    """Refuse moments a layer cannot be standardised by: ``scale`` must be finite and
+    positive, and it is zero when every channel is constant."""
+    scale = moments.scale
+    if not (np.isfinite(scale) and scale > 0.0):
+        raise RequestError(
+            f"layer {moments.layer} has no variance to standardise by (scale {scale:.3g}) "
+            f"over {len(moments.times)} time(s); there is nothing to fit"
+        )
 
 
 def accumulate_moments(
@@ -75,29 +109,48 @@ def accumulate_moments(
 
     Accumulated in float64 a block of nodes at a time: one layer is in memory,
     and the sums are ``(n_channels, n_channels)`` however many times there are.
+    The covariance is built from centred sums, each block merged into the running
+    mean and scatter as it arrives, rather than as ``E[x x'] - E[x] E[x]'``, which
+    loses every digit of a channel whose mean dwarfs its spread. The result is
+    checked (``check_moments``) before it is returned.
     """
     info, labels = source.info(), _time_labels(source, times)
     if not labels:
         raise RequestError("no times to accumulate over")
     n_channels = info.layer(layer).n_channels
     weights = source.grid().weights() / len(labels)
-    first = np.zeros(n_channels)
-    second = np.zeros((n_channels, n_channels))
+    total = 0.0
+    shift = None  # one node's vector, taken off everything: a constant channel is then exactly 0
+    mean = np.zeros(n_channels)
+    scatter = np.zeros((n_channels, n_channels))  # weighted sum of centred outer products
     for label in labels:
         latents = source.load(label, layer)
         for start in range(0, latents.shape[0], _BLOCK):
             keep = np.flatnonzero(weights[start : start + _BLOCK] > 0.0) + start
             if keep.size:
                 block = latents[keep].astype(np.float64)
-                first += weights[keep] @ block
-                second += (block * weights[keep, None]).T @ block
-    return Moments(
-        mean=first,
-        covariance=second - np.outer(first, first),
-        times=tuple(labels),
-        layer=layer,
-        provenance=info.provenance(),
-        network_layer=info.layer(layer).position,
+                if shift is None:
+                    shift = block[0].copy()
+                block -= shift
+                w = weights[keep]
+                block_weight = float(w.sum())
+                block_mean = (w @ block) / block_weight
+                block -= block_mean
+                block_scatter = (block * w[:, None]).T @ block
+                merged = total + block_weight
+                gap = block_mean - mean
+                scatter += block_scatter + np.outer(gap, gap) * (total * block_weight / merged)
+                mean += gap * (block_weight / merged)
+                total = merged
+    return check_moments(
+        Moments(
+            mean=mean + (0.0 if shift is None else shift),
+            covariance=scatter / total,
+            times=tuple(labels),
+            layer=layer,
+            provenance=info.provenance(),
+            network_layer=info.layer(layer).position,
+        )
     )
 
 

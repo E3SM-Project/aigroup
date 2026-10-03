@@ -89,3 +89,52 @@ def write_latent_archive(
 def latent_archive(tmp_path: Path) -> Path:
     pytest.importorskip("numpy")
     return write_latent_archive(tmp_path / "latents")
+
+
+class MemorySource:
+    """A ``LatentSource`` held in memory, for what an archive on disk cannot say
+    (float32 beside 1e8, a NaN where a mask says there should be none).
+
+    ``data`` is ``{layer: (n_times, n_nodes, n_channels)}``; the grid is a plain
+    ``n_lat x n_lon`` one, so nodes have area weights that are far from uniform.
+    """
+
+    def __init__(self, data, *, n_lat=6, n_lon=8, mask=None):
+        import numpy as np
+
+        from xaig.latents import LatentInfo, LayerInfo
+        from xaig.latents.grid import Grid
+
+        lat, lon = np.meshgrid(
+            np.linspace(-75.0, 75.0, n_lat), np.arange(n_lon) * 45.0, indexing="ij"
+        )
+        self._grid = Grid(lat=lat.ravel(), lon=lon.ravel(), shape=(n_lat, n_lon), mask=mask)
+        self._data = {layer: np.asarray(values) for layer, values in data.items()}
+        n_times = next(iter(self._data.values())).shape[0]
+        self._info = LatentInfo(
+            source="memory",
+            times=tuple(f"t{i}" for i in range(n_times)),
+            layers=tuple(
+                LayerInfo(layer, f"layer {layer}", values.shape[2])
+                for layer, values in self._data.items()
+            ),
+            n_nodes=n_lat * n_lon,
+            model="mem",
+            component="mem",
+            checkpoint="mem.ckpt",
+        )
+
+    def info(self):
+        return self._info
+
+    def grid(self):
+        return self._grid
+
+    def load(self, time, layer, channels=None, nodes=None):
+        position = self._info.time_index(time)
+        out = self._data[layer][position]
+        if nodes is not None:
+            out = out[list(nodes)]
+        if channels is not None:
+            out = out[:, list(channels)]
+        return out.copy()

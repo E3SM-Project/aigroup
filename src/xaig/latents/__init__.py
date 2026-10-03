@@ -66,6 +66,8 @@ if TYPE_CHECKING:
     from xaig.latents.samples import (
         Moments,
         accumulate_moments,
+        check_moments,
+        check_trainable,
         iter_batches,
         pca_from_moments,
     )
@@ -120,6 +122,8 @@ _LAZY = {
     "feature_profile": "features",
     "Moments": "samples",
     "accumulate_moments": "samples",
+    "check_moments": "samples",
+    "check_trainable": "samples",
     "iter_batches": "samples",
     "pca_from_moments": "samples",
     "LatentInfo": "source",
@@ -183,6 +187,8 @@ __all__ = [
     "analyse_region",
     "bspline_activation",
     "check_comparable",
+    "check_moments",
+    "check_trainable",
     "correlate_field",
     "cosine_similarity",
     "difference",

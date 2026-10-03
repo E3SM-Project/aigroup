@@ -33,7 +33,7 @@ def test_without_torch_the_command_names_the_one_extra_that_brings_everything():
 np = pytest.importorskip("numpy")
 torch = pytest.importorskip("torch")
 
-from conftest import BUMP, N_CHANNELS  # noqa: E402
+from conftest import BUMP, N_CHANNELS, MemorySource  # noqa: E402
 from xaig.core.errors import RequestError  # noqa: E402
 from xaig.latents import (  # noqa: E402
     Decomposition,
@@ -142,6 +142,13 @@ def test_a_transcoder_writes_another_layer(latent_archive):
 def test_a_fit_that_asks_for_nothing_is_refused(latent_archive):
     with pytest.raises(RequestError, match="n_features"):
         fit_sae(open_source(latent_archive), layer=2, n_features=0)
+
+
+def test_a_layer_with_nothing_to_standardise_by_is_refused_before_training():
+    """Constant everywhere: the scale is zero, and what is divided by it is not a number."""
+    flat = MemorySource({0: np.full((2, 48, 3), 1e8, dtype=np.float32)})
+    with pytest.raises(RequestError, match="layer 0 has no variance"):
+        fit_sae(flat, layer=0, n_features=4, device="cpu")
 
 
 def test_cli_fits_and_the_file_is_a_basis_anywhere(latent_archive, tmp_path):

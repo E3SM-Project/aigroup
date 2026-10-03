@@ -25,7 +25,13 @@ try:
 except ImportError as exc:
     raise missing_extra("torch", "nn") from exc
 
-from xaig.latents import Dictionary, LatentSource, accumulate_moments, iter_batches
+from xaig.latents import (
+    Dictionary,
+    LatentSource,
+    accumulate_moments,
+    check_trainable,
+    iter_batches,
+)
 from xaig.nn.sae import SparseAutoencoder
 
 
@@ -84,6 +90,8 @@ def fit_sae(
         if target_layer is None
         else accumulate_moments(source, layer=target_layer, times=times)
     )
+    check_trainable(moments)
+    check_trainable(goal)
     n_outputs = goal.mean.size
 
     torch.manual_seed(seed)
