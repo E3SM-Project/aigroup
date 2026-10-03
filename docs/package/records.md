@@ -27,7 +27,7 @@ of `--split-only`, which computes nothing to keep.
   "schema_version": 1,
   "kind": "steering",
   "provenance": {"source": "toy-dynamics", "model": "toy-dynamics", "component": "linear",
-                 "checkpoint": "planted-0", "options": {"masked": 3, "…": "…"}, "xaig": "0.4.0"},
+                 "checkpoint": "planted-0", "options": {"masked": 3, "…": "…"}, "xaig": "0.5.0"},
   "bases": [{"path": "scratch/rec/planted.npz", "sha256": "72ac4908…0960", "status": "verified"}],
   "settings": {"adapter": "toy-dynamics", "adapter_options": {"masked": 3}, "…": "…"},
   "split": null,
