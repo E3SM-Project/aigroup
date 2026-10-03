@@ -27,7 +27,7 @@ from typing import Any
 from xaig.core.errors import RequestError
 from xaig.core.extras import missing_extra
 from xaig.latents.basis import PCA, fix_signs
-from xaig.latents.source import LatentSource
+from xaig.latents.source import LatentSource, read_latents
 
 try:
     import numpy as np
@@ -38,10 +38,17 @@ _BLOCK = 8192
 
 
 def _time_labels(source: LatentSource, times: Sequence[str | int] | None) -> list[str]:
+    """The labels of the times asked for (all by default); asking for none is refused,
+    as an empty selection is everywhere here, rather than answered with nothing."""
     info = source.info()
-    if times is None:
-        return list(info.times)
-    return [info.times[info.time_index(t)] for t in times]
+    labels = list(info.times) if times is None else [info.times[info.time_index(t)] for t in times]
+    if not labels:
+        raise RequestError(
+            f"no times selected: {info.source} holds none"
+            if times is None
+            else "no times selected: `times` is empty"
+        )
+    return labels
 
 
 @dataclass(frozen=True, eq=False)
@@ -115,8 +122,6 @@ def accumulate_moments(
     checked (``check_moments``) before it is returned.
     """
     info, labels = source.info(), _time_labels(source, times)
-    if not labels:
-        raise RequestError("no times to accumulate over")
     n_channels = info.layer(layer).n_channels
     weights = source.grid().weights() / len(labels)
     total = 0.0
@@ -124,7 +129,7 @@ def accumulate_moments(
     mean = np.zeros(n_channels)
     scatter = np.zeros((n_channels, n_channels))  # weighted sum of centred outer products
     for label in labels:
-        latents = source.load(label, layer)
+        latents = read_latents(source, label, layer)
         for start in range(0, latents.shape[0], _BLOCK):
             keep = np.flatnonzero(weights[start : start + _BLOCK] > 0.0) + start
             if keep.size:
@@ -203,8 +208,6 @@ def iter_batches(
     nodes at two layers, which is what a transcoder trains on.
     """
     labels = _time_labels(source, times)
-    if not labels:
-        raise RequestError("no times to draw batches from")
     if batch_size < 1:
         raise RequestError("batch_size must be at least 1")
     probability = source.grid().weights()
@@ -214,11 +217,11 @@ def iter_batches(
         for position in rng.permutation(len(labels)):
             label = labels[position]
             nodes = rng.choice(probability.size, size=n_draws, replace=True, p=probability)
-            inputs = source.load(label, layer, nodes=nodes)
+            inputs = read_latents(source, label, layer, nodes=nodes)
             if target_layer is None:
                 targets = None
             else:
-                targets = source.load(label, target_layer, nodes=nodes)
+                targets = read_latents(source, label, target_layer, nodes=nodes)
             for start in range(0, n_draws, batch_size):
                 stop = start + batch_size
                 if targets is None:

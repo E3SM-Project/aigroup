@@ -33,7 +33,9 @@ $ xaig nn sae latents/atmosphere --layer 8 --features 1024 --out sae8.npz
 wrote sae8.npz: 1024 feature(s) of layer 8; 82.1% of the variance explained, 32.0 active per node, 0.0% dead
 ```
 
-That is 11 s on an Apple M1 Max (MPS), over the layer's 1.1 million node-times, twice. Set
+That is 11 s on an Apple M1 Max (MPS), over the layer's 1.1 million node-times, twice.
+(That run, and the 82.1% above, predate the metrics being measured on the exported
+dictionary; rerun it before quoting the number.) Set
 against the [global PCA](latents.md#methods-a-basis-is-a-value) of the same layer, where
 32 components hold 69.1% of the variance, 32 active features out of 1,024 hold 82.1%.
 

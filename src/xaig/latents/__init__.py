@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         check_comparable,
         open_source,
         parse_time,
+        read_latents,
     )
     from xaig.latents.through import (
         DifferenceGrowth,
@@ -133,6 +134,7 @@ _LAZY = {
     "check_comparable": "source",
     "open_source": "source",
     "parse_time": "source",
+    "read_latents": "source",
     "DifferenceGrowth": "through",
     "FieldRanking": "through",
     "FieldStoryline": "through",
@@ -206,6 +208,7 @@ __all__ = [
     "pca_from_moments",
     "rank_by_field",
     "rank_channels",
+    "read_latents",
     "region_series",
     "save_basis",
     "spline_knots",

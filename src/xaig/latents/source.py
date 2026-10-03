@@ -237,6 +237,50 @@ class ReferenceFields(Protocol):
     def field(self, name: str, time: str | int, lead: int = 0) -> np.ndarray: ...
 
 
+_BLOCK = 8192  # nodes per step of a blocked reduction
+
+
+def read_latents(
+    source: LatentSource,
+    time: str | int,
+    layer: int,
+    *,
+    channels: Sequence[int] | None = None,
+    nodes: Sequence[int] | None = None,
+) -> np.ndarray:
+    """``source.load``, refusing activations that are not numbers where they must be.
+
+    A node the grid marks invalid may hold anything, NaN included, and is never
+    counted. A *valid* node holding NaN or infinity is a source that failed to
+    say so (an exporter that wrote NaN for land and forgot the mask, a run that
+    diverged), and one such value would turn every mean, moment and loss it
+    touches into NaN, far from the cause. It is refused here, naming the layer, the
+    time and the channels, so everything that reads latents to analyse or train on
+    reads them through this. Checked a block of nodes at a time: no second copy.
+    """
+    values = source.load(time, layer, channels=channels, nodes=nodes)
+    valid = source.grid().valid
+    if nodes is not None:
+        valid = valid[np.asarray(nodes, dtype=np.intp)]
+    n_bad, bad_channels = 0, np.zeros(values.shape[1], dtype=bool)
+    for start in range(0, values.shape[0], _BLOCK):
+        keep = valid[start : start + _BLOCK]
+        ok = np.isfinite(values[start : start + _BLOCK][keep])
+        n_bad += int(np.count_nonzero(~ok.all(axis=1)))
+        bad_channels |= ~ok.all(axis=0)
+    if n_bad:
+        info = source.info()
+        chosen = np.arange(values.shape[1]) if channels is None else np.asarray(channels)
+        named = ", ".join(str(int(c)) for c in chosen[bad_channels][:5])
+        more = "" if int(bad_channels.sum()) <= 5 else ", ..."
+        raise RequestError(
+            f"layer {layer} at {info.times[info.time_index(time)]} holds {n_bad} valid node(s) "
+            f"with activations that are not finite (channel {named}{more}) in {info.source}; "
+            "a node the source cannot supply belongs in its mask, not left NaN"
+        )
+    return values
+
+
 def parse_time(text: str) -> str | int:
     """A time as a person types it: a position (``0``, ``-1``) or a label."""
     return int(text) if _POSITION.fullmatch(text) else text
@@ -347,6 +391,9 @@ def shared_grid(a: LatentSource, b: LatentSource, *more: LatentSource) -> Grid:
     valid = grid_a.valid & b.grid().valid
     for other in more:
         valid = valid & other.grid().valid
+    if not valid.any():
+        names = ", ".join(x.info().source for x in (a, b, *more))
+        raise RequestError(f"no node is valid in all of {names}; there is nothing to compare")
     return Grid(
         lat=grid_a.lat,
         lon=grid_a.lon,

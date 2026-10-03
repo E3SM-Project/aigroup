@@ -56,6 +56,11 @@ Diagnostics of a model's latent space: what its internal channels respond to, on
 - **Area and mask hold for training data too.** `iter_batches` draws nodes by area and
   never where the grid is invalid, so a plain mean over a batch is the area-weighted
   loss. Do not train on `source.load()` directly.
+- **Read latents through `read_latents`.** It is `source.load` plus one rule: a valid node
+  holding NaN or infinity is a `RequestError` naming layer, time and channel, never a NaN
+  carried into a mean. Masked nodes may hold anything. Empty selections (times, channels,
+  features, layers, a region, a mask that leaves no node) are `RequestError`s that say what
+  was empty. Both are tested in `tests/test_latent_validation.py`.
 - **Refuse before reading.** Whatever can be wrong with a request is checked before the
   first 100 MB is loaded, and raised as `RequestError`.
 - **Positions are not lead times.** An exporter keeps the forward calls it was asked to.

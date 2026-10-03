@@ -483,6 +483,33 @@ grid        180x360, 64800 nodes, 44892 valid
 
 That is 30.7% of points over land, excluded from everything that follows.
 
+### Values that are not numbers, and selections that are empty
+
+Two things go wrong in the same way everywhere, so they are refused in the same way
+everywhere: with a one-line error that says what and where, never with a NaN that turns up
+three steps later.
+
+- **A valid node whose activations are NaN or infinite.** What a masked node holds is
+  never looked at, but a node the mask says is valid has to hold numbers. An exporter that
+  wrote NaN for land and forgot the mask, or a run that diverged, would otherwise turn a mean,
+  a covariance or a training loss into NaN. Every analysis and the training loop read
+  latents through `read_latents`, which raises
+  `layer 8 at 0425-01-03T18:00:00 holds 12 valid node(s) with activations that are not finite
+  (channel 41, 77) in latents/atmosphere; a node the source cannot supply belongs in its
+  mask, not left NaN`. The remedy is the mask (`--mask-variable`, or `mask` in `grid.npz`).
+  Fields are different: a reference field is NaN where it is missing, and stays so.
+- **An empty selection.** No times, channels, features or layers, a region or box with no
+  valid node in it, a mask that leaves no node, runs that share no valid node: each is a
+  `RequestError` naming what was empty (`no times selected`, `no channels selected`,
+  `no valid nodes within 1 km of (0, 0)`), not an empty result.
+
+Moments are accumulated about the mean, one block of nodes at a time, so a channel with a
+huge offset and a tiny spread (a constant at 1e8 in float32) keeps its variance instead of
+cancelling to a negative one. Before anything is trained on them the covariance must be
+finite with a non-negative diagonal (round-off is clamped, anything larger refused) and the
+scale finite and positive, so a layer with no variance at all is refused rather than divided
+by.
+
 ## The latent archive
 
 A directory per model component. Any exporter that writes this layout can be read by the

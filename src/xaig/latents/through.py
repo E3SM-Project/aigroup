@@ -32,6 +32,7 @@ from xaig.latents.source import (
     LatentSource,
     check_basis_fits,
     check_comparable,
+    read_latents,
     shared_grid,
 )
 
@@ -106,8 +107,12 @@ def region_series(
     if basis is not None:
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
         columns = tuple(int(f) for f in (range(basis.n_features) if features is None else features))
+        if not columns:
+            raise RequestError("no features selected: `features` is empty")
     else:
         columns = tuple(int(c) for c in (range(width) if channels is None else channels))
+        if not columns:
+            raise RequestError("no channels selected: `channels` is empty")
         bad = [c for c in columns if not 0 <= c < width]
         if bad:
             raise RequestError(f"channel(s) {bad} outside 0..{width - 1}")
@@ -117,12 +122,14 @@ def region_series(
     rows = []
     for label in labels:
         if basis is not None:
-            local = basis.transform(source.load(label, layer, nodes=nodes), features=columns)
+            local = basis.transform(
+                read_latents(source, label, layer, nodes=nodes), features=columns
+            )
         elif centred:
-            full = source.load(label, layer, channels=list(columns))
+            full = read_latents(source, label, layer, channels=list(columns))
             local = (full - grid.mean(full))[nodes]
         else:
-            local = source.load(label, layer, channels=list(columns), nodes=nodes)
+            local = read_latents(source, label, layer, channels=list(columns), nodes=nodes)
         rows.append(weights @ local.astype(np.float64))
     settings = {
         "layer": layer,
@@ -234,8 +241,8 @@ def difference(
     experiment.info().time_index(label)
     grid = shared_grid(control, experiment)
     weights = grid.weights()
-    delta = experiment.load(label, layer)
-    delta -= control.load(label, layer)
+    delta = read_latents(experiment, label, layer)
+    delta -= read_latents(control, label, layer)
     rms = np.sqrt(_mean_square(weights, delta))
     chosen = np.argsort(rms, kind="stable")[::-1][: max(top, 0)]
     maps = np.where(grid.valid[:, None], delta[:, chosen].astype(np.float64), np.nan)
@@ -312,6 +319,8 @@ def difference_growth(
     the nodes valid in both (and in ``noise``, if given). ``noise``, a rerun of the
     control with another seed, adds the baseline a stochastic model's differences have to clear."""
     chosen = tuple(x.index for x in control.info().layers) if layers is None else tuple(layers)
+    if not chosen:
+        raise RequestError("no layers selected: `layers` is empty")
     for layer in chosen:
         for other in (experiment, noise):
             if other is not None:
@@ -332,12 +341,12 @@ def difference_growth(
     noise_rms = None if noise is None else np.zeros_like(rms)
     for i, label in enumerate(labels):
         for j, layer in enumerate(chosen):
-            reference = control.load(label, layer)
-            delta = experiment.load(label, layer)
+            reference = read_latents(control, label, layer)
+            delta = read_latents(experiment, label, layer)
             delta -= reference
             rms[i, j] = np.sqrt(_mean_square(weights, delta).mean())
             if noise is not None:
-                delta = noise.load(label, layer)
+                delta = read_latents(noise, label, layer)
                 delta -= reference
                 noise_rms[i, j] = np.sqrt(_mean_square(weights, delta).mean())
             reference -= grid.mean(reference).astype(reference.dtype)
@@ -494,7 +503,7 @@ def rank_by_field(
     if basis is not None:
         check_basis_fits(basis, info, layer, allow_unverified=allow_unverified_basis)
     values = _field_with_values(source, field, label, lead)
-    latents = source.load(label, layer)
+    latents = read_latents(source, label, layer)
     weights = grid.weights()
     if basis is None:
         correlation = correlate_field(latents, values, weights)
@@ -602,6 +611,8 @@ def field_storyline(
     _reference_fields(source, field)
     info, grid = source.info(), source.grid()
     chosen = tuple(x.index for x in info.layers) if layers is None else tuple(layers)
+    if not chosen:
+        raise RequestError("no layers selected: `layers` is empty")
     bases = dict(bases or {})
     for layer in chosen:
         info.layer(layer)
@@ -625,7 +636,7 @@ def field_storyline(
         if not np.isfinite(values[grid.valid]).any():
             continue
         for j, layer in enumerate(chosen):
-            latents = source.load(label, layer)
+            latents = read_latents(source, label, layer)
             basis = bases.get(layer)
             if basis is None:
                 r = correlate_field(latents, values, weights)
@@ -733,9 +744,11 @@ def hovmoller(
         if by_field:
             band = source.field(field, label)[nodes]
         elif by_channel:
-            band = source.load(label, layer, channels=[channel], nodes=nodes)[:, 0]
+            band = read_latents(source, label, layer, channels=[channel], nodes=nodes)[:, 0]
         else:
-            band = basis.transform(source.load(label, layer, nodes=nodes), features=[feature])[:, 0]
+            band = basis.transform(
+                read_latents(source, label, layer, nodes=nodes), features=[feature]
+            )[:, 0]
         band = band.reshape(rows.size, n_lon)
         w = np.where(np.isfinite(band), weights, 0.0)
         total = w.sum(axis=0)
