@@ -88,6 +88,13 @@ _basis_sha_option = click.option(
 )
 
 
+_record_option = click.option(
+    "--record", "record_path", type=click.Path(dir_okay=False),
+    help="Also write a compact experiment record (JSON): provenance, settings, results and "
+    "the command that reproduces it, which `xaig app` opens.",
+)  # fmt: skip
+
+
 def _mask_option(command):
     """``--mask-variable``, and ``--revision`` beside it: every command that opens a source."""
     return revision_option(_mask_click_option(command))
@@ -816,11 +823,13 @@ def _percent(value: float | None) -> str:
 @click.option("--duplicate-above", type=float, default=0.95, show_default=True,
               help="Cosine at which two decoder directions are near-duplicates.")  # fmt: skip
 @click.option("--out", type=click.Path(dir_okay=False), help="Also write the results (JSON).")
+@_record_option
 @_unverified_option
 @_json_option
 def evaluate_cmd(
     source, adapter, mask_variable, layer, blocks, test_blocks, gap, split_only, basis_paths,
     basis_hashes, pca_text, stability, recur_above, active_above, duplicate_above, out,
+    record_path,
     allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Score frozen bases on times they were not fitted on.
@@ -836,9 +845,11 @@ def evaluate_cmd(
         Dictionary,
         basis_hash,
         evaluate_basis,
+        evaluation_record,
         fidelity_curve,
         load_basis,
         result_provenance,
+        save_record,
         seed_stability,
         split_time_blocks,
     )
@@ -849,6 +860,8 @@ def evaluate_cmd(
             f"{len(basis_hashes)} --basis-sha256 for {len(basis_paths)} --basis: "
             "give one per --basis, in the same order, or none"
         )
+    if record_path and split_only:
+        raise click.UsageError("--record keeps results, and --split-only computes none")
     opened = open_for_cli(source, adapter, mask_variable)
     info = opened.info()
     layer = info.last_layer if layer is None else layer
@@ -877,6 +890,7 @@ def evaluate_cmd(
             for b in bases
         ]
         payload["evaluations"] = [e.to_dict() for e in evaluations]
+        curve = matching = None
         if ranks:
             autoencoders = [
                 (b, Path(p).stem)
@@ -890,13 +904,32 @@ def evaluate_cmd(
             )  # fmt: skip
             payload["curve"] = curve.to_dict()
         if stability:
-            payload["stability"] = seed_stability(
+            matching = seed_stability(
                 bases, threshold=recur_above, allow_unverified=allow_unverified_basis
-            ).to_dict()
+            )
+            payload["stability"] = matching.to_dict()
+        settings = {
+            "adapter": adapter, "mask_variable": mask_variable, "layer": layer,
+            "blocks": blocks, "test_blocks": list(test_blocks) or [-1], "gap": gap,
+            "bases": [str(p) for p in basis_paths],
+            "basis_sha256": [basis_hash(b) for b in bases], "pca": ranks, "stability": stability,
+            "recur_above": recur_above, "active_above": active_above,
+            "duplicate_above": duplicate_above,
+            "allow_unverified_basis": allow_unverified_basis,
+        }  # fmt: skip
+        command = _evaluate_command(source, info, settings)
     payload = jsonable(payload)
     if out:
         Path(out).parent.mkdir(parents=True, exist_ok=True)
         Path(out).write_text(json.dumps(payload, indent=2) + "\n")
+    if record_path:  # refused with --split-only, so everything below was computed
+        save_record(
+            record_path,
+            evaluation_record(
+                info, split, evaluations=evaluations, curve=curve, stability=matching,
+                bases=bases, settings=settings, command=command,
+            ),
+        )  # fmt: skip
     if as_json:
         click.echo(json.dumps(payload, indent=2))
         return
@@ -907,24 +940,6 @@ def evaluate_cmd(
     if split_only:
         click.echo("\ntrain  " + "\n       ".join(split.train))
         return
-    reproduce = ["xaig latents evaluate", shlex.quote(source)]
-    if adapter != "latent-archive":
-        reproduce.append(f"--adapter {shlex.quote(adapter)}")
-    if mask_variable:
-        reproduce.append(f"--mask-variable {shlex.quote(mask_variable)}")
-    if _remembered("revision"):
-        reproduce.append(f"--revision {shlex.quote(_remembered('revision'))}")
-    reproduce.append(f"--layer {layer} --blocks {blocks} --gap {gap}")
-    reproduce += [f"--test-block {b}" for b in test_blocks]
-    for path, b in zip(basis_paths, bases, strict=True):
-        reproduce.append(f"--basis {shlex.quote(path)} --basis-sha256 {basis_hash(b)}")
-    if pca_text:
-        reproduce.append(f"--pca {pca_text}")
-    if stability:
-        reproduce.append(f"--stability --recur-above {recur_above:g}")
-    reproduce.append(f"--active-above {active_above:g} --duplicate-above {duplicate_above:g}")
-    if allow_unverified_basis:
-        reproduce.append("--allow-unverified-basis")
     rows = [
         {
             "basis": Path(p).name, "features": e["n_features"], "fitted": e["fitted_on"],
@@ -957,7 +972,55 @@ def evaluate_cmd(
             f"(median {s['matched_similarity']['median']:.3f}; random directions "
             f"{s['chance_similarity']['median']:.3f})"
         )
-    click.echo("\nreproduce: " + " ".join(reproduce))
+    click.echo(f"\nreproduce: {command}")
+
+
+def _evaluate_command(source: str, info, settings: dict) -> str:
+    """The shell command that redoes an evaluation. It pins the archive's commit, which
+    an ``hf://`` source resolves, and each basis by the content hash of the file read."""
+    s = settings
+    words = ["xaig", "latents", "evaluate", source, "--adapter", s["adapter"]]
+    if s["mask_variable"]:
+        words += ["--mask-variable", s["mask_variable"]]
+    if info.commit:
+        words += ["--revision", info.commit]
+    words += ["--layer", s["layer"], "--blocks", s["blocks"], "--gap", s["gap"]]
+    for block in s["test_blocks"]:
+        words += ["--test-block", block]
+    for path, sha256 in zip(s["bases"], s["basis_sha256"], strict=True):
+        words += ["--basis", path, "--basis-sha256", sha256]
+    if s["pca"]:
+        words += ["--pca", ",".join(map(str, s["pca"]))]
+    if s["stability"]:
+        words += ["--stability", "--recur-above", f"{s['recur_above']:g}"]
+    words += ["--active-above", f"{s['active_above']:g}"]
+    words += ["--duplicate-above", f"{s['duplicate_above']:g}"]
+    if s["allow_unverified_basis"]:
+        words.append("--allow-unverified-basis")
+    return shlex.join(str(w) for w in words)
+
+
+def _steer_command(source, settings: dict, spec: dict, basis_sha256: str) -> str:
+    """The shell command that redoes a steering experiment, the basis pinned by content."""
+    s, steer = settings, spec["steer"]
+    words = ["xaig", "latents", "steer", *([source] if source else [])]
+    words += ["--adapter", s["adapter"]]
+    for key, value in s["adapter_options"].items():
+        words += ["--adapter-option", f"{key}={json.dumps(value)}"]
+    words += ["--basis", s["basis"], "--basis-sha256", basis_sha256]
+    words += ["--layer", steer["layer"], "--feature", steer["feature"]]
+    words += ["--mode", steer["mode"], "--amount", f"{steer['amount']!r}"]
+    for t in steer["times"]:
+        words += ["--time", t]
+    words += ["--steps", spec["steps"], "--seeds", ",".join(map(str, spec["seeds"]))]
+    words += ["--random-draws", spec["n_random"], "--random-seed", spec["random_seed"]]
+    for name in s["fields"]:
+        words += ["--field", name]
+    for layer in s["record_layers"]:
+        words += ["--record-layer", layer]
+    if s["allow_unverified_basis"]:
+        words.append("--allow-unverified-basis")
+    return shlex.join(str(w) for w in words)
 
 
 def _adapter_options(pairs: tuple[str, ...]) -> dict:
@@ -999,12 +1062,13 @@ def _adapter_options(pairs: tuple[str, ...]) -> dict:
 @click.option("--record-layer", "record_layers", type=int, multiple=True,
               help="Also compare the latents of this layer; repeatable.")  # fmt: skip
 @click.option("--out", type=click.Path(dir_okay=False), help="Also write the result (JSON).")
+@_record_option
 @_unverified_option
 @_json_option
 def steer_cmd(
     source, adapter, adapter_options, basis_path, layer, feature, mode, amount, times, steps,
-    seeds_text, random_draws, random_seed, fields, record_layers, out, allow_unverified_basis,
-    as_json,
+    seeds_text, random_draws, random_seed, fields, record_layers, out, record_path,
+    allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Change a feature inside a running system and set what happens against chance.
 
@@ -1013,7 +1077,13 @@ def steer_cmd(
     --random-draws with a random direction of the same length changed by the same amount.
     Each field's response to the feature is reported against the random directions'.
     """
-    from xaig.latents import Steer, open_intervenable, run_steering
+    from xaig.latents import (
+        Steer,
+        open_intervenable,
+        run_steering,
+        save_record,
+        steering_record,
+    )
     from xaig.latents.evaluate import jsonable, save_result
 
     basis = _basis(basis_path)
@@ -1030,12 +1100,20 @@ def steer_cmd(
         record_layers=list(record_layers) or None,
         allow_unverified_basis=allow_unverified_basis,
     )  # fmt: skip
+    spec = result.spec
+    settings = {
+        "adapter": adapter, "adapter_options": options, "basis": basis_path,
+        "fields": list(fields), "record_layers": list(record_layers),
+        "allow_unverified_basis": allow_unverified_basis,
+    }  # fmt: skip
+    command = _steer_command(source, settings, spec, result.provenance["basis"]["sha256"])
     if out:
         save_result(out, result)
+    if record_path:
+        save_record(record_path, steering_record(result, settings=settings, command=command))
     if as_json:
         click.echo(json.dumps(jsonable(result.to_dict()), indent=2))
         return
-    spec = result.spec
     click.echo(
         f"{mode} {amount:g} on feature {feature} of layer {layer} at time(s) "
         f"{', '.join(map(str, spec['steer']['times']))}; {steps} step(s), "
@@ -1053,22 +1131,7 @@ def steer_cmd(
         for name, e in result.effects.items()
     ]  # fmt: skip
     click.echo("\n" + _render.table(rows))
-    provenance = result.provenance
-    pinned = ["xaig", "latents", "steer"] + ([shlex.quote(source)] if source else [])
-    pinned.append(f"--adapter {shlex.quote(adapter)}")
-    for key, value in options.items():
-        pinned.append(f"--adapter-option {shlex.quote(f'{key}={json.dumps(value)}')}")
-    pinned += [f"--basis {shlex.quote(basis_path)}"]
-    pinned += [f"--basis-sha256 {provenance['basis']['sha256']}"]
-    if allow_unverified_basis:
-        pinned.append("--allow-unverified-basis")
-    pinned += [f"--layer {layer}", f"--feature {feature}", f"--mode {mode}", f"--amount {amount!r}"]
-    pinned += [f"--time {t}" for t in spec["steer"]["times"]]
-    pinned += [f"--steps {steps}", f"--seeds {','.join(map(str, spec['seeds']))}"]
-    pinned += [f"--random-draws {random_draws}", f"--random-seed {random_seed}"]
-    pinned += [f"--field {shlex.quote(name)}" for name in fields]
-    pinned += [f"--record-layer {r}" for r in record_layers]
-    click.echo(f"\nreproduce: {' '.join(pinned)}")
+    click.echo(f"\nreproduce: {command}")
 
 
 __all__ = ["latents"]

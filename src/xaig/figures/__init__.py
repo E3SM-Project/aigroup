@@ -10,7 +10,7 @@ Needs the ``figures`` extra (matplotlib, and cartopy for coastlines).
 
 from __future__ import annotations
 
-from xaig.figures.bars import profile_figure
+from xaig.figures.bars import profile_figure, response_figure
 from xaig.figures.grids import hovmoller_figure, layer_time_figure
 from xaig.figures.maps import have_coastlines, map_figure, to_png, why_no_coastlines
 from xaig.figures.series import series_figure
@@ -21,6 +21,7 @@ __all__ = [
     "layer_time_figure",
     "map_figure",
     "profile_figure",
+    "response_figure",
     "series_figure",
     "to_png",
     "why_no_coastlines",

@@ -216,3 +216,58 @@ def hub(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "huggingface_hub", module)
     monkeypatch.setitem(sys.modules, "huggingface_hub.utils", utils)
     return types.SimpleNamespace(fetched=fetched, asked=asked, heads=heads, remote=remote)
+
+
+# -- experiment records, written the way a person would: by the commands ------------------
+
+
+def write_steering_record(tmp_path: Path):
+    """Run ``latents steer`` on the planted system with ``--record``: ``(full result, path)``."""
+    import json
+
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+    from xaig.adapters.toy_dynamics import ToyDynamics
+    from xaig.latents import save_basis
+
+    basis = tmp_path / "planted.npz"
+    save_basis(basis, ToyDynamics(masked=3).planted_dictionary())
+    record = tmp_path / "records" / "steer-record.json"
+    args = [
+        "latents", "steer", "--adapter", "toy-dynamics", "--adapter-option", "masked=3",
+        "--basis", str(basis), "--layer", "1", "--feature", "0", "--amount", "1.5",
+        "--time", "1", "--steps", "5", "--seeds", "0,1", "--random-draws", "12",
+        "--record", str(record), "--json",
+    ]  # fmt: skip
+    done = CliRunner().invoke(cli, args)
+    assert done.exit_code == 0, done.output
+    return json.loads(done.output), record
+
+
+def write_evaluation_record(tmp_path: Path):
+    """Run ``latents evaluate`` on a toy archive, two PCAs fitted on its training times, with
+    ``--record``: ``(full result, path, the two basis files)``."""
+    import json
+
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    run = CliRunner()
+    archive = str(tmp_path / "toy")
+    assert run.invoke(cli, ["latents", "toy", archive]).exit_code == 0
+    fits = []
+    for name in ("a.npz", "b.npz"):
+        out = str(tmp_path / name)
+        fit = ["latents", "pca", archive, "--components", "4", "--out", out]
+        done = run.invoke(cli, [*fit, *(x for i in range(5) for x in ("--time", str(i)))])
+        assert done.exit_code == 0, done.output
+        fits.append(out)
+    record = tmp_path / "records" / "eval-record.json"
+    args = ["latents", "evaluate", archive, "--blocks", "4", "--pca", "1,4", "--stability"]
+    for basis in fits:
+        args += ["--basis", basis]
+    done = run.invoke(cli, [*args, "--mask-variable", "sst", "--record", str(record), "--json"])
+    assert done.exit_code == 0, done.output
+    return json.loads(done.output), record, fits

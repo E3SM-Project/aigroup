@@ -150,5 +150,6 @@ nav:
       - Sparse autoencoders: package/nn.md
       - Evaluating a dictionary: package/evaluation.md
       - Steering: package/steering.md
+      - Experiment records: package/records.md
       - Web app: package/app.md
 

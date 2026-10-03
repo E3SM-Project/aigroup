@@ -47,6 +47,7 @@ Every option is optional: archives can also be opened from the sidebar.
 | Option | Meaning |
 | --- | --- |
 | `--latents` | a latent archive, a directory of them, or a Hugging Face path (`hf://datasets/<owner>/<repo>/<folder>`, with `xaig[hf]`) to offer in the explorer; repeatable |
+| `--record` | an [experiment record](records.md) (from `latents evaluate --record` or `latents steer --record`) to offer under Records; repeatable |
 | `--port` | 8501 by default |
 | `--address` | the interface to listen on; `localhost` by default, so the app is reachable from this machine only |
 | `--headless` | do not open a browser |
@@ -102,6 +103,25 @@ told apart — then a time, a layer and a region. The view is
   hash, so they rerun the same inputs
   ([provenance](latents.md#provenance-what-a-result-was-made-from)).
 
+## Records
+
+The second page, *Records*, opens an [experiment record](records.md): choose one from
+`--record` or type a path in the sidebar. It is presentation only, like the page above — it
+holds what the file holds, computes nothing, and a file that is not a record this xaig reads
+(another version, another format, a part missing) is a warning on the page and not a
+traceback.
+
+- **Where it came from** — the source, the network it declares, the commit a hub archive was
+  opened at, the options and the exporter's notes, and each basis by content hash.
+- **Held-out evaluation** (for an evaluation) — how many times were fitted on, scored on and
+  left between; the split as time labels; a table per basis; the fidelity-sparsity curve
+  and the seed stability if the run asked for them.
+- **Steering, against random directions** (for a steering run) — a row per field with the
+  feature's response, the reconstruction-only arm's and the random draws' mean magnitude,
+  and the feature's rank among the draws. *Field* chooses the histogram of that field's
+  random draws with the two arms marked on it.
+- **Reproduce** — the command, and a download of the record.
+
 Maps follow the page's theme. Signed quantities use a diverging blue–red scale symmetric
 about zero — with a light midpoint on a light page and a dark one on a dark page, so that
 zero always recedes — and nodes the grid marks invalid are a flat grey that belongs to no
@@ -143,3 +163,4 @@ fig.savefig("similarity.png", dpi=150)
 - [x] Rank channels and features against a reference field (`latents fields`),
       and profile one
 - [ ] A PDF report of a session
+- [ ] Two records side by side, and a record against the files it names

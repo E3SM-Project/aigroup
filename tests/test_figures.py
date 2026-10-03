@@ -242,3 +242,17 @@ def test_a_box_is_outlined(latent_archive):
     figure = map_figure(grid, np.zeros(grid.n_nodes), region=Box(-20, 20, 170, -170))
     ring_lon = figure.axes[0].lines[0].get_xdata()
     assert np.nanmax(np.abs(np.diff(ring_lon))) < 180.0
+
+
+def test_a_response_is_drawn_against_the_draws_in_magnitude():
+    from xaig.figures import response_figure
+
+    draws = [-0.5, 0.25, 0.5, np.nan, 0.75]  # signed, and one that is not a number
+    figure = response_figure(draws, feature=-2.0, reconstruction=0.5, title="temperature")
+    ax = figure.axes[0]
+    assert [round(float(line.get_xdata()[0]), 6) for line in ax.lines] == [2.0, 0.5]
+    assert sum(patch.get_height() for patch in ax.patches) == 4  # the NaN is left out
+    assert ax.get_xlim()[1] >= 2.0  # the feature is on the axis, however far it is
+    assert "feature -2" in ax.get_legend().get_texts()[1].get_text()
+    assert len(response_figure([0.1, 0.2], 0.3).axes[0].lines) == 1
+    response_figure([], 1.0)  # nothing to compare with is still a figure

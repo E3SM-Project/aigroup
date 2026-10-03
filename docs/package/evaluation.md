@@ -120,6 +120,14 @@ It compares *at equal L0*, which is not equal cost, equal interpretability or eq
 width: a dictionary has more features than channels and a PCA has not. It says
 nothing about which is better for steering or naming a feature.
 
+## Keeping a run
+
+The command ends with a `reproduce:` line that names the archive's commit (for an `hf://`
+source), the split, every basis file and the thresholds, and `--record FILE` writes the
+numbers, the split and that command as an [experiment record](records.md), which
+`xaig app --record FILE` opens. `--out` still writes the whole result. The line does not
+pin the bases by hash, since `--basis-sha256` holds one; the record lists each basis's hash.
+
 ## Python API
 
 ```python

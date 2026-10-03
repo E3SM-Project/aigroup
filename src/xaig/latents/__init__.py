@@ -23,6 +23,8 @@ Reading is an adapter's job (see ``LatentSource``); this package computes.
                 redundant features, stability across seeds, PCA against a dictionary
 - ``steering`` steering: edit a feature inside a running model, four arms, paired noise,
                 the response against random directions
+- ``record``    the experiment record: a versioned, compact JSON file of one evaluation or
+                steering run, with its provenance and the command that reproduces it
 - ``features``  what a feature is, without a field in mind: a census of a layer, and one
                 feature's profile against every field
 - ``toy``       a toy emulator in numpy, so an archive can be made with no model
@@ -82,6 +84,14 @@ if TYPE_CHECKING:
         FeatureProfile,
         feature_census,
         feature_profile,
+    )
+    from xaig.latents.record import (
+        ExperimentRecord,
+        evaluation_record,
+        load_record,
+        record_from_dict,
+        save_record,
+        steering_record,
     )
     from xaig.latents.samples import (
         Moments,
@@ -177,6 +187,12 @@ _LAZY = {
     "FeatureProfile": "features",
     "feature_census": "features",
     "feature_profile": "features",
+    "ExperimentRecord": "record",
+    "evaluation_record": "record",
+    "load_record": "record",
+    "record_from_dict": "record",
+    "save_record": "record",
+    "steering_record": "record",
     "Moments": "samples",
     "accumulate_moments": "samples",
     "iter_batches": "samples",
@@ -225,6 +241,7 @@ __all__ = [
     "DifferenceGrowth",
     "Effect",
     "Evaluation",
+    "ExperimentRecord",
     "FeatureCensus",
     "FeatureProfile",
     "FidelityCurve",
@@ -262,6 +279,7 @@ __all__ = [
     "difference",
     "difference_growth",
     "evaluate_basis",
+    "evaluation_record",
     "feature_census",
     "feature_direction",
     "feature_profile",
@@ -272,6 +290,7 @@ __all__ = [
     "iter_batches",
     "load_basis",
     "load_channels",
+    "load_record",
     "open_intervenable",
     "open_source",
     "parse_time",
@@ -279,15 +298,18 @@ __all__ = [
     "rank_by_field",
     "rank_channels",
     "read_latents",
+    "record_from_dict",
     "region_series",
     "result_provenance",
     "run_steering",
     "save_basis",
+    "save_record",
     "save_result",
     "seed_stability",
     "spline_knots",
     "split_archives",
     "split_groups",
     "split_time_blocks",
+    "steering_record",
     "top_loadings",
 ]

@@ -7,11 +7,17 @@ import os
 from pathlib import Path
 
 LATENTS_ENV = "XAIG_APP_LATENTS"
+RECORDS_ENV = "XAIG_APP_RECORDS"
 
 
 def configured_latents() -> list[str]:
     """One archive per line: a URL holds the colon that would separate paths."""
     return [p for p in os.environ.get(LATENTS_ENV, "").splitlines() if p]
+
+
+def configured_records() -> list[str]:
+    """One experiment-record file per line."""
+    return [p for p in os.environ.get(RECORDS_ENV, "").splitlines() if p]
 
 
 def discover_archives(path: str | Path) -> list[str]:
