@@ -148,5 +148,6 @@ nav:
       - Overview: package/index.md
       - Latent diagnostics: package/latents.md
       - Sparse autoencoders: package/nn.md
+      - Evaluating a dictionary: package/evaluation.md
       - Web app: package/app.md
 

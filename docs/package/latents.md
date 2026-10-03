@@ -252,7 +252,8 @@ same feature 676 that answered most strongly in the equatorial Pacific above, bu
 from the same channel 45. Correlation is area-weighted over valid nodes, leaves out nodes
 where the field is missing, is taken at one time, and says nothing about cause: it is
 where an expedition starts, and a [steering experiment](#a-run-against-its-control) is
-where it ends.
+where it ends. That 0.97 is in-sample: the dictionary was fitted on these times. How a
+dictionary does on times it was not fitted to is [its own page](evaluation.md).
 
 ## Browsing features, and what one goes with
 
