@@ -1093,7 +1093,7 @@ is the machine's business.</p>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">  step     25  reconstruction 10.28</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">  step    300  reconstruction 0.9374</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">  step    600  reconstruction 0.2854</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">wrote scratch/toy/sae.npz: 64 feature(s) of layer 2; 98.6% of the variance explained, 8.0 active per node, 14.1% dead</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">wrote scratch/toy/sae.npz: 64 feature(s) of layer 2; 98.6% of the variance explained, 8.0 active per node, 14.1% dead; --basis-sha256 &lt;sha256 of scratch/toy/sae.npz&gt;</span>
 </span></code></pre></div>
 <p>That is the <a href="../">toy system</a> (1,152 nodes, a few seconds on a CPU), not a real
 model: its numbers show what the output looks like and say nothing about what a dictionary
@@ -1193,6 +1193,10 @@ so an activation is in the same units for every feature — how much of the stan
 layer it accounts for at that node — and two features can be compared by it. Batches come from
 <a href="../latents/#python-api"><code>iter_batches</code></a> — valid nodes only, drawn in proportion to area —
 so the plain mean the loop takes is already the area-weighted loss.</p>
+<p>The file carries a content hash, checked whenever it is loaded, and the line ends with it:
+<code>--basis-sha256</code> hands it back to any command that takes <code>--basis</code>, which then refuses a
+file that is not this one. What a result used is recorded under its provenance; see
+<a href="../latents/#provenance-what-a-result-was-made-from">Provenance</a>.</p>
 <h2 id="python-api">Python API</h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.latents</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_source</span><span class="p">,</span> <span class="n">save_basis</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">xaig.nn.train</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_sae</span>
