@@ -17,7 +17,7 @@ from xaig.latents import (  # noqa: E402
     Dictionary,
     Region,
     accumulate_moments,
-    analyse_region,
+    analyze_region,
     basis_hash,
     basis_provenance,
     bspline_activation,
@@ -37,7 +37,7 @@ HERE = Region(lat=BUMP[0], lon=BUMP[1], radius_km=2500.0)
 
 def _dictionary(**kwargs) -> Dictionary:
     """Three features over two channels, small enough to work out by hand:
-    inputs are standardised as (x - [1, 0]) / 2."""
+    inputs are standardized as (x - [1, 0]) / 2."""
     weights = np.array([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]])
     given = dict(
         encoder=weights,
@@ -57,8 +57,8 @@ def test_a_pca_and_a_dictionary_are_both_decompositions():
         assert (basis.n_features, basis.n_channels) == shape == basis.directions().shape
 
 
-def test_a_dictionary_standardises_encodes_and_rebuilds():
-    x = np.array([[5.0, 4.0]])  # standardised: (2, 2); pre-activations: 2, 1, -2
+def test_a_dictionary_standardizes_encodes_and_rebuilds():
+    x = np.array([[5.0, 4.0]])  # standardized: (2, 2); pre-activations: 2, 1, -2
     relu = _dictionary()
     assert relu.transform(x).tolist() == [[2.0, 1.0, 0.0]]
     assert relu.reconstruct(x).tolist() == [[5.0, 2.0]]
@@ -167,7 +167,7 @@ def global_pca(latent_archive):
 
 def test_a_given_basis_maps_its_features_that_respond_in_the_region(latent_archive, global_pca):
     source = open_source(latent_archive)
-    result = analyse_region(source, time=0, layer=2, region=HERE, n_components=2, basis=global_pca)
+    result = analyze_region(source, time=0, layer=2, region=HERE, n_components=2, basis=global_pca)
     first = result.feature_info[0]
     assert first["label"] == "F0" and first["top_loadings"][0]["channel"] == 4  # the bump
     assert first["peak_abs"] >= result.feature_info[1]["peak_abs"]
@@ -175,23 +175,26 @@ def test_a_given_basis_maps_its_features_that_respond_in_the_region(latent_archi
     assert result.summary()["features"] == list(result.feature_info)
 
 
-def test_a_basis_sees_raw_latents_whatever_the_analysis_centres(latent_archive, global_pca):
-    """It carries the standardisation it was fitted with; centring twice is wrong."""
+def test_a_basis_sees_raw_latents_whatever_the_analysis_centers(latent_archive, global_pca):
+    """It carries the standardization it was fitted with; centering twice is wrong."""
     source = open_source(latent_archive)
     kwargs = dict(time=0, layer=2, region=HERE, n_components=2, basis=global_pca)
-    raw, centred = analyse_region(source, **kwargs), analyse_region(source, centred=True, **kwargs)
-    assert np.array_equal(raw.scores, centred.scores)
-    assert raw.ranking.channels[0] == 1 and centred.ranking.channels[0] == 4  # unlike the ranking
+    raw, centered = (
+        analyze_region(source, **kwargs),
+        analyze_region(source, centered=True, **kwargs),
+    )
+    assert np.array_equal(raw.scores, centered.scores)
+    assert raw.ranking.channels[0] == 1 and centered.ranking.channels[0] == 4  # unlike the ranking
 
 
 def test_a_basis_for_another_layer_is_refused_before_anything_is_read(latent_archive):
     source = open_source(latent_archive)
     narrow = fit_pca(np.random.default_rng(0).normal(size=(10, 3)), 2)
     with pytest.raises(RequestError, match="reads 3 channel"):
-        analyse_region(source, time=0, layer=2, region=HERE, n_components=1, basis=narrow)
+        analyze_region(source, time=0, layer=2, region=HERE, n_components=1, basis=narrow)
     wide = pca_from_moments(accumulate_moments(source, layer=2), 3)
     with pytest.raises(RequestError, match="at most 3 exist"):
-        analyse_region(source, time=0, layer=2, region=HERE, n_components=4, basis=wide)
+        analyze_region(source, time=0, layer=2, region=HERE, n_components=4, basis=wide)
 
 
 # -- what a second review found ---------------------------------------------
@@ -220,26 +223,26 @@ def test_a_basis_is_refused_where_it_was_not_fitted(latent_archive):
     here = {"fitted_on": {"layer": 2, "provenance": source.info().provenance()}}
     signed = replace(fit_pca(np.random.default_rng(0).normal(size=(40, 6)), 2), meta=here)
     kwargs = dict(time=0, region=HERE, n_components=1, basis=signed)
-    assert analyse_region(source, layer=2, **kwargs).scores is not None
+    assert analyze_region(source, layer=2, **kwargs).scores is not None
     with pytest.raises(RequestError, match="layer 1 against the layer 2 it was fitted on"):
-        analyse_region(source, layer=1, rank_layer=1, **kwargs)
+        analyze_region(source, layer=1, rank_layer=1, **kwargs)
 
     manifest = json.loads((latent_archive / "manifest.json").read_text())
     manifest["checkpoint"] = "another-seed.ckpt"
     (latent_archive / "manifest.json").write_text(json.dumps(manifest))
     elsewhere = open_source(latent_archive)
     with pytest.raises(RequestError, match="checkpoint 'another-seed.ckpt' against 'toy.ckpt'"):
-        analyse_region(elsewhere, layer=2, **kwargs)
+        analyze_region(elsewhere, layer=2, **kwargs)
     unsigned = replace(signed, meta={})
     with pytest.raises(RequestError, match="compatibility is unverified"):
-        analyse_region(elsewhere, layer=2, **{**kwargs, "basis": unsigned})
-    overridden = analyse_region(
+        analyze_region(elsewhere, layer=2, **{**kwargs, "basis": unsigned})
+    overridden = analyze_region(
         elsewhere, layer=2, **{**kwargs, "basis": unsigned}, allow_unverified_basis=True
     )
     assert overridden.scores is not None
     assert overridden.settings["allow_unverified_basis"] is True
     with pytest.raises(RequestError, match="checkpoint"):
-        analyse_region(elsewhere, layer=2, **kwargs, allow_unverified_basis=True)
+        analyze_region(elsewhere, layer=2, **kwargs, allow_unverified_basis=True)
 
 
 def test_features_rank_by_what_they_contribute_not_by_a_dictionarys_bookkeeping(latent_archive):
@@ -252,7 +255,7 @@ def test_features_rank_by_what_they_contribute_not_by_a_dictionarys_bookkeeping(
         encoder=loud, encoder_bias=np.zeros(2), decoder=quiet, decoder_bias=np.zeros(6),
         input_mean=np.zeros(6),
     )  # fmt: skip
-    result = analyse_region(
+    result = analyze_region(
         open_source(latent_archive),
         time=0,
         layer=2,
@@ -267,27 +270,27 @@ def test_features_rank_by_what_they_contribute_not_by_a_dictionarys_bookkeeping(
     assert first["peak_contribution"] == pytest.approx(10 * second["peak_contribution"], rel=1e-5)
 
 
-@pytest.mark.parametrize("centred", [False, True])
-def test_region_basis_round_trips_raw_inputs_with_identity(latent_archive, tmp_path, centred):
+@pytest.mark.parametrize("centered", [False, True])
+def test_region_basis_round_trips_raw_inputs_with_identity(latent_archive, tmp_path, centered):
     source = open_source(latent_archive)
     kwargs = dict(time=0, layer=2, region=HERE, n_components=2)
-    result = analyse_region(source, **kwargs, centred=centred)
+    result = analyze_region(source, **kwargs, centered=centered)
     raw = source.load(0, 2)
     valid = source.grid().valid
     restored = load_basis(save_basis(tmp_path / "region.npz", result.pca))
     np.testing.assert_allclose(restored.transform(raw)[valid], result.scores[valid], atol=1e-12)
-    raw_result = analyse_region(source, **kwargs, centred=False)
+    raw_result = analyze_region(source, **kwargs, centered=False)
     np.testing.assert_allclose(result.scores, raw_result.scores, atol=1e-12)
     fitted = restored.meta["fitted_on"]
     assert fitted["layer"] == 2
     assert fitted["time"] == source.info().times[0]
     assert fitted["region"] == result.settings["region"]
     assert fitted["provenance"] == source.info().provenance()
-    reused = analyse_region(source, **kwargs, basis=restored, centred=centred)
+    reused = analyze_region(source, **kwargs, basis=restored, centered=centered)
     order = [feature["feature"] for feature in reused.feature_info]
     np.testing.assert_allclose(reused.scores, result.scores[:, order], atol=1e-12)
     with pytest.raises(RequestError, match="layer 0"):
-        analyse_region(source, **{**kwargs, "layer": 0}, basis=restored)
+        analyze_region(source, **{**kwargs, "layer": 0}, basis=restored)
 
 
 def test_pca_projection_retains_small_float32_variation_across_blocks():
@@ -334,7 +337,7 @@ def test_incomplete_basis_identity_refused_before_loading(latent_archive, missin
             pytest.fail("invalid request loaded latents")
 
     with pytest.raises(RequestError, match=f"missing {missing}"):
-        analyse_region(Unreadable(), time=0, layer=2, region=HERE, basis=basis)
+        analyze_region(Unreadable(), time=0, layer=2, region=HERE, basis=basis)
 
 
 def test_missing_source_identity_needs_override(latent_archive):
@@ -343,7 +346,7 @@ def test_missing_source_identity_needs_override(latent_archive):
     from xaig.latents.source import check_basis_fits
 
     source = open_source(latent_archive)
-    result = analyse_region(source, time=0, layer=2, region=HERE, n_components=1)
+    result = analyze_region(source, time=0, layer=2, region=HERE, n_components=1)
     info = replace(source.info(), checkpoint=None)
     with pytest.raises(RequestError, match="missing checkpoint"):
         check_basis_fits(result.pca, info, 2)
@@ -472,7 +475,7 @@ def test_the_hash_is_of_the_basis_not_of_the_note_or_the_file_it_is_in(tmp_path)
 
 
 def test_a_planted_hash_known_by_hand():
-    """Not a tautology: the digest of a one-component PCA is spelt out here."""
+    """Not a tautology: the digest of a one-component PCA is spelled out here."""
     import hashlib
 
     pca = PCA(
@@ -540,11 +543,11 @@ def test_an_unhashed_file_needs_the_same_explicit_acceptance_as_unverified_ident
     _, path = fitted
     source = open_source(latent_archive)
     here = {"time": 0, "layer": 2, "region": HERE, "n_components": 0}
-    analyse_region(source, basis=load_basis(path), **here)  # hashed: no flag needed
+    analyze_region(source, basis=load_basis(path), **here)  # hashed: no flag needed
     _rewrite(path, record=lambda r: r.pop("sha256"))
     with pytest.raises(RequestError, match="unverified.*content hash"):
-        analyse_region(source, basis=load_basis(path), **here)
-    allowed = analyse_region(
+        analyze_region(source, basis=load_basis(path), **here)
+    allowed = analyze_region(
         source, basis=load_basis(path), allow_unverified_basis=True, **here
     ).summary()
     assert allowed["provenance"]["basis"]["status"] == "unhashed"
@@ -557,11 +560,11 @@ def test_results_carry_the_hash_of_the_basis_they_used(fitted, latent_archive):
     source = open_source(latent_archive)
     used = load_basis(path)
     expected = {"path": str(path), "sha256": basis_hash(basis), "status": "verified"}
-    result = analyse_region(source, time=0, layer=2, region=HERE, basis=used, n_components=2)
+    result = analyze_region(source, time=0, layer=2, region=HERE, basis=used, n_components=2)
     assert result.summary()["provenance"]["basis"] == expected
     assert region_series(source, layer=2, region=HERE, basis=used).provenance["basis"] == expected
     # No basis, nothing claimed.
-    assert "basis" not in analyse_region(source, time=0, layer=2, region=HERE).provenance
+    assert "basis" not in analyze_region(source, time=0, layer=2, region=HERE).provenance
 
 
 def test_the_hash_of_a_basis_fitted_on_a_hub_archive_includes_the_commit(hub):

@@ -42,7 +42,7 @@ class Decomposition(Protocol):
     """A fitted map from channels to features.
 
     ``transform`` takes *raw* latents, ``(n_nodes, n_channels)``: whatever
-    centring or scaling a basis was fitted with is its own business and travels
+    centering or scaling a basis was fitted with is its own business and travels
     with it. ``features`` narrows the result to some columns, which matters for a
     dictionary of thousands: a map of six features must not cost all of them.
     ``directions`` is each feature in channel space, ``(n_features, n_channels)``
@@ -95,7 +95,7 @@ def top_loadings(basis: Decomposition, features: Sequence[int], n: int = 6):
 
 def fix_signs(components: np.ndarray) -> np.ndarray:
     """Make each row's largest loading positive. A decomposition leaves signs
-    arbitrary, and a map that flips colour between two runs of the same analysis
+    arbitrary, and a map that flips color between two runs of the same analysis
     is not reproducible."""
     lead = np.argmax(np.abs(components), axis=1)
     signs = np.sign(components[np.arange(components.shape[0]), lead])
@@ -126,7 +126,7 @@ class PCA:
     def transform(self, latents: np.ndarray, features: Sequence[int] | None = None) -> np.ndarray:
         """Project ``(n_nodes, n_channels)`` onto the components: ``(n_nodes, k)``.
 
-        Centre and project in float64, a bounded block of nodes at a time.
+        Center and project in float64, a bounded block of nodes at a time.
         Subtracting the mean before projection preserves small variations around
         large offsets without allocating a float64 copy of the whole layer.
         """
@@ -253,7 +253,7 @@ def topk_mask(z: np.ndarray, k: int) -> np.ndarray:
     Everything above the ``k``-th largest value is kept, and the places left over
     go to the entries *equal* to it in order of index. "At least the k-th value"
     keeps every tie instead, so four equal activations would all survive a top-1.
-    The rule is spelt with comparisons and a running count so that the torch twin
+    The rule is spelled with comparisons and a running count so that the torch twin
     in ``xaig.nn`` can spell it identically: the two must never disagree about
     which feature of a tie fired.
     """
@@ -268,7 +268,7 @@ class Dictionary:
     """A sparse autoencoder, fitted elsewhere, as plain arrays.
 
     ``encoder`` and ``decoder`` are ``(n_features, n_channels)``. Inputs are
-    standardised as ``(x - input_mean) / input_scale`` before encoding, because
+    standardized as ``(x - input_mean) / input_scale`` before encoding, because
     that is how the dictionary was trained and a feature's activation means
     nothing otherwise. With ``output_*`` set apart from ``input_*`` it is a
     transcoder: it reads one layer and writes another.

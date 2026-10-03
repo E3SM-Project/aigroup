@@ -1,9 +1,9 @@
 """latents -- what a model's internal channels respond to, on a grid.
 
-    from xaig.latents import Region, analyse_region, open_source
+    from xaig.latents import Region, analyze_region, open_source
 
     source = open_source("latents/atmosphere")
-    result = analyse_region(
+    result = analyze_region(
         source, time=0, layer=8, region=Region(lat=5, lon=-140, radius_km=1500), n_components=4
     )
     result.ranking.channels      # which channels respond in the region
@@ -47,7 +47,7 @@ if TYPE_CHECKING:
         ChannelRanking,
         Region,
         RegionAnalysis,
-        analyse_region,
+        analyze_region,
         cosine_similarity,
         load_channels,
         rank_channels,
@@ -145,7 +145,7 @@ _LAZY = {
     "ChannelRanking": "analysis",
     "Region": "analysis",
     "RegionAnalysis": "analysis",
-    "analyse_region": "analysis",
+    "analyze_region": "analysis",
     "cosine_similarity": "analysis",
     "load_channels": "analysis",
     "rank_channels": "analysis",
@@ -269,7 +269,7 @@ __all__ = [
     "Steer",
     "SteeringResult",
     "accumulate_moments",
-    "analyse_region",
+    "analyze_region",
     "basis_hash",
     "basis_provenance",
     "bspline_activation",

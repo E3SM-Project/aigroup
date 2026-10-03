@@ -251,12 +251,12 @@ def toy_cmd(out, steps, keep, seed, steer, overwrite, adapter) -> None:
 @_adapter_option
 @_mask_option
 @click.option("--time", "time", default="0", show_default=True, help="Time label, or position.")
-@click.option("--layer", type=int, help="Layer to analyse.  [default: the last]")
+@click.option("--layer", type=int, help="Layer to analyze.  [default: the last]")
 @click.option("--rank-layer", type=int, help="Layer to rank channels at.  [default: the last]")
 @_region_options
 @click.option("--top", type=int, default=15, show_default=True, help="Channels to rank.")
 @click.option("--pin", "pinned", type=int, multiple=True, help="Channel to list first; repeatable.")
-@click.option("--centred", is_flag=True, help="Remove each channel's global mean first.")
+@click.option("--centered", is_flag=True, help="Remove each channel's global mean first.")
 @click.option("--reference", type=click.Choice(["nearest", "mean"]), default="nearest")
 @click.option(
     "--pcs",
@@ -274,10 +274,10 @@ def region_cmd(
     source, adapter, mask_variable, time, layer, as_json, lat, lon, radius_km, basis_path, **kw
 ):
     """Rank the channels that respond in a region; optionally map a decomposition."""
-    from xaig.latents import Region, analyse_region
+    from xaig.latents import Region, analyze_region
 
     opened = open_for_cli(source, adapter, mask_variable)
-    result = analyse_region(
+    result = analyze_region(
         opened,
         time=_time(time),
         layer=opened.info().last_layer if layer is None else layer,
@@ -315,12 +315,12 @@ def region_cmd(
 @_region_options
 @click.option("--channel", "channels", type=int, multiple=True, help="Repeatable.")
 @click.option("--feature", "features", type=int, multiple=True, help="With --basis; repeatable.")
-@click.option("--centred", is_flag=True, help="Remove each channel's global mean at each time.")
+@click.option("--centered", is_flag=True, help="Remove each channel's global mean at each time.")
 @_basis_option
 @_unverified_option
 @_json_option
 def series_cmd(
-    source, adapter, mask_variable, layer, lat, lon, radius_km, channels, features, centred,
+    source, adapter, mask_variable, layer, lat, lon, radius_km, channels, features, centered,
     basis_path, allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Follow a region's mean response through every time of SOURCE."""
@@ -336,7 +336,7 @@ def series_cmd(
         channels=channels or None,
         basis=_basis(basis_path),
         features=features or None,
-        centred=centred,
+        centered=centered,
         allow_unverified_basis=allow_unverified_basis,
     )
     if as_json:
@@ -545,7 +545,7 @@ def hovmoller_cmd(
     source, adapter, mask_variable, lat_min, lat_max, field, layer, channel, basis_path, feature,
     bins, out, allow_unverified_basis, as_json,
 ):  # fmt: skip
-    """A quantity along a latitude band, longitude against time: travelling things tilt."""
+    """A quantity along a latitude band, longitude against time: traveling things tilt."""
     import numpy as np
 
     from xaig.latents import hovmoller

@@ -548,7 +548,7 @@ def _write_reference(file: Path, grid: Grid, fields: Mapping[str, np.ndarray]) -
         }
     else:
         dims, shape, coords = ("time", "node"), (n_times, grid.n_nodes), {}
-    # Times are labelled by the manifest; the file's own axis is positions, so no
+    # Times are labeled by the manifest; the file's own axis is positions, so no
     # calendar has to be encoded only to be ignored on the way back in.
     variables = {
         name: (dims, np.asarray(values, dtype=np.float32).reshape(shape))

@@ -82,7 +82,7 @@ the loop's own, taken while the weights were changing.
     learnable cubic B-spline per feature and nothing else: no hard zero, nine control
     points that start at zero, one knot vector over the 1st–99th percentile of the
     pre-activations measured on a calibration sample, sparsity from the L1 penalty alone
-    (annealed), decoder directions renormalised every step, and a feature counted alive by
+    (annealed), decoder directions renormalized every step, and a feature counted alive by
     the size of its control points. The activation above was written before we read that
     paper and differs on every one of those points. Do not report it as KAN-SAE.
 
@@ -93,11 +93,11 @@ the loop's own, taken while the weights were changing.
     dictionary on a laptop in seconds and says how good it is; making it better is what
     the modules being separate is for.
 
-Inputs are centred on the layer's area-weighted mean over the times used and divided by
+Inputs are centered on the layer's area-weighted mean over the times used and divided by
 one number, so a node's vector has unit mean square per channel and the channels keep
-their relative sizes. That standardisation travels in the file: an analysis hands the
+their relative sizes. That standardization travels in the file: an analysis hands the
 basis raw latents. Every feature's direction is kept at unit length throughout training,
-so an activation is in the same units for every feature — how much of the standardised
+so an activation is in the same units for every feature — how much of the standardized
 layer it accounts for at that node — and two features can be compared by it. Batches come from
 [`iter_batches`](latents.md#python-api) — valid nodes only, drawn in proportion to area —
 so the plain mean the loop takes is already the area-weighted loss.
@@ -122,7 +122,7 @@ save_basis("sae8.npz", dictionary)
 
 `metrics` describes the dictionary you were given, measured in one more pass over the last
 epoch's batches with the final weights frozen; quote it, and use `training_metrics` only to
-watch a run. A layer with no variance to standardise by (every channel constant) is a
+watch a run. A layer with no variance to standardize by (every channel constant) is a
 `RequestError`, not a NaN loss.
 
 `metrics` are in-sample. To score a dictionary on times it was not fitted to, fit it on
@@ -137,7 +137,7 @@ archives, grids or loops, so they can be lifted into any harness:
 from xaig.nn.sae import BSplineActivation, SparseAutoencoder
 
 sae = SparseAutoencoder(384, 1024, activation="bspline")
-rebuilt, features = sae(x)  # x standardised, (n, 384)
+rebuilt, features = sae(x)  # x standardized, (n, 384)
 total, reconstruction, features = sae.loss(x, l1=5.0)
 sae.to_dictionary(input_mean=mean, input_scale=scale)  # plain arrays, for xaig.latents
 ```

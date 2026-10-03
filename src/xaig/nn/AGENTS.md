@@ -22,7 +22,7 @@ it. Needs the `nn` extra (torch), which a plain `uv sync` leaves out:
 - **Whatever torch evaluates, numpy must too.** A trained module is exported as plain
   arrays and applied by `latents.Dictionary`. A new activation therefore needs a numpy
   twin there, and a test that the two agree (`test_nn.py` has the pattern).
-- **Standardisation travels with the result.** Inputs are centred and scaled before
+- **Standardization travels with the result.** Inputs are centered and scaled before
   training; the mean and scale go into the `Dictionary`, which is handed raw latents.
 - **Train on `iter_batches`, not on `source.load()`:** valid nodes only, drawn by area, so
   the plain mean in the loss is the area-weighted one.

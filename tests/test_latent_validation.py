@@ -1,4 +1,4 @@
-"""One behaviour for what cannot be had: activations that are not numbers where the
+"""One behavior for what cannot be had: activations that are not numbers where the
 grid says they must be, and selections that are empty. Each is a ``RequestError``
 that says what and where, and never a NaN that surfaces three steps later."""
 
@@ -19,7 +19,7 @@ from xaig.latents import (  # noqa: E402
     Box,
     Region,
     accumulate_moments,
-    analyse_region,
+    analyze_region,
     difference,
     difference_growth,
     iter_batches,
@@ -72,7 +72,7 @@ def test_every_reader_of_latents_refuses_a_valid_node_that_is_not_a_number():
         "batches": lambda: list(  # nodes are drawn, so give the poisoned one many chances
             iter_batches(source, layer=1, batch_size=N_NODES, times=[2], epochs=40)
         ),
-        "region": lambda: analyse_region(source, time=2, layer=1, region=WHOLE),
+        "region": lambda: analyze_region(source, time=2, layer=1, region=WHOLE),
         "series": lambda: region_series(source, layer=1, region=WHOLE, channels=[2]),
         "channels": lambda: load_channels(source, time=2, layer=1, channels=[2]),
         "difference": lambda: difference(other, source, time=2, layer=1),
@@ -94,7 +94,7 @@ def test_nothing_selected_is_refused_saying_what_was_empty():
     source, nowhere = _planted(), Region(0.0, 0.0, 1.0)
     empty = {
         "no times selected": lambda: accumulate_moments(source, layer=0, times=[]),
-        "no valid nodes within": lambda: analyse_region(source, time=0, layer=0, region=nowhere),
+        "no valid nodes within": lambda: analyze_region(source, time=0, layer=0, region=nowhere),
         "no valid nodes within 1 km": lambda: region_series(
             source, layer=0, region=nowhere, channels=[0]
         ),

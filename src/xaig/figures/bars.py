@@ -119,8 +119,8 @@ def response_figure(
         draws, bins=np.linspace(0.0, 1.05 * reach, 21), color=_DRAWS, alpha=0.8,
         label=f"{draws.size} random directions",
     )  # fmt: skip
-    for at, text, colour in marks:
-        ax.axvline(at, color=colour, linewidth=2.0, label=text)
+    for at, text, color in marks:
+        ax.axvline(at, color=color, linewidth=2.0, label=text)
     ax.set_xlim(0.0, 1.05 * reach)
     ax.tick_params(labelsize=7, colors=ink, length=2)
     ax.set_xlabel(label, fontsize=8, color=ink)

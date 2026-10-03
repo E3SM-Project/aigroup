@@ -35,7 +35,7 @@ _SAME_DEGREES = 1e-6  # coordinates closer than this are one row, or one column
 def cell_area_weights(lat_1d: np.ndarray) -> np.ndarray:
     """Relative area of each latitude band of a structured grid.
 
-    Band edges sit midway between neighbouring latitudes and at the poles, and a
+    Band edges sit midway between neighboring latitudes and at the poles, and a
     band's area goes as the difference in ``sin(lat)`` across it, in either
     latitude order. These are the exact cell areas of a regular grid, and unlike
     ``cos(lat)`` they do not give a row that sits on a pole zero weight.
@@ -68,7 +68,7 @@ def great_circle_km(lat: np.ndarray, lon: np.ndarray, lat0: float, lon0: float) 
 def small_circle(
     lat0: float, lon0: float, radius_km: float, n: int = 181
 ) -> tuple[np.ndarray, np.ndarray]:
-    """The outline of a region: ``n`` points ``radius_km`` from a centre, as
+    """The outline of a region: ``n`` points ``radius_km`` from a center, as
     ``(lat, lon)`` with longitude in -180..180. It is a circle on the sphere, so
     on a map it flattens toward the poles and may cross the dateline."""
     bearing = np.linspace(0.0, 2.0 * np.pi, n)

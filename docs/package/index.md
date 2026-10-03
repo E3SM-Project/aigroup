@@ -121,8 +121,8 @@ source.load(0, 8, nodes=nodes)  # one region of one layer, and nothing else
 
 ## Reusing a fitted basis
 
-A PCA fitted by `analyse_region(..., n_components=2)` accepts raw latents, even
-when the analysis uses `centred=True`. Centring changes channel ranking and similarity;
+A PCA fitted by `analyze_region(..., n_components=2)` accepts raw latents, even
+when the analysis uses `centered=True`. Centering changes channel ranking and similarity;
 the basis carries its own mean. Save `result.pca` with `save_basis` and reload it with
 `load_basis` to reuse it through `basis=` or the region command's `--basis` option.
 The file retains the fitting layer, time, region and source provenance automatically.

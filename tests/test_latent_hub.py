@@ -90,13 +90,13 @@ def test_a_hub_with_no_commit_to_name_is_refused(hub):
 
 
 def test_the_commit_reaches_every_result_a_hub_source_makes(hub):
-    from xaig.latents import Region, analyse_region, difference, region_series
+    from xaig.latents import Region, analyze_region, difference, region_series
 
     here = Region(lat=7.5, lon=45.0, radius_km=2500.0)
     source = open_source(URL, revision="v1")
     expected = {"requested": "v1", "commit": "def"}
-    analysed = analyse_region(source, time=0, layer=2, region=here)
-    assert analysed.summary()["provenance"]["revision"] == expected
+    analyzed = analyze_region(source, time=0, layer=2, region=here)
+    assert analyzed.summary()["provenance"]["revision"] == expected
     assert region_series(source, layer=2, region=here).provenance["revision"] == expected
     # A comparison names the commit of each side: the two may be different revisions.
     paired = difference(source, open_source(URL), layer=2, time=0, allow_unverified=True)

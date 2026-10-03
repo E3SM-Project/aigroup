@@ -65,14 +65,14 @@ def test_a_regions_series_is_its_weighted_mean_at_every_time(latent_archive):
     assert series.times == tuple(LATENT_TIMES) and series.columns == (4, 1)
     assert series.elapsed_seconds == (0.0, 21600.0)
     assert series.values[0, 1] == pytest.approx(50.0, abs=0.1)  # the offset...
-    centred = region_series(source, layer=2, region=HERE, channels=[4, 1], centred=True)
-    assert abs(centred.values[0, 1]) < 0.05  # ...gone, and the bump less its own global mean
+    centered = region_series(source, layer=2, region=HERE, channels=[4, 1], centered=True)
+    assert abs(centered.values[0, 1]) < 0.05  # ...gone, and the bump less its own global mean
     removed = grid.mean(source.load(0, 2))[4]
-    assert centred.values[0, 0] == pytest.approx(series.values[0, 0] - removed, abs=1e-5)
+    assert centered.values[0, 0] == pytest.approx(series.values[0, 0] - removed, abs=1e-5)
     json.dumps(series.summary())
 
 
-def test_an_uncentred_series_reads_only_the_region(latent_archive):
+def test_an_uncentered_series_reads_only_the_region(latent_archive):
     real = open_source(latent_archive)
     asked = []
 
@@ -162,13 +162,13 @@ def test_runs_that_cannot_be_set_against_each_other_are_refused(pair, tmp_path):
 
 
 def test_the_experiment_and_the_way_it_was_read_travel_with_every_result(tmp_path):
-    from xaig.latents import analyse_region
+    from xaig.latents import analyze_region
 
     mask = np.arange(N_LAT * N_LON) % 3 != 0
     path = write_latent_archive(tmp_path / "a", mask=mask, experiment={"seed": 7})
     plain = open_source(path).info().provenance()
     assert plain["experiment"] == {"seed": 7} and "options" not in plain
-    result = analyse_region(open_source(path), time=0, layer=2, region=HERE)
+    result = analyze_region(open_source(path), time=0, layer=2, region=HERE)
     assert result.provenance["experiment"] == {"seed": 7} and result.provenance["xaig"]
     assert open_source(path).info().name == "toy-emulator · atmosphere"
 
@@ -313,7 +313,7 @@ def test_cli_info_shows_what_was_done_to_the_run(pair):
 
 
 def test_a_basis_written_here_is_usable_there(tmp_path, latent_archive):
-    """The round trip a basis file is for: fit, save, load, analyse."""
+    """The round trip a basis file is for: fit, save, load, analyze."""
     source = open_source(latent_archive)
     path = save_basis(tmp_path / "b.npz", pca_from_moments(accumulate_moments(source, layer=2), 2))
     assert region_series(source, layer=2, region=HERE, basis=load_basis(path)).values.shape == (

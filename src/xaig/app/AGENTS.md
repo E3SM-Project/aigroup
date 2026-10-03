@@ -16,7 +16,7 @@ import `core`, `latents` and `figures`; **nothing may import it**.
 - **A method is a choice, not a page.** Features come from whatever `Decomposition` the
   sidebar names — a PCA fitted in the region, a basis file — through the one `basis=`
   argument of the `latents` routines. A new method needs no new view.
-- **Name models, not paths.** The archive drop-down is labelled from each manifest's model
+- **Name models, not paths.** The archive drop-down is labeled from each manifest's model
   and component; `--latents` takes a directory of archives as readily as one.
 - **Catch `RequestError`, nothing wider.** It becomes a warning on the page. A bare
   `ValueError` is a bug in `latents` and has to surface as one.

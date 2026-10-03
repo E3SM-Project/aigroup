@@ -1,6 +1,6 @@
 """Through time, and between two runs.
 
-``analyse_region`` is a snapshot. These ask the questions a perturbation or a
+``analyze_region`` is a snapshot. These ask the questions a perturbation or a
 steering experiment raises: how does a region's response evolve from one physics
 step to the next, which channels did the change reach, and how fast does the
 difference from the control grow?
@@ -13,7 +13,7 @@ in its noise is the baseline a difference has to clear.
 
 Two views through time: a storyline (how closely each layer follows a physical
 field, time by time) and a Hovmoller diagram (one quantity along a latitude band,
-longitude against time), which is how travelling waves show themselves.
+longitude against time), which is how traveling waves show themselves.
 """
 
 from __future__ import annotations
@@ -85,14 +85,14 @@ def region_series(
     basis: Decomposition | None = None,
     features: Sequence[int] | None = None,
     times: Sequence[str | int] | None = None,
-    centred: bool = False,
+    centered: bool = False,
     allow_unverified_basis: bool = False,
 ) -> RegionSeries:
     """The area-weighted mean over a region, at every time, of some channels --
     or, given a ``basis``, of some of its ``features``.
 
-    Uncentred, only the region's nodes are read, so a series over every time of
-    an archive costs a few MB. ``centred`` removes each channel's global mean at
+    Uncentered, only the region's nodes are read, so a series over every time of
+    an archive costs a few MB. ``centered`` removes each channel's global mean at
     each time, which takes a full read per time. A basis sees raw latents, as it
     does everywhere, and is checked as it is everywhere (``check_basis_fits``):
     ``allow_unverified_basis`` lets one through that does not say where it was
@@ -121,7 +121,7 @@ def region_series(
             local = basis.transform(
                 read_latents(source, label, layer, nodes=nodes), features=columns
             )
-        elif centred:
+        elif centered:
             full = read_latents(source, label, layer, channels=list(columns))
             local = (full - grid.mean(full))[nodes]
         else:
@@ -131,7 +131,7 @@ def region_series(
         "layer": layer,
         "region": asdict(region),
         "columns": "features" if basis is not None else "channels",
-        "centred": bool(centred and basis is None),
+        "centered": bool(centered and basis is None),
         "basis": None if basis is None else basis.meta.get("path"),
         "allow_unverified_basis": allow_unverified_basis,
     }
@@ -379,7 +379,7 @@ def correlate_field(
     Nodes where the field is NaN or the weight is zero are left out, which is
     how land drops out of a correlation with sea-surface temperature. A channel
     that does not vary -- every counted node holds the same number -- reads NaN,
-    and that is the only one that does: each channel is centred on its own mean
+    and that is the only one that does: each channel is centered on its own mean
     before its moments are taken, so an offset of a million takes nothing from a
     variation of one.
     """
@@ -665,7 +665,7 @@ class Hovmoller:
 
     ``values`` is ``(n_times, n_lon)``, area-weighted over the band's valid nodes
     (NaN where a column has none); ``lon`` the columns' longitudes, in the grid's
-    own order. Tilted stripes are something travelling: their slope is its speed."""
+    own order. Tilted stripes are something traveling: their slope is its speed."""
 
     settings: dict[str, Any]
     provenance: dict[str, Any]

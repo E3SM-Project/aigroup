@@ -16,7 +16,7 @@ matters to whatever reads its latents:
 One thing is planted, so that an analysis has a known right answer: channel
 ``STORM_CHANNEL`` carries the storm, from the encoder to the last block, and
 precipitation is read off it. ``OFFSET_CHANNEL`` sits on a constant, which is
-what centring is for. The rest is seeded noise.
+what centering is for. The rest is seeded noise.
 
     from xaig.latents.toy import write_toy
 
@@ -96,7 +96,7 @@ def parse_steps(text: str) -> tuple[int, ...]:
 
 
 def toy_grid(n_lat: int = 24, n_lon: int = 48) -> Grid:
-    """Gaussian latitudes, south to north; cell-centred longitudes in -180..180."""
+    """Gaussian latitudes, south to north; cell-centered longitudes in -180..180."""
     nodes, _ = np.polynomial.legendre.leggauss(n_lat)
     lat_1d = np.degrees(np.arcsin(nodes))
     lon_1d = -180.0 + (np.arange(n_lon) + 0.5) * (360.0 / n_lon)
@@ -170,7 +170,7 @@ def toy_run(
     """Roll the toy forward ``n_steps`` and keep the steps asked for.
 
     Step ``k`` (from 1) takes the state at ``t_(k-1)`` to ``t_k``; what it held is
-    labelled ``t_k``. ``steer`` is ``(layer, channel, amount)``, added at every node
+    labeled ``t_k``. ``steer`` is ``(layer, channel, amount)``, added at every node
     and every step: a twin of the same seed without it is its control.
     """
     kept = tuple(sorted(set(int(k) for k in keep)))

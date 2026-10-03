@@ -407,7 +407,7 @@ def test_a_transcoder_is_measured_against_the_layer_it_writes():
         evaluate_basis(transcoder, source, _split(), layer=0, allow_unverified_basis=True)
 
 
-# -- serialisation and provenance --------------------------------------------------------
+# -- serialization and provenance --------------------------------------------------------
 
 
 def test_results_are_json_with_the_split_and_the_basis_that_made_them(tmp_path):

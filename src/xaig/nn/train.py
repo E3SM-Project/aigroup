@@ -87,11 +87,11 @@ def fit_sae(
 ) -> Dictionary:
     """Train on ``layer`` of ``source`` and return the dictionary.
 
-    Inputs are centred on the layer's area-weighted mean over the times used and
+    Inputs are centered on the layer's area-weighted mean over the times used and
     divided by one number, so that a node's vector has unit mean square per
     channel; the channels keep their relative sizes. ``l1`` is on that scale.
     Feature directions are kept at unit length throughout, so an activation is in
-    the same units for every feature: how much of the (standardised) layer it
+    the same units for every feature: how much of the (standardized) layer it
     accounts for at that node.
     With ``target_layer`` the block learns to write that layer instead of
     rebuilding its input: a transcoder.
@@ -126,11 +126,11 @@ def fit_sae(
     model = SparseAutoencoder(
         n_inputs, n_features, n_outputs=n_outputs, activation=activation, k=k
     ).to(where)
-    optimiser = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     mean_in = torch.as_tensor(moments.mean, dtype=torch.float32, device=where)
     mean_out = torch.as_tensor(goal.mean, dtype=torch.float32, device=where)
 
-    def standardised(batch):
+    def standardized(batch):
         if target_layer is None:
             x = (torch.as_tensor(batch, device=where) - mean_in) / moments.scale
             return x, None
@@ -152,12 +152,12 @@ def fit_sae(
         last = epoch == epochs - 1
         tally = _Tally(n_features, where)
         for batch in batches_of(epoch):
-            x, target = standardised(batch)
+            x, target = standardized(batch)
             total, error, features = model.loss(x, target, l1=l1)
-            optimiser.zero_grad()
+            optimizer.zero_grad()
             total.backward()
-            optimiser.step()
-            model.normalise_decoder()
+            optimizer.step()
+            model.normalize_decoder()
             step += 1
             if progress is not None and step % 25 == 0:
                 progress(step, float(error.detach()))
@@ -171,7 +171,7 @@ def fit_sae(
     tally = _Tally(n_features, where)
     with torch.no_grad():
         for batch in batches_of(epochs - 1):
-            x, target = standardised(batch)
+            x, target = standardized(batch)
             _, error, features = model.loss(x, target, l1=0.0)
             tally.add(x if target is None else target, error, features)
     metrics = tally.metrics()

@@ -1,6 +1,6 @@
 # Evaluating a dictionary
 
-A sparse dictionary scored on the nodes it was fitted to says how well it memorised them.
+A sparse dictionary scored on the nodes it was fitted to says how well it memorized them.
 `xaig.latents.evaluate` scores a *frozen* basis on times it never saw, and says what each
 number does and does not tell you. It is an API first (`evaluate_basis`, `seed_stability`,
 `fidelity_curve` return objects and print nothing) and `xaig latents evaluate` is a client
@@ -16,7 +16,7 @@ training the seeds and sweeps it compares is [`xaig.nn`](nn.md)'s.
    held-out one). The alternatives are whole trajectories (`split_groups`) and a whole other
    archive of the same network (`split_archives`). A split is a list of time labels, and
    every result carries it.
-2. **Fit on the training times only.** The standardisation, a PCA, a dictionary:
+2. **Fit on the training times only.** The standardization, a PCA, a dictionary:
    `fit_sae(times=split.train)`, `accumulate_moments(times=split.train)`. The basis file
    records the times it was fitted on, and `evaluate_basis` refuses one that lists a
    held-out time. A basis that records none is scored and marked `fitted_on: unknown`:
@@ -95,7 +95,7 @@ that only the held-out data wakes is evidence the splits differ.
 **Redundancy** is the largest signed cosine between a feature's decoder direction and any
 other's; `n_near_duplicates` counts features with one at or above `--duplicate-above`
 (0.95), and `n_pairs` the pairs. It is a property of the directions, computed blockwise,
-and it includes dead features, whose directions are whatever initialisation left. An
+and it includes dead features, whose directions are whatever initialization left. An
 opposite direction is not a duplicate: activations are not negative. It finds copies, not
 features that are *combinations* of others.
 

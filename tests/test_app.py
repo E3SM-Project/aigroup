@@ -119,11 +119,11 @@ def test_the_latent_view_shows_the_analysis(monkeypatch, latent_archive):
 
 
 def test_changing_a_control_changes_the_result(monkeypatch, latent_archive):
-    """Centred by default, the planted bump wins; uncentred, the constant offset does."""
+    """Centered by default, the planted bump wins; uncentered, the constant offset does."""
     monkeypatch.setenv(LATENTS_ENV, str(latent_archive))
     at = _at_the_bump(_run())
     assert at.dataframe[0].value["channel"].iloc[0] == 4
-    _widget(at.sidebar.checkbox, "Centre channels").set_value(False)
+    _widget(at.sidebar.checkbox, "Center channels").set_value(False)
     at.run()
     assert not at.exception
     assert at.dataframe[0].value["channel"].iloc[0] == 1
@@ -134,7 +134,7 @@ def test_what_is_on_screen_can_be_reproduced_off_screen(monkeypatch, latent_arch
     at = _at_the_bump(_run())
     command, python = (block.value for block in at.code[:2])
     shown = json.loads(at.json[0].value)
-    assert shown["settings"]["centred"] is True and shown["provenance"]["checkpoint"] == "toy.ckpt"
+    assert shown["settings"]["centered"] is True and shown["provenance"]["checkpoint"] == "toy.ckpt"
 
     # Not "looks like a command": run it, and it must say what the app says.
     argv = shlex.split(command.replace("\\\n", " "))
@@ -456,7 +456,7 @@ def test_a_reproduction_pins_the_commit_and_the_basis_it_came_from(hub, tmp_path
     from xaig.latents import (
         Region,
         accumulate_moments,
-        analyse_region,
+        analyze_region,
         load_basis,
         open_source,
         pca_from_moments,
@@ -470,7 +470,7 @@ def test_a_reproduction_pins_the_commit_and_the_basis_it_came_from(hub, tmp_path
     )
     basis = load_basis(basis_path)
     here = {"lat": 7.5, "lon": 45.0, "radius_km": 2500.0}
-    result = analyse_region(
+    result = analyze_region(
         source, time=0, layer=2, region=Region(**here), n_components=2, basis=basis
     )
     settings = result.settings

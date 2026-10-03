@@ -145,9 +145,9 @@ def test_load_channels_is_ready_to_map(tmp_path):
     raw = load_channels(source, time=0, layer=2, channels=[1, 4])
     assert raw.shape == (12 * 24, 2) and np.isnan(raw[~mask]).all()
     assert np.nanmean(raw[:, 0]) == pytest.approx(50.0, abs=0.1)  # the planted offset...
-    centred = load_channels(source, time=0, layer=2, channels=[1, 4], centred=True)
-    assert abs(source.grid().mean(np.nan_to_num(centred))[0]) < 1e-6  # ...gone
-    assert np.nanargmax(centred[:, 1]) == source.grid().nearest(*BUMP)
+    centered = load_channels(source, time=0, layer=2, channels=[1, 4], centered=True)
+    assert abs(source.grid().mean(np.nan_to_num(centered))[0]) < 1e-6  # ...gone
+    assert np.nanargmax(centered[:, 1]) == source.grid().nearest(*BUMP)
 
 
 # -- series ---------------------------------------------------------------------

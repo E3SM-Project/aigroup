@@ -2,7 +2,7 @@
 
 This is the seam between running a model and studying it. Recording activations
 needs the model's own environment (torch, the framework, a checkpoint, often a
-different Python); analysing them needs numpy. An exporter on one side writes
+different Python); analyzing them needs numpy. An exporter on one side writes
 latents down, an adapter on the other reads them back through this protocol, and
 nothing here ever imports a model.
 
@@ -210,7 +210,7 @@ class LatentSource(Protocol):
     1-degree model is 0.9 GB, while a region of one layer is a few hundred KB. An
     implementation should read only what was asked for.
 
-    The array returned is new and the caller's to modify: analyses centre it in
+    The array returned is new and the caller's to modify: analyses center it in
     place rather than hold a second copy.
     """
 
@@ -285,7 +285,7 @@ def read_latents(
     say so (an exporter that wrote NaN for land and forgot the mask, a run that
     diverged), and one such value would turn every mean, moment and loss it
     touches into NaN, far from the cause. It is refused here, naming the layer, the
-    time and the channels, so everything that reads latents to analyse or train on
+    time and the channels, so everything that reads latents to analyze or train on
     reads them through this.
     """
     values = source.load(time, layer, channels=channels, nodes=nodes)
