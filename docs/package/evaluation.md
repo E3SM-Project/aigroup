@@ -64,6 +64,13 @@ features active rebuilds 93% of a held-out layer where two principal components 
 Nothing is hidden by the training columns being higher: that gap is what a held-out
 split is for. `--out FILE` (and `--json`) write all of it with its provenance.
 
+**Pinning what was scored.** Each `--basis` may be followed by a `--basis-sha256 HASH` (the
+`xaig nn sae` and `latents pca` commands print it when they write a file): give one per
+`--basis`, matched by position, or none; a different count is refused, and a file whose
+content has another hash is refused when it is loaded. The command ends with a
+`reproduce:` line that repeats the whole invocation with the hash of every basis scored,
+so a reader can assert which file produced a table.
+
 ## What each number tells you, and what it does not
 
 **Explained variance** is one minus the area-weighted squared error over the variance of
@@ -102,8 +109,19 @@ features that are *combinations* of others.
 trainings one to one by decoder cosine (the Hungarian method, in numpy), and reports the
 matched cosines and the share at or above `--recur-above`. Read it against
 `chance_similarity`, the same matching against random directions: forced pairings of
-unrelated unit vectors in few channels find high cosines by luck (on the toy, a median of
-0.49 against 0.59 for two real seeds, which is little). The bases must say they were
+unrelated unit vectors in few channels find high cosines by luck. On the toy, two seeds of
+the same dictionary (`--seed 0` and `--seed 1` of the `xaig nn sae` command above, `--k 4`)
+give a median matched cosine of 0.585 where random directions give 0.488 (chance), so the
+real seeds are only a little above chance and 6.2% of their features recur at 0.9:
+
+```console
+$ xaig latents evaluate scratch/ev/control --blocks 4 \
+    --basis scratch/ev/seed0.npz --basis scratch/ev/seed1.npz --stability
+...
+stability of 2 bases: 6.2% of matched features at cosine >= 0.9 (median 0.585; random directions 0.488)
+```
+
+The bases must say they were
 fitted to one place in one network, and `same_training_times` says whether they saw the
 same data. A feature that does not recur may still be a good one: a dictionary has many
 equally good bases, and a seed that finds another is not a failure. A feature that does

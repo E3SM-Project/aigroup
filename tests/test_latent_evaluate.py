@@ -243,7 +243,23 @@ def test_duplicated_decoder_rows_are_flagged_and_an_opposite_is_not():
     assert redundancy(dictionary, threshold=0.99).to_dict()["n_pairs"] == 1
 
 
+def test_exact_copies_meet_a_threshold_of_one_at_any_width():
+    rng = np.random.default_rng(3)
+    decoder = rng.normal(size=(50, 300))
+    decoder = np.vstack([decoder, decoder[:5]])  # five exact copies: ten rows in pairs
+    dictionary = Dictionary(decoder, np.zeros(55), decoder, np.zeros(300), np.zeros(300))
+    found = redundancy(dictionary, threshold=1.0)
+    assert found.n_near_duplicates == 10 and found.n_pairs == 5
+    partner, cosine = match_features(dictionary, dictionary)
+    assert partner.tolist() == list(range(55)) and cosine.min() > 1 - 1e-12
+
+
 # -- the matching -------------------------------------------------------------------
+
+
+def test_the_assignment_refuses_more_rows_than_columns():
+    with pytest.raises(RequestError, match="no more rows"):
+        assign(np.zeros((3, 2)))
 
 
 @pytest.mark.parametrize("shape", [(5, 5), (4, 7), (6, 6)])
@@ -488,3 +504,44 @@ def test_the_command_lists_the_split_then_scores_what_was_fitted_on_it(tmp_path)
     twins = run.invoke(cli, [*base, "--basis", str(tmp_path / "a.npz"), "--basis",
                              str(tmp_path / "a.npz"), "--stability"])  # fmt: skip
     assert twins.exit_code == 0 and "100.0% of matched features" in twins.output
+
+
+def test_the_command_checks_each_basis_against_its_pin_and_prints_them(tmp_path):
+    from click.testing import CliRunner
+
+    from xaig._cli import cli
+
+    run = CliRunner()
+    archive = str(tmp_path / "toy")
+    assert run.invoke(cli, ["latents", "toy", archive]).exit_code == 0
+    paths, hashes = [], []
+    for name, components in (("a.npz", "2"), ("b.npz", "3")):
+        out = str(tmp_path / name)
+        done = run.invoke(
+            cli, ["latents", "pca", archive, "--components", components, "--time", "0",
+                  "--time", "1", "--out", out]
+        )  # fmt: skip
+        assert done.exit_code == 0, done.output
+        paths.append(out)
+        hashes.append(done.output.rsplit("--basis-sha256 ", 1)[1].strip())
+    base = ["latents", "evaluate", archive, "--blocks", "4"]
+    both = ["--basis", paths[0], "--basis", paths[1]]
+
+    right = run.invoke(
+        cli, [*base, *both, "--basis-sha256", hashes[0], "--basis-sha256", hashes[1]]
+    )
+    assert right.exit_code == 0, right.output
+    line = right.output.strip().splitlines()[-1]
+    assert line.startswith("reproduce: xaig latents evaluate ")
+    for path, digest in zip(paths, hashes, strict=True):
+        assert f"--basis {path} --basis-sha256 {digest}" in line
+
+    swapped = run.invoke(
+        cli, [*base, *both, "--basis-sha256", hashes[1], "--basis-sha256", hashes[0]]
+    )
+    assert swapped.exit_code == 1 and "this is not the basis" in swapped.output
+    short = run.invoke(cli, [*base, *both, "--basis-sha256", hashes[0]])
+    assert short.exit_code == 1 and short.output.startswith("Error: 1 --basis-sha256 for 2")
+    # unpinned still works, and the line it prints pins what it scored
+    unpinned = run.invoke(cli, [*base, *both])
+    assert unpinned.exit_code == 0 and hashes[1] in unpinned.output

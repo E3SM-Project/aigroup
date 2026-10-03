@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import functools
 import json
+import shlex
 from pathlib import Path
 
 import click
@@ -802,6 +803,11 @@ def _percent(value: float | None) -> str:
     "--pca", "pca_text", metavar="K,K,...",
     help="Fit a PCA on the training times at these ranks, and set the bases against it.",
 )  # fmt: skip
+@click.option(
+    "--basis-sha256", "basis_hashes", multiple=True, metavar="HASH",
+    help="Refuse the --basis file in the same position unless its content has this sha256; "
+    "give one per --basis, or none (the printed reproduce line gives them).",
+)  # fmt: skip
 @click.option("--stability", is_flag=True, help="Match the features of the bases to each other.")
 @click.option("--recur-above", type=float, default=0.9, show_default=True,
               help="Cosine at which a matched feature recurs.")  # fmt: skip
@@ -814,8 +820,8 @@ def _percent(value: float | None) -> str:
 @_json_option
 def evaluate_cmd(
     source, adapter, mask_variable, layer, blocks, test_blocks, gap, split_only, basis_paths,
-    pca_text, stability, recur_above, active_above, duplicate_above, out, allow_unverified_basis,
-    as_json,
+    basis_hashes, pca_text, stability, recur_above, active_above, duplicate_above, out,
+    allow_unverified_basis, as_json,
 ):  # fmt: skip
     """Score frozen bases on times they were not fitted on.
 
@@ -825,6 +831,7 @@ def evaluate_cmd(
     near-duplicate features. --pca sets them against a PCA fitted here, on the
     training times only; --stability matches the bases to each other.
     """
+    from xaig.core.errors import RequestError
     from xaig.latents import (
         Dictionary,
         evaluate_basis,
@@ -835,6 +842,11 @@ def evaluate_cmd(
     )
     from xaig.latents.evaluate import jsonable
 
+    if basis_hashes and len(basis_hashes) != len(basis_paths):
+        raise RequestError(
+            f"{len(basis_hashes)} --basis-sha256 for {len(basis_paths)} --basis: "
+            "give one per --basis, in the same order, or none"
+        )
     opened = open_for_cli(source, adapter, mask_variable)
     info = opened.info()
     layer = info.last_layer if layer is None else layer
@@ -846,7 +858,12 @@ def evaluate_cmd(
         "split": split.to_dict(),
         "provenance": result_provenance(info),
     }
-    bases = [_basis(path, pinned=False) for path in basis_paths]
+    from xaig.latents import basis_hash, load_basis
+
+    bases = [
+        load_basis(path, sha256=basis_hashes[i] if basis_hashes else None)
+        for i, path in enumerate(basis_paths)
+    ]
     ranks = _ints(pca_text) if pca_text else []
     if not split_only:
         if not bases and not ranks:
@@ -890,6 +907,22 @@ def evaluate_cmd(
     if split_only:
         click.echo("\ntrain  " + "\n       ".join(split.train))
         return
+    reproduce = ["xaig latents evaluate", shlex.quote(source)]
+    if adapter != "latent-archive":
+        reproduce.append(f"--adapter {shlex.quote(adapter)}")
+    if mask_variable:
+        reproduce.append(f"--mask-variable {shlex.quote(mask_variable)}")
+    if _remembered("revision"):
+        reproduce.append(f"--revision {shlex.quote(_remembered('revision'))}")
+    reproduce.append(f"--layer {layer} --blocks {blocks} --gap {gap}")
+    reproduce += [f"--test-block {b}" for b in test_blocks]
+    for path, b in zip(basis_paths, bases, strict=True):
+        reproduce.append(f"--basis {shlex.quote(path)} --basis-sha256 {basis_hash(b)}")
+    if pca_text:
+        reproduce.append(f"--pca {pca_text}")
+    if stability:
+        reproduce.append(f"--stability --recur-above {recur_above:g}")
+    reproduce.append(f"--active-above {active_above:g} --duplicate-above {duplicate_above:g}")
     rows = [
         {
             "basis": Path(p).name, "features": e["n_features"], "fitted": e["fitted_on"],
@@ -922,6 +955,7 @@ def evaluate_cmd(
             f"(median {s['matched_similarity']['median']:.3f}; random directions "
             f"{s['chance_similarity']['median']:.3f})"
         )
+    click.echo("\nreproduce: " + " ".join(reproduce))
 
 
 __all__ = ["latents"]
