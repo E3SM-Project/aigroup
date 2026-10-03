@@ -382,8 +382,11 @@ class Redundancy:
         }
 
 
+_ROUNDING = 1e-9  # a copy's cosine is 1 only to within float64 rounding
+
+
 def _unit_rows(directions: np.ndarray) -> tuple[np.ndarray, int]:
-    rows = np.asarray(directions, dtype=np.float32)
+    rows = np.asarray(directions, dtype=np.float64)  # float32 puts a copy's cosine under 1
     norm = np.linalg.norm(rows, axis=1, keepdims=True)
     return np.divide(rows, norm, out=np.zeros_like(rows), where=norm > 0.0), int(
         np.count_nonzero(norm == 0.0)
@@ -407,12 +410,12 @@ def redundancy(basis: Decomposition, *, threshold: float = 0.95) -> Redundancy:
         cosine[rows, rows + start] = -np.inf  # itself
         nearest[start : start + _BLOCK] = cosine.argmax(axis=1)
         best[start : start + _BLOCK] = cosine.max(axis=1)
-        pairs += int(np.count_nonzero(cosine >= threshold))
+        pairs += int(np.count_nonzero(cosine >= threshold - _ROUNDING))
     return Redundancy(
         max_cosine=best,
         nearest=nearest,
         threshold=threshold,
-        n_near_duplicates=int(np.count_nonzero(best >= threshold)),
+        n_near_duplicates=int(np.count_nonzero(best >= threshold - _ROUNDING)),
         n_pairs=pairs // 2,
         n_zero=n_zero,
     )
@@ -539,7 +542,7 @@ def assign(cost: np.ndarray) -> np.ndarray:
     cost = np.asarray(cost, dtype=np.float64)
     n, m = cost.shape
     if n > m:
-        raise ValueError("assign wants no more rows than columns")
+        raise RequestError("assign wants no more rows than columns")
     u, v = np.zeros(n + 1), np.zeros(m + 1)
     owner, way = np.zeros(m + 1, dtype=np.intp), np.zeros(m + 1, dtype=np.intp)
     for row in range(1, n + 1):
