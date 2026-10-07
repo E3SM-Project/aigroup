@@ -63,11 +63,18 @@ exclude_docs: |
 
 plugins:
   - search
-  # The package pages were renamed with their subpackages; old links still land.
+  # The package moved to its own repository as exege; old links land on its pages.
   - redirects:
       redirect_maps:
-        package/taig.md: package/nn.md
-        package/waig.md: package/app.md
+        package/index.md: https://mahf708.github.io/exege/
+        package/latents.md: https://mahf708.github.io/exege/latents/
+        package/nn.md: https://mahf708.github.io/exege/nn/
+        package/evaluation.md: https://mahf708.github.io/exege/evaluation/
+        package/steering.md: https://mahf708.github.io/exege/steering/
+        package/records.md: https://mahf708.github.io/exege/records/
+        package/app.md: https://mahf708.github.io/exege/app/
+        package/taig.md: https://mahf708.github.io/exege/nn/
+        package/waig.md: https://mahf708.github.io/exege/app/
   - social:
       # Cards are drawn with cairo, a system library. CI has it; a laptop may not:
       #   MKDOCS_SOCIAL=false uv run --group docs mkdocs build --strict
@@ -144,12 +151,4 @@ nav:
       - ACE2-EAMv3 Inference: ace2-inference.md
       - SamudrACE-E3SMv3 Coupled Inference: samudrace-inference.md
       - E3SM branch runs: e3sm-branch-runs.md
-  - Package:
-      - Overview: package/index.md
-      - Latent diagnostics: package/latents.md
-      - Sparse autoencoders: package/nn.md
-      - Evaluating a dictionary: package/evaluation.md
-      - Steering: package/steering.md
-      - Experiment records: package/records.md
-      - Web app: package/app.md
-
+  - exege: https://mahf708.github.io/exege/
